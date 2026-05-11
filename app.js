@@ -360,7 +360,7 @@ function openDetail(id) {
       </div>
 
       <div class="detail-actions">
-        <a class="primary-action" href="${item.source}" target="_blank" rel="noreferrer">공식 페이지</a>
+        <a class="primary-action" href="${item.source}" target="_blank" rel="noopener noreferrer">공식 페이지</a>
         <button class="secondary-action" type="button" id="saveDetail">${isSaved ? "저장 해제" : "저장"}</button>
       </div>
     </article>
