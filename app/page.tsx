@@ -28,6 +28,7 @@ const appMarkup = `
           <button class="chip is-active" data-date="today" type="button">오늘</button>
           <button class="chip" data-date="week" type="button">이번 주</button>
           <button class="chip" data-date="weekend" type="button">주말</button>
+          <button class="chip" data-date="nextweek" type="button">다음 주</button>
           <button class="chip" data-date="anytime" type="button">언제든</button>
         </div>
 
@@ -73,8 +74,8 @@ const appMarkup = `
 
       <section class="summary-band" aria-label="추천 요약">
         <div>
-          <p class="eyebrow">오늘의 추천</p>
-          <h2>낮잠 전후로 다녀오기 좋은 곳</h2>
+          <p class="eyebrow" id="summaryEyebrow">오늘의 추천</p>
+          <h2 id="summaryTitle">낮잠 전후로 다녀오기 좋은 곳</h2>
         </div>
         <p id="resultSummary">8개 후보를 찾았어요.</p>
       </section>
@@ -121,7 +122,7 @@ export default function Home() {
   return (
     <>
       <div dangerouslySetInnerHTML={{ __html: appMarkup }} />
-      <Script src="/app.js?v=2" strategy="afterInteractive" />
+      <Script src="/app.js?v=3" strategy="afterInteractive" />
     </>
   );
 }

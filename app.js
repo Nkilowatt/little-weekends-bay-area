@@ -184,6 +184,201 @@ const outings = [
       stroller: "흙길이 많아 왜건 또는 아기띠가 나을 수 있어요."
     },
     location: { lat: 37.4636, lng: -122.4286 }
+  },
+  {
+    id: "hillsdale-toddler-2026-07-13",
+    name: "Hillsdale Toddler Storytime",
+    type: "storytime",
+    setting: "indoor",
+    dateBucket: "nextweek",
+    startDate: "2026-07-13T10:30:00-07:00",
+    timeLabel: "7월 13일 월요일 10:30 AM",
+    city: "San Mateo",
+    distance: 2.1,
+    age: "18개월-3세",
+    price: "free",
+    reservation: "예약 불필요 · 정원 35명",
+    source: "https://www.cityofsanmateo.org/4256/Childrens-Programs-and-Storytimes",
+    sourceName: "San Mateo Public Library",
+    updated: "7월 10일 공식 확인",
+    why: "가장 가까운 다음 주 평일 오전 일정으로, 노래와 짧은 이야기를 편하게 즐기기 좋아요.",
+    notes: {
+      parking: "Hillsdale Library 주변 주차 옵션을 확인하고 조금 일찍 도착하세요.",
+      bathroom: "도서관 내 화장실 이용 가능.",
+      stroller: "정원이 35명이라 입구가 붐빌 수 있어 접이식 유모차가 편해요."
+    },
+    location: { lat: 37.5376, lng: -122.3051 }
+  },
+  {
+    id: "ssf-toddler-2026-07-14",
+    name: "South San Francisco Toddler Storytime",
+    type: "storytime",
+    setting: "indoor",
+    dateBucket: "nextweek",
+    startDate: "2026-07-14T10:30:00-07:00",
+    timeLabel: "7월 14일 화요일 10:30 AM",
+    city: "South San Francisco",
+    distance: 12.6,
+    age: "18개월-6세",
+    price: "free",
+    reservation: "예약 불필요",
+    source: "https://www.ssfca.gov/Events/0726-Toddler-Storytime",
+    sourceName: "City of South San Francisco",
+    updated: "7월 10일 공식 확인",
+    why: "이야기와 노래를 30분 동안 진행해 긴 프로그램이 아직 어려운 아이에게 잘 맞아요.",
+    notes: {
+      parking: "Civic Campus 주차장을 이용할 수 있어요.",
+      bathroom: "도서관과 공원·레크리에이션 센터 내 화장실 이용 가능.",
+      stroller: "2층 Youth Library까지 엘리베이터 동선을 이용하세요."
+    },
+    location: { lat: 37.6547, lng: -122.4077 }
+  },
+  {
+    id: "shoreview-storytime-2026-07-15",
+    name: "Storytime in the Park at Shoreview",
+    type: "storytime",
+    setting: "outdoor",
+    dateBucket: "nextweek",
+    startDate: "2026-07-15T10:30:00-07:00",
+    timeLabel: "7월 15일 수요일 10:30 AM",
+    city: "San Mateo",
+    distance: 4.7,
+    age: "0-5세",
+    price: "free",
+    reservation: "예약 불필요",
+    source: "https://www.cityofsanmateo.org/4256/Childrens-Programs-and-Storytimes",
+    sourceName: "San Mateo Public Library",
+    updated: "7월 10일 공식 확인",
+    why: "Shoreview Park 잔디에서 책과 바깥놀이를 한 번에 해결할 수 있는 가까운 오전 일정이에요.",
+    notes: {
+      parking: "950 Ocean View Avenue 주변 공원 주차 상황을 확인하세요.",
+      bathroom: "공원 화장실 운영 여부를 방문 전에 확인하세요.",
+      stroller: "야외 잔디 구간을 고려해 큰 바퀴 유모차나 돗자리가 편해요."
+    },
+    location: { lat: 37.5746, lng: -122.2994 }
+  },
+  {
+    id: "grand-pajama-2026-07-15",
+    name: "Grand Pajama Storytime",
+    type: "storytime",
+    setting: "indoor",
+    dateBucket: "nextweek",
+    startDate: "2026-07-15T18:00:00-07:00",
+    timeLabel: "7월 15일 수요일 6:00 PM",
+    city: "South San Francisco",
+    distance: 12.2,
+    age: "가족",
+    price: "free",
+    reservation: "예약 불필요",
+    source: "https://www.ssfca.gov/Events/Grand-Pajama-Storytime",
+    sourceName: "City of South San Francisco",
+    updated: "7월 10일 공식 확인",
+    why: "잠옷 차림으로 이야기와 노래를 즐기는 저녁 프로그램이라 낮 일정이 어려운 날에 좋아요.",
+    notes: {
+      parking: "Grand Avenue Library 인근 노상 주차를 확인하세요.",
+      bathroom: "도서관 내 화장실 이용 가능.",
+      stroller: "30분 프로그램이라 가벼운 유모차로 이동하기 좋아요."
+    },
+    location: { lat: 37.6555, lng: -122.4102 }
+  },
+  {
+    id: "grand-musical-2026-07-16",
+    name: "Grand Musical Storytime",
+    type: "storytime",
+    setting: "indoor",
+    dateBucket: "nextweek",
+    startDate: "2026-07-16T10:30:00-07:00",
+    timeLabel: "7월 16일 목요일 10:30 AM",
+    city: "South San Francisco",
+    distance: 12.2,
+    age: "유아-미취학",
+    price: "free",
+    reservation: "예약 불필요",
+    source: "https://www.ssfca.gov/Events/Grand-Musical-Storytime",
+    sourceName: "City of South San Francisco",
+    updated: "7월 10일 공식 확인",
+    why: "책 읽기보다 노래와 리듬에 더 잘 반응하는 아이에게 맞는 30분 프로그램이에요.",
+    notes: {
+      parking: "Grand Avenue Library 인근 노상 주차를 확인하세요.",
+      bathroom: "도서관 내 화장실 이용 가능.",
+      stroller: "프로그램 공간이 붐빌 수 있어 작은 유모차가 편해요."
+    },
+    location: { lat: 37.6555, lng: -122.4102 },
+    pinOffset: { x: 2.4, y: -1.8 }
+  },
+  {
+    id: "ssf-movie-night-2026-07-17",
+    name: "Movie Night + Field Day",
+    type: "seasonal",
+    setting: "outdoor",
+    dateBucket: "nextweek",
+    startDate: "2026-07-17T18:00:00-07:00",
+    timeLabel: "7월 17일 금요일 6:00 PM",
+    city: "South San Francisco",
+    distance: 11.8,
+    age: "전 연령",
+    price: "free",
+    reservation: "예약 불필요",
+    source: "https://www.ssfca.gov/Departments/Parks-Recreation/Events/Movie-Night-in-the-Park-Field-Day",
+    sourceName: "City of South San Francisco",
+    updated: "7월 10일 공식 확인",
+    why: "영화 전 가족 활동과 무료 핫도그가 있고, 8시 30분부터 야외에서 Zootopia 2를 상영해요.",
+    notes: {
+      parking: "Orange Memorial Park Meadow 주변 여러 무료 주차장을 이용할 수 있어요.",
+      bathroom: "행사 중 1인용 화장실과 이동식 화장실이 운영됩니다.",
+      stroller: "잔디 행사라 담요와 함께 큰 바퀴 유모차가 편해요."
+    },
+    location: { lat: 37.6542, lng: -122.4278 }
+  },
+  {
+    id: "filipino-storytime-2026-07-18",
+    name: "Filipino Bilingual Storytime",
+    type: "storytime",
+    setting: "indoor",
+    dateBucket: "nextweek",
+    startDate: "2026-07-18T11:30:00-07:00",
+    timeLabel: "7월 18일 토요일 11:30 AM",
+    city: "South San Francisco",
+    distance: 12.6,
+    age: "가족",
+    price: "free",
+    reservation: "공식 일정 확인",
+    source: "https://www.ssfca.gov/Departments/Library/Services/Kids-Teens/Storytime-Schedule",
+    sourceName: "City of South San Francisco",
+    updated: "7월 10일 공식 확인",
+    why: "필리핀어와 영어를 함께 접하며 가족 단위로 참여할 수 있는 토요일 오전 일정이에요.",
+    notes: {
+      parking: "Civic Campus 주차장을 이용할 수 있어요.",
+      bathroom: "시설 내 화장실 이용 가능.",
+      stroller: "메인 도서관의 엘리베이터와 유모차 동선을 이용하세요."
+    },
+    location: { lat: 37.6547, lng: -122.4077 },
+    pinOffset: { x: -2.4, y: 1.8 }
+  },
+  {
+    id: "rhythm-builders-2026-07-18",
+    name: "The Rhythm Builders: Fun with Drums",
+    type: "seasonal",
+    setting: "indoor",
+    dateBucket: "nextweek",
+    startDate: "2026-07-18T14:00:00-07:00",
+    timeLabel: "7월 18일 토요일 2:00 PM",
+    city: "South San Francisco",
+    distance: 12.6,
+    age: "가족",
+    price: "free",
+    reservation: "예약 불필요",
+    source: "https://www.ssfca.gov/Events/0726-Summer-Learning-Challenge-The-Rhythm-Builders-Fun-with-Drums",
+    sourceName: "City of South San Francisco",
+    updated: "7월 10일 공식 확인",
+    why: "콜앤리스폰스, 움직임, 이야기와 음악이 섞인 참여형 드럼 공연이라 에너지를 쓰기 좋아요.",
+    notes: {
+      parking: "Civic Campus 주차장을 이용할 수 있어요.",
+      bathroom: "시설 내 화장실 이용 가능.",
+      stroller: "1층 Council Chambers 행사라 이동이 비교적 쉬워요."
+    },
+    location: { lat: 37.6547, lng: -122.4077 },
+    pinOffset: { x: 2.4, y: 1.8 }
   }
 ];
 
@@ -210,6 +405,8 @@ const state = {
 const cardsEl = document.querySelector("#cards");
 const mapEl = document.querySelector("#mapCanvas");
 const summaryEl = document.querySelector("#resultSummary");
+const summaryEyebrowEl = document.querySelector("#summaryEyebrow");
+const summaryTitleEl = document.querySelector("#summaryTitle");
 const contentGrid = document.querySelector("#contentGrid");
 const detailDialog = document.querySelector("#detailDialog");
 const detailBody = document.querySelector("#detailBody");
@@ -287,6 +484,7 @@ function matchesDate(item) {
   if (state.date === "anytime") return true;
   if (state.date === "week") return item.dateBucket === "today" || item.dateBucket === "week" || item.dateBucket === "anytime";
   if (state.date === "weekend") return item.dateBucket === "weekend" || item.dateBucket === "anytime";
+  if (state.date === "nextweek") return item.dateBucket === "nextweek";
   return item.dateBucket === "today" || item.dateBucket === "anytime";
 }
 
@@ -307,8 +505,11 @@ function filteredOutings() {
   }
 
   if (state.sort === "soonest") {
-    const order = { today: 0, week: 1, weekend: 2, anytime: 3 };
-    result = result.toSorted((a, b) => order[a.dateBucket] - order[b.dateBucket]);
+    const order = { today: 0, week: 1, weekend: 2, nextweek: 3, anytime: 4 };
+    result = result.toSorted((a, b) => {
+      if (a.startDate && b.startDate) return new Date(a.startDate) - new Date(b.startDate);
+      return order[a.dateBucket] - order[b.dateBucket];
+    });
   }
 
   return result;
@@ -382,6 +583,16 @@ function renderMap(items) {
 
 function render() {
   const items = filteredOutings();
+  const summaries = {
+    today: ["오늘의 추천", "낮잠 전후로 다녀오기 좋은 곳"],
+    week: ["이번 주 추천", "평일 루틴에 넣기 좋은 곳"],
+    weekend: ["이번 주말 추천", "가족이 함께 다녀오기 좋은 곳"],
+    nextweek: ["7월 13-19일", "다음 주에 열리는 유아 친화 행사"],
+    anytime: ["전체 추천", "날짜에 구애받지 않고 가볼 만한 곳"]
+  };
+  const [eyebrow, title] = summaries[state.date];
+  summaryEyebrowEl.textContent = eyebrow;
+  summaryTitleEl.textContent = title;
   summaryEl.textContent = `${items.length}개 후보를 찾았어요.`;
   renderCards(items);
   renderMap(items);
