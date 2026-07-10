@@ -1,6 +1,6 @@
 # Project Handoff
 
-Last updated: 2026-05-19
+Last updated: 2026-07-10
 
 ## Product
 
@@ -16,12 +16,16 @@ The core experience is:
 ## Current Deployment
 
 - Public site: https://little-weekends-bay-area.netlify.app
+- OpenAI Sites deployment: https://little-weekends-bay-area.cashmire2.chatgpt.site
+- OpenAI Sites access: owner-only/custom access as of 2026-07-10
 - GitHub repo: https://github.com/Nkilowatt/little-weekends-bay-area
 - Hosting: Netlify connected to GitHub `main`
 - Build command: none
 - Publish directory: `.`
 
-The current app is a dependency-free static site. It does not require npm, a backend, a database, or environment variables.
+The current app is still a dependency-free static site for the Netlify path. It does not require npm, a backend, a database, or environment variables.
+
+OpenAI Sites support is configured through `.openai/hosting.json` plus a small static Worker build script at `scripts/build-sites-static.mjs`. The Sites build wraps the same `index.html`, `styles.css`, `app.js`, and map SVG into `dist/server/index.js` for deployment.
 
 ## Current Map Baseline
 
@@ -42,6 +46,15 @@ Primary app files:
 - `index.html`
 - `styles.css`
 - `app.js`
+- `assets/bay-area-location-map.svg`
+
+OpenAI Sites support files:
+
+- `.openai/hosting.json`
+- `scripts/build-sites-static.mjs`
+- `app/`
+- `public/`
+- `package.json`
 
 Planning and operations docs:
 
