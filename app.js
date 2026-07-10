@@ -431,6 +431,120 @@ function typeInitial(type) {
   }[type] || "L";
 }
 
+const searchAliasGroups = [
+  ["storytime", "스토리타임", "스토리", "동화", "책읽기", "책", "이야기"],
+  ["park", "공원", "놀이터", "야외놀이"],
+  ["museum", "뮤지엄", "박물관", "과학관", "동물원", "zoo"],
+  ["seasonal", "시즌", "특별행사", "이벤트", "행사", "공연"],
+  ["indoor", "실내", "안", "inside"],
+  ["outdoor", "야외", "바깥", "outside"],
+  ["free", "무료", "공짜"],
+  ["paid", "유료", "티켓"],
+  ["toddler", "유아", "아이", "아기", "어린이", "키즈", "kids"],
+  ["family", "가족", "패밀리"],
+  ["san mateo", "sanmateo", "산마테오"],
+  ["south san francisco", "southsf", "ssf", "사우스샌프란시스코", "사우스에스에프"],
+  ["san francisco", "sf", "샌프란시스코"],
+  ["palo alto", "paloalto", "팔로알토"],
+  ["half moon bay", "halfmoonbay", "하프문베이"]
+];
+
+function normalizeSearchText(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
+function searchAliases(token) {
+  const group = searchAliasGroups.find((aliases) =>
+    aliases.some((alias) => normalizeSearchText(alias) === token)
+  );
+  return group ? group.map(normalizeSearchText) : [token];
+}
+
+function editDistance(left, right) {
+  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    const current = [leftIndex];
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+      const substitutionCost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1;
+      current[rightIndex] = Math.min(
+        current[rightIndex - 1] + 1,
+        previous[rightIndex] + 1,
+        previous[rightIndex - 1] + substitutionCost
+      );
+    }
+    previous.splice(0, previous.length, ...current);
+  }
+
+  return previous[right.length];
+}
+
+function fuzzyMatches(token, words) {
+  const threshold = token.length >= 6 ? 2 : token.length >= 3 ? 1 : 0;
+  if (!threshold) return false;
+
+  return words.some((word) =>
+    Math.abs(word.length - token.length) <= threshold && editDistance(token, word) <= threshold
+  );
+}
+
+function searchFields(item) {
+  const categoryText = [
+    item.type,
+    typeLabel(item.type),
+    item.setting,
+    item.setting === "indoor" ? "실내" : "야외",
+    item.price,
+    item.price === "free" ? "무료" : "유료",
+    item.age
+  ].join(" ");
+  const detailText = [
+    item.timeLabel,
+    item.why,
+    item.reservation,
+    item.sourceName,
+    ...Object.values(item.notes || {})
+  ].join(" ");
+
+  return [
+    { text: normalizeSearchText(item.name), weight: 60 },
+    { text: normalizeSearchText(item.city), weight: 45 },
+    { text: normalizeSearchText(categoryText), weight: 30 },
+    { text: normalizeSearchText(detailText), weight: 12 }
+  ];
+}
+
+function searchScore(item, query) {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return 0;
+
+  const fields = searchFields(item);
+  const allWords = fields.flatMap((field) => field.text.split(" ").filter(Boolean));
+  const tokens = normalizedQuery.split(" ").filter(Boolean);
+  let score = fields[0].text.includes(normalizedQuery) ? 100 : 0;
+
+  for (const token of tokens) {
+    const aliases = searchAliases(token);
+    let tokenScore = 0;
+
+    fields.forEach((field) => {
+      if (aliases.some((alias) => field.text.includes(alias))) {
+        tokenScore = Math.max(tokenScore, field.weight);
+      }
+    });
+
+    if (!tokenScore && fuzzyMatches(token, allWords)) tokenScore = 6;
+    if (!tokenScore) return -1;
+    score += tokenScore;
+  }
+
+  return score;
+}
+
 function projectLocation(location) {
   const x = ((location.lng - mapBounds.west) / (mapBounds.east - mapBounds.west)) * 100;
   const y = ((mapBounds.north - location.lat) / (mapBounds.north - mapBounds.south)) * 100;
@@ -489,9 +603,8 @@ function matchesDate(item) {
 }
 
 function filteredOutings() {
-  let result = outings.filter((item) => {
-    const searchText = `${item.name} ${item.city} ${item.type} ${item.why}`.toLowerCase();
-    const searchMatch = !state.search || searchText.includes(state.search.toLowerCase());
+  let result = outings.map((item) => ({ item, score: searchScore(item, state.search) })).filter(({ item, score }) => {
+    const searchMatch = !state.search || score >= 0;
     const savedMatch = !state.savedOnly || state.saved.has(item.id);
     const distanceMatch = item.distance <= Number(state.distance);
     const typeMatch = state.type === "all" || item.type === state.type;
@@ -500,19 +613,23 @@ function filteredOutings() {
     return searchMatch && savedMatch && matchesDate(item) && distanceMatch && typeMatch && settingMatch && priceMatch;
   });
 
+  if (state.search && state.sort === "recommended") {
+    result = result.toSorted((a, b) => b.score - a.score || a.item.distance - b.item.distance);
+  }
+
   if (state.sort === "nearest") {
-    result = result.toSorted((a, b) => a.distance - b.distance);
+    result = result.toSorted((a, b) => a.item.distance - b.item.distance);
   }
 
   if (state.sort === "soonest") {
     const order = { today: 0, week: 1, weekend: 2, nextweek: 3, anytime: 4 };
     result = result.toSorted((a, b) => {
-      if (a.startDate && b.startDate) return new Date(a.startDate) - new Date(b.startDate);
-      return order[a.dateBucket] - order[b.dateBucket];
+      if (a.item.startDate && b.item.startDate) return new Date(a.item.startDate) - new Date(b.item.startDate);
+      return order[a.item.dateBucket] - order[b.item.dateBucket];
     });
   }
 
-  return result;
+  return result.map(({ item }) => item);
 }
 
 function renderCards(items) {

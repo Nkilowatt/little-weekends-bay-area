@@ -21,7 +21,7 @@ const appMarkup = `
 
         <div class="location-row">
           <label for="searchInput">검색</label>
-          <input id="searchInput" type="search" placeholder="스토리타임, 공원, 실내 놀이..." />
+          <input id="searchInput" type="search" placeholder="무료 스토리타임, 드럼, San Mateo..." />
         </div>
 
         <div class="quick-strip" aria-label="빠른 날짜 선택">
@@ -77,7 +77,7 @@ const appMarkup = `
           <p class="eyebrow" id="summaryEyebrow">오늘의 추천</p>
           <h2 id="summaryTitle">낮잠 전후로 다녀오기 좋은 곳</h2>
         </div>
-        <p id="resultSummary">8개 후보를 찾았어요.</p>
+        <p id="resultSummary" aria-live="polite">8개 후보를 찾았어요.</p>
       </section>
 
       <section class="view-tabs" aria-label="보기 방식">
@@ -122,7 +122,7 @@ export default function Home() {
   return (
     <>
       <div dangerouslySetInnerHTML={{ __html: appMarkup }} />
-      <Script src="/app.js?v=3" strategy="afterInteractive" />
+      <Script src="/app.js?v=4" strategy="afterInteractive" />
     </>
   );
 }
