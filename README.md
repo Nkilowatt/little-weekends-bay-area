@@ -39,6 +39,8 @@ Best path for friend testing:
 - `UX_SPEC.md`: UX recommendations
 - `DATA_PLAN.md`: seed data and source strategy
 - `TECHNICAL_PLAN.md`: production architecture direction
+- `PROJECT_HANDOFF.md`: current state and new-session handoff
+- `ROADMAP.md`: prioritized future work
 
 ## Important Prototype Note
 

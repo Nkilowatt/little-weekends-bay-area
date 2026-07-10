@@ -1,0 +1,127 @@
+import Script from "next/script";
+
+const appMarkup = `
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Bay Area toddler outings</p>
+        <h1>Little Weekends</h1>
+      </div>
+      <button class="icon-button" id="saveToggle" type="button" aria-label="저장한 일정 보기" title="저장한 일정">
+        <span aria-hidden="true">S</span>
+      </button>
+    </header>
+
+    <main>
+      <section class="control-band" aria-label="검색 조건">
+        <div class="location-row">
+          <label for="locationInput">기준 위치</label>
+          <input id="locationInput" type="text" value="San Mateo, CA" />
+        </div>
+
+        <div class="location-row">
+          <label for="searchInput">검색</label>
+          <input id="searchInput" type="search" placeholder="스토리타임, 공원, 실내 놀이..." />
+        </div>
+
+        <div class="quick-strip" aria-label="빠른 날짜 선택">
+          <button class="chip is-active" data-date="today" type="button">오늘</button>
+          <button class="chip" data-date="week" type="button">이번 주</button>
+          <button class="chip" data-date="weekend" type="button">주말</button>
+          <button class="chip" data-date="anytime" type="button">언제든</button>
+        </div>
+
+        <div class="filters">
+          <label>
+            거리
+            <select id="distanceFilter">
+              <option value="25">25 mi</option>
+              <option value="10">10 mi</option>
+              <option value="5">5 mi</option>
+              <option value="3">3 mi</option>
+            </select>
+          </label>
+          <label>
+            유형
+            <select id="typeFilter">
+              <option value="all">전체</option>
+              <option value="storytime">스토리타임</option>
+              <option value="park">공원/놀이터</option>
+              <option value="indoor">실내 놀이</option>
+              <option value="museum">뮤지엄</option>
+              <option value="seasonal">시즌 이벤트</option>
+            </select>
+          </label>
+          <label>
+            환경
+            <select id="settingFilter">
+              <option value="all">전체</option>
+              <option value="indoor">실내</option>
+              <option value="outdoor">야외</option>
+            </select>
+          </label>
+          <label>
+            비용
+            <select id="priceFilter">
+              <option value="all">전체</option>
+              <option value="free">무료</option>
+              <option value="paid">유료</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="summary-band" aria-label="추천 요약">
+        <div>
+          <p class="eyebrow">오늘의 추천</p>
+          <h2>낮잠 전후로 다녀오기 좋은 곳</h2>
+        </div>
+        <p id="resultSummary">8개 후보를 찾았어요.</p>
+      </section>
+
+      <section class="view-tabs" aria-label="보기 방식">
+        <button class="tab is-active" data-view="list" type="button">목록</button>
+        <button class="tab" data-view="map" type="button">지도</button>
+        <button class="tab" data-view="split" type="button">같이 보기</button>
+      </section>
+
+      <section class="content-grid is-split" id="contentGrid">
+        <div class="list-panel" aria-label="추천 목록">
+          <div class="section-heading">
+            <h2>근처 추천</h2>
+            <select id="sortSelect" aria-label="정렬">
+              <option value="recommended">추천순</option>
+              <option value="soonest">가까운 시간순</option>
+              <option value="nearest">거리순</option>
+            </select>
+          </div>
+          <div class="cards" id="cards"></div>
+        </div>
+
+        <aside class="map-panel" aria-label="지도 보기">
+          <div class="map-toolbar">
+            <span>San Mateo 중심 25 mi</span>
+            <button class="small-button" id="resetFilters" type="button">초기화</button>
+          </div>
+          <div class="map-canvas" id="mapCanvas" role="img" aria-label="추천 장소가 표시된 베이 지역 지도"></div>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="detail-dialog" id="detailDialog">
+    <button class="icon-button dialog-close" id="closeDialog" type="button" aria-label="닫기" title="닫기">
+      <span aria-hidden="true">X</span>
+    </button>
+    <div id="detailBody"></div>
+  </dialog>
+`;
+
+export default function Home() {
+  return (
+    <>
+      <div dangerouslySetInnerHTML={{ __html: appMarkup }} />
+      <Script src="/app.js?v=2" strategy="afterInteractive" />
+    </>
+  );
+}
