@@ -25,9 +25,29 @@ const files = {
     path: "assets/bay-area-location-map.svg",
     contentType: "image/svg+xml; charset=utf-8",
   },
+  "/assets/photos/bay-family-hero.webp": {
+    path: "assets/photos/bay-family-hero.webp",
+    contentType: "image/webp",
+    binary: true,
+  },
+  "/assets/photos/library-storytime.webp": {
+    path: "assets/photos/library-storytime.webp",
+    contentType: "image/webp",
+    binary: true,
+  },
+  "/assets/photos/nature-playground.webp": {
+    path: "assets/photos/nature-playground.webp",
+    contentType: "image/webp",
+    binary: true,
+  },
   "/favicon.svg": {
-    path: "public/favicon.svg",
+    path: "favicon.svg",
     contentType: "image/svg+xml; charset=utf-8",
+  },
+  "/og.png": {
+    path: "public/og.png",
+    contentType: "image/png",
+    binary: true,
   },
 };
 
@@ -45,8 +65,11 @@ const entries = Object.fromEntries(
     Object.entries(files).map(async ([route, file]) => [
       route,
       {
-        body: await readFile(join(root, file.path), "utf8"),
+        body: file.binary
+          ? (await readFile(join(root, file.path))).toString("base64")
+          : await readFile(join(root, file.path), "utf8"),
         contentType: file.contentType,
+        binary: Boolean(file.binary),
       },
     ]),
   ),
@@ -66,10 +89,21 @@ export default {
   async fetch(request) {
     const url = new URL(request.url);
     const pathname = url.pathname.endsWith("/") && url.pathname !== "/" ? url.pathname.slice(0, -1) : url.pathname;
-    const entry = entries[pathname] || entries["/"];
+    const entry = entries[pathname];
 
-    return new Response(entry.body, {
-      status: entry ? 200 : 404,
+    if (!entry) {
+      return new Response("Not found", {
+        status: 404,
+        headers: headers("text/plain; charset=utf-8"),
+      });
+    }
+
+    const body = entry.binary
+      ? Uint8Array.from(atob(entry.body), (character) => character.charCodeAt(0))
+      : entry.body;
+
+    return new Response(body, {
+      status: 200,
       headers: headers(entry.contentType),
     });
   },
@@ -79,4 +113,11 @@ export default {
 const outputPath = join(root, "dist/server/index.js");
 await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, workerSource, "utf8");
+const hostingOutputPath = join(root, "dist/.openai/hosting.json");
+await mkdir(dirname(hostingOutputPath), { recursive: true });
+await writeFile(
+  hostingOutputPath,
+  await readFile(join(root, ".openai/hosting.json"), "utf8"),
+  "utf8",
+);
 console.log(outputPath);

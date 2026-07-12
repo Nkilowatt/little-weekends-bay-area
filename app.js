@@ -395,12 +395,20 @@ const state = {
   type: "all",
   setting: "all",
   price: "all",
-  view: "split",
+  view: window.matchMedia("(min-width: 901px)").matches ? "split" : "list",
   sort: "recommended",
+  mobileSection: "home",
   savedOnly: false,
   saved: new Set(),
-  search: ""
+  search: "",
+  selectedId: null
 };
+
+try {
+  state.saved = new Set(JSON.parse(localStorage.getItem("little-weekends-saved") || "[]"));
+} catch {
+  state.saved = new Set();
+}
 
 const cardsEl = document.querySelector("#cards");
 const mapEl = document.querySelector("#mapCanvas");
@@ -410,6 +418,33 @@ const summaryTitleEl = document.querySelector("#summaryTitle");
 const contentGrid = document.querySelector("#contentGrid");
 const detailDialog = document.querySelector("#detailDialog");
 const detailBody = document.querySelector("#detailBody");
+
+function persistSaved() {
+  localStorage.setItem("little-weekends-saved", JSON.stringify([...state.saved]));
+}
+
+function trustStatus(item) {
+  if (item.updated.includes("공식 확인")) return { key: "verified", icon: "✓", short: item.updated, detail: `${item.sourceName}에서 최근 일정을 확인했어요.` };
+  if (item.updated.includes("후보") || item.updated.includes("리뷰")) return { key: "stale", icon: "!", short: "정보가 오래되었어요", detail: "현재 정보가 충분히 확인되지 않았어요. 방문 전 공식 페이지를 확인해 주세요." };
+  return { key: "recheck", icon: "!", short: "방문 전 일정 확인", detail: `${item.sourceName}의 공식 페이지에서 운영 여부를 다시 확인해 주세요.` };
+}
+
+function dateLabel() {
+  return { today: "오늘", week: "이번 주", weekend: "이번 주말", nextweek: "다음 주", anytime: "언제든" }[state.date];
+}
+
+function activeFilterCount() {
+  return Number(state.distance !== "25") + Number(state.type !== "all") + Number(state.setting !== "all") + Number(state.price !== "all") + Number(Boolean(state.search));
+}
+
+let toastTimer;
+function showToast(message) {
+  const toast = document.querySelector("#toast");
+  toast.textContent = message;
+  toast.classList.add("is-visible");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 2200);
+}
 
 function typeLabel(type) {
   return {
@@ -423,12 +458,18 @@ function typeLabel(type) {
 
 function typeInitial(type) {
   return {
-    storytime: "B",
-    park: "P",
-    indoor: "I",
-    museum: "M",
-    seasonal: "S"
-  }[type] || "L";
+    storytime: "책",
+    park: "공원",
+    indoor: "실내",
+    museum: "전시",
+    seasonal: "행사"
+  }[type] || "장소";
+}
+
+function itemImage(item) {
+  if (item.type === "storytime" || item.type === "indoor") return "assets/photos/library-storytime.webp";
+  if (item.type === "park") return "assets/photos/nature-playground.webp";
+  return "assets/photos/bay-family-hero.webp";
 }
 
 const searchAliasGroups = [
@@ -636,33 +677,35 @@ function renderCards(items) {
   cardsEl.innerHTML = "";
 
   if (!items.length) {
-    cardsEl.innerHTML = '<div class="empty-state">조건에 맞는 후보가 없어요. 거리나 날짜를 조금 넓혀보세요.</div>';
+    cardsEl.innerHTML = '<div class="empty-state"><strong>딱 맞는 후보가 아직 없어요.</strong><p>거리나 날짜를 조금 넓히면 새로운 장소를 만날 수 있어요.</p><button class="secondary-action" type="button" id="emptyReset">조건 초기화</button></div>';
+    cardsEl.querySelector("#emptyReset").addEventListener("click", resetFilters);
     return;
   }
 
   items.forEach((item) => {
-    const card = document.createElement("button");
-    card.className = "outing-card";
-    card.type = "button";
+    const trust = trustStatus(item);
+    const card = document.createElement("article");
+    card.className = `outing-card${state.selectedId === item.id ? " is-selected" : ""}`;
     card.innerHTML = `
-      <span class="thumb" aria-hidden="true">${typeInitial(item.type)}</span>
-      <span>
-        <span class="card-meta">
-          <span>${item.timeLabel}</span>
-          <span>${item.distance.toFixed(1)} mi</span>
-          <span>${item.price === "free" ? "무료" : "유료"}</span>
-          <span>${item.updated}</span>
-        </span>
+      <button class="card-open" type="button" aria-label="${item.name} 상세 보기"></button>
+      <span class="card-image" aria-hidden="true"><img src="${itemImage(item)}" alt="" loading="lazy" /></span>
+      <span class="card-content">
+        <span class="time-row"><span class="card-time">${item.timeLabel}</span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${item.id}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
         <h3>${item.name}</h3>
-        <span class="badges">
-          <span class="badge">${typeLabel(item.type)}</span>
-          <span class="badge">${item.setting === "indoor" ? "실내" : "야외"}</span>
-          <span class="badge">${item.age}</span>
-        </span>
+        <span class="card-place"><span>${item.city}</span><span>${item.distance.toFixed(1)} mi</span><span>${typeLabel(item.type)}</span></span>
+        <span class="essentials"><span class="essential"><small>연령</small>${item.age}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${item.price === "free" ? "무료" : "유료"}</span></span>
         <p class="why">${item.why}</p>
+        <span class="trust ${trust.key}">${trust.short}</span>
       </span>
     `;
-    card.addEventListener("click", () => openDetail(item.id));
+    card.querySelector(".card-open").addEventListener("click", () => {
+      state.selectedId = item.id;
+      openDetail(item.id);
+      render();
+    });
+    const saveControl = card.querySelector("[data-save-card]");
+    const saveFromCard = (event) => { event.preventDefault(); toggleSaved(item.id); };
+    saveControl.addEventListener("click", saveFromCard);
     cardsEl.append(card);
   });
 }
@@ -686,22 +729,33 @@ function renderMap(items) {
   items.forEach((item) => {
     const point = projectPin(item);
     const pin = document.createElement("button");
-    pin.className = `map-pin ${item.type}`;
+    pin.className = `map-pin ${item.type}${state.selectedId === item.id ? " is-selected" : ""}`;
     pin.type = "button";
     pin.style.left = `${point.x}%`;
     pin.style.top = `${point.y}%`;
     pin.title = item.name;
     pin.setAttribute("aria-label", `${item.name}, ${item.city}`);
-    pin.textContent = typeInitial(item.type);
-    pin.addEventListener("click", () => openDetail(item.id));
+    pin.innerHTML = `<span>${typeInitial(item.type)}</span>`;
+    pin.addEventListener("click", () => selectMapItem(item.id));
     mapEl.append(pin);
   });
+}
+
+function selectMapItem(id) {
+  state.selectedId = id;
+  const item = outings.find((outing) => outing.id === id);
+  const preview = document.querySelector("#mapPreview");
+  const trust = trustStatus(item);
+  preview.hidden = false;
+  preview.innerHTML = `<button type="button" aria-label="${item.name} 상세 보기"><strong>${item.name}</strong><span>${item.timeLabel}, ${item.distance.toFixed(1)} mi<br />${trust.short}</span></button>`;
+  preview.querySelector("button").addEventListener("click", () => openDetail(id));
+  renderMap(filteredOutings());
 }
 
 function render() {
   const items = filteredOutings();
   const summaries = {
-    today: ["오늘의 추천", "낮잠 전후로 다녀오기 좋은 곳"],
+    today: ["오늘의 추천", "낮잠 전에 다녀오기 좋은 가까운 곳"],
     week: ["이번 주 추천", "평일 루틴에 넣기 좋은 곳"],
     weekend: ["이번 주말 추천", "가족이 함께 다녀오기 좋은 곳"],
     nextweek: ["7월 13-19일", "다음 주에 열리는 유아 친화 행사"],
@@ -711,8 +765,39 @@ function render() {
   summaryEyebrowEl.textContent = eyebrow;
   summaryTitleEl.textContent = title;
   summaryEl.textContent = `${items.length}개 후보를 찾았어요.`;
+  document.querySelector("#filterResultCount").textContent = items.length;
+  document.querySelector("#filterCount").textContent = activeFilterCount();
+  document.querySelector("#savedCount").textContent = state.saved.size;
+  document.querySelector("#mobileSavedCount").textContent = state.saved.size;
+  document.querySelector("#listContext").textContent = `${state.savedOnly ? "저장한 곳" : "San Mateo 중심"}, ${dateLabel()}`;
+  document.querySelector("#saveToggle").classList.toggle("is-active", state.savedOnly);
+  document.querySelector("#saveToggle").setAttribute("aria-pressed", state.savedOnly);
+  contentGrid.className = `content-grid is-${state.view}`;
+  document.querySelectorAll("[data-view]").forEach((button) => {
+    const active = button.dataset.view === state.view;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  document.querySelectorAll("[data-mobile-action]").forEach((button) => {
+    const active = button.dataset.mobileAction === state.mobileSection;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
   renderCards(items);
   renderMap(items);
+}
+
+function toggleSaved(id) {
+  const item = outings.find((outing) => outing.id === id);
+  if (state.saved.has(id)) {
+    state.saved.delete(id);
+    showToast(`${item.name} 저장을 해제했어요.`);
+  } else {
+    state.saved.add(id);
+    showToast(`${item.name}을 저장했어요.`);
+  }
+  persistSaved();
+  render();
 }
 
 function openDetail(id) {
@@ -720,64 +805,47 @@ function openDetail(id) {
   if (!item) return;
 
   const isSaved = state.saved.has(id);
+  const trust = trustStatus(item);
+  const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.name}, ${item.city}, CA`)}`;
   detailBody.innerHTML = `
+    <figure class="detail-visual"><img src="${itemImage(item)}" alt="" /><figcaption>장소 이해를 돕는 분위기 참고 이미지입니다.</figcaption></figure>
     <article class="detail-body">
-      <div class="detail-hero">
-        <p class="eyebrow">${typeLabel(item.type)} · ${item.city}</p>
-        <h2>${item.name}</h2>
-        <p>${item.why}</p>
+      <div class="detail-title"><p class="detail-category">${typeLabel(item.type)}, ${item.city}</p><h2>${item.name}</h2><p>${item.why}</p></div>
+      <div class="decision-grid">
+        <div class="decision-item"><small>언제</small><strong>${item.timeLabel}</strong></div><div class="decision-item"><small>거리</small><strong>${item.distance.toFixed(1)} mi</strong></div><div class="decision-item"><small>연령</small><strong>${item.age}</strong></div><div class="decision-item"><small>환경</small><strong>${item.setting === "indoor" ? "실내" : "야외"}</strong></div><div class="decision-item"><small>비용</small><strong>${item.price === "free" ? "무료" : "유료"}</strong></div><div class="decision-item"><small>예약</small><strong>${item.reservation}</strong></div>
       </div>
-
-      <div class="detail-grid">
-        <span class="badge">${item.timeLabel}</span>
-        <span class="badge">${item.distance.toFixed(1)} mi</span>
-        <span class="badge">${item.age}</span>
-        <span class="badge">${item.setting === "indoor" ? "실내" : "야외"}</span>
-        <span class="badge">${item.price === "free" ? "무료" : "유료"}</span>
-        <span class="badge">${item.reservation}</span>
-      </div>
-
+      <div class="trust-panel ${trust.key}"><strong>${trust.short}</strong><span>${trust.detail}</span></div>
       <div class="detail-notes">
-        <div class="note-row">
-          <strong>주차</strong>
-          <span>${item.notes.parking}</span>
-        </div>
-        <div class="note-row">
-          <strong>화장실</strong>
-          <span>${item.notes.bathroom}</span>
-        </div>
-        <div class="note-row">
-          <strong>유모차</strong>
-          <span>${item.notes.stroller}</span>
-        </div>
-        <div class="note-row">
-          <strong>업데이트 상태</strong>
-          <span>${item.updated}</span>
-        </div>
+        <div class="note-row"><strong>주차</strong><span>${item.notes.parking}</span></div><div class="note-row"><strong>화장실</strong><span>${item.notes.bathroom}</span></div><div class="note-row"><strong>유모차</strong><span>${item.notes.stroller}</span></div><div class="note-row"><strong>예상 체류</strong><span>${item.type === "storytime" ? "30-60분" : "60-90분"} 정도를 추천해요.</span></div><div class="note-row"><strong>날씨 대응</strong><span>${item.setting === "indoor" ? "실내 활동이라 비 오는 날에도 좋아요." : "출발 전 기온과 공원 운영 상태를 확인하세요."}</span></div>
       </div>
-
       <div class="detail-actions">
-        <a class="primary-action" href="${item.source}" target="_blank" rel="noopener noreferrer">공식 페이지</a>
-        <button class="secondary-action" type="button" id="saveDetail">${isSaved ? "저장 해제" : "저장"}</button>
+        <a class="primary-action" href="${item.source}" target="_blank" rel="noopener noreferrer">${trust.key === "verified" ? "공식 정보 보기" : "공식 일정 확인"}</a><a class="secondary-action" href="${directions}" target="_blank" rel="noopener noreferrer">길찾기</a><button class="secondary-action" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
       </div>
     </article>
   `;
 
-  detailBody.querySelector("#saveDetail").addEventListener("click", () => {
-    if (state.saved.has(id)) state.saved.delete(id);
-    else state.saved.add(id);
-    openDetail(id);
-    render();
-  });
+  detailBody.querySelector("#saveDetail").addEventListener("click", () => { toggleSaved(id); openDetail(id); });
 
-  detailDialog.showModal();
+  if (!detailDialog.open) detailDialog.showModal();
 }
 
 document.querySelectorAll("[data-date]").forEach((button) => {
   button.addEventListener("click", () => {
-    document.querySelectorAll("[data-date]").forEach((item) => item.classList.remove("is-active"));
+    document.querySelectorAll(".quick-card").forEach((item) => item.classList.remove("is-active"));
     button.classList.add("is-active");
     state.date = button.dataset.date;
+    document.querySelector("#dateFilter").value = state.date;
+    render();
+  });
+});
+
+document.querySelectorAll("[data-setting], [data-price], [data-distance]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const [key] = ["setting", "price", "distance"].filter((name) => button.dataset[name]);
+    document.querySelectorAll(".quick-card").forEach((item) => item.classList.remove("is-active"));
+    button.classList.add("is-active");
+    state[key] = button.dataset[key];
+    document.querySelector(`#${key}Filter`).value = state[key];
     render();
   });
 });
@@ -785,11 +853,45 @@ document.querySelectorAll("[data-date]").forEach((button) => {
 document.querySelectorAll("[data-view]").forEach((button) => {
   button.addEventListener("click", () => {
     document.querySelectorAll("[data-view]").forEach((item) => item.classList.remove("is-active"));
+    document.querySelectorAll("[data-view]").forEach((item) => item.setAttribute("aria-pressed", "false"));
     button.classList.add("is-active");
+    button.setAttribute("aria-pressed", "true");
     state.view = button.dataset.view;
-    contentGrid.className = `content-grid is-${state.view}`;
+    state.mobileSection = button.dataset.view === "map" ? "map" : "home";
+    render();
   });
 });
+
+document.querySelectorAll("[data-mobile-action]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const action = button.dataset.mobileAction;
+    if (action === "home") {
+      state.savedOnly = false;
+      state.view = "list";
+      state.mobileSection = "home";
+      render();
+      document.querySelector("#discover").scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    if (action === "search") {
+      state.mobileSection = "search";
+      render();
+      const panel = document.querySelector("#searchPanel");
+      panel.hidden = false;
+      document.querySelector("#searchToggle").setAttribute("aria-expanded", "true");
+      document.querySelector("#discover").scrollIntoView({ behavior: "smooth", block: "start" });
+      window.setTimeout(() => document.querySelector("#searchInput").focus(), 350);
+      return;
+    }
+    state.savedOnly = true;
+    state.view = "list";
+    state.mobileSection = "saved";
+    render();
+    document.querySelector("#cards").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+});
+
+document.querySelector("#dateFilter").addEventListener("change", (event) => { state.date = event.target.value; render(); });
 
 document.querySelector("#distanceFilter").addEventListener("change", (event) => {
   state.distance = event.target.value;
@@ -823,24 +925,39 @@ document.querySelector("#searchInput").addEventListener("input", (event) => {
 
 document.querySelector("#saveToggle").addEventListener("click", () => {
   state.savedOnly = !state.savedOnly;
-  document.querySelector("#saveToggle").classList.toggle("is-active", state.savedOnly);
+  state.mobileSection = state.savedOnly ? "saved" : "home";
   render();
 });
 
-document.querySelector("#resetFilters").addEventListener("click", () => {
+function resetFilters() {
+  state.savedOnly = false;
+  state.mobileSection = "home";
+  state.date = "today";
   state.distance = "25";
   state.type = "all";
   state.setting = "all";
   state.price = "all";
+  state.search = "";
+  document.querySelector("#dateFilter").value = "today";
   document.querySelector("#distanceFilter").value = "25";
   document.querySelector("#typeFilter").value = "all";
   document.querySelector("#settingFilter").value = "all";
   document.querySelector("#priceFilter").value = "all";
+  document.querySelector("#searchInput").value = "";
+  document.querySelectorAll(".quick-card").forEach((item) => item.classList.toggle("is-active", item.dataset.date === "today"));
   render();
-});
+}
+
+document.querySelector("#resetFilters").addEventListener("click", resetFilters);
+document.querySelector("#filterButton").addEventListener("click", () => { const panel = document.querySelector("#filterPanel"); panel.hidden = !panel.hidden; document.querySelector("#filterButton").setAttribute("aria-expanded", String(!panel.hidden)); });
+document.querySelector("#closeFilters").addEventListener("click", () => { document.querySelector("#filterPanel").hidden = true; document.querySelector("#filterButton").setAttribute("aria-expanded", "false"); });
+document.querySelector("#applyFilters").addEventListener("click", () => { document.querySelector("#filterPanel").hidden = true; document.querySelector("#filterButton").setAttribute("aria-expanded", "false"); document.querySelector("#cards").scrollIntoView({ behavior: "smooth", block: "start" }); });
+document.querySelector("#searchToggle").addEventListener("click", () => { const panel = document.querySelector("#searchPanel"); panel.hidden = !panel.hidden; state.mobileSection = panel.hidden ? "home" : "search"; document.querySelector("#searchToggle").setAttribute("aria-expanded", String(!panel.hidden)); render(); if (!panel.hidden) document.querySelector("#searchInput").focus(); });
 
 document.querySelector("#closeDialog").addEventListener("click", () => {
   detailDialog.close();
 });
+
+detailDialog.addEventListener("click", (event) => { if (event.target === detailDialog) detailDialog.close(); });
 
 render();
