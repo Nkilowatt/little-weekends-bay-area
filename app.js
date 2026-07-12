@@ -382,8 +382,57 @@ let outings = [
   }
 ];
 
+function ageRangeFromLabel(label) {
+  const value = String(label || "").replace(/\s+/g, "");
+  const monthRange = value.match(/(\d+)개월-(\d+)개월/);
+  if (monthRange) return { minAgeMonths: Number(monthRange[1]), maxAgeMonths: Number(monthRange[2]) };
+
+  const mixedRange = value.match(/(\d+)개월-(\d+)세/);
+  if (mixedRange) return { minAgeMonths: Number(mixedRange[1]), maxAgeMonths: (Number(mixedRange[2]) + 1) * 12 - 1 };
+
+  const yearRange = value.match(/(\d+)-(\d+)세/);
+  if (yearRange) return { minAgeMonths: Number(yearRange[1]) * 12, maxAgeMonths: (Number(yearRange[2]) + 1) * 12 - 1 };
+
+  if (/가족|전연령/.test(value)) return { minAgeMonths: 0, maxAgeMonths: 216 };
+  return { minAgeMonths: 0, maxAgeMonths: 72 };
+}
+
+function inferredConfidenceStatus(item) {
+  if (item.confidenceStatus) return item.confidenceStatus;
+  if (String(item.updated).includes("자동")) return "source_confirmed";
+  if (String(item.updated).includes("공식 확인")) return "human_verified";
+  if (String(item.updated).includes("후보") || String(item.updated).includes("리뷰")) return "stale";
+  return "recheck";
+}
+
+function normalizeOuting(item) {
+  const ageRange = ageRangeFromLabel(item.age);
+  return {
+    ...item,
+    minAgeMonths: Number.isFinite(item.minAgeMonths) ? item.minAgeMonths : ageRange.minAgeMonths,
+    maxAgeMonths: Number.isFinite(item.maxAgeMonths) ? item.maxAgeMonths : ageRange.maxAgeMonths,
+    confidenceStatus: inferredConfidenceStatus(item)
+  };
+}
+
+const locationOptions = {
+  "san-mateo": { name: "San Mateo", lat: 37.5630, lng: -122.3255 },
+  "san-francisco": { name: "San Francisco", lat: 37.7749, lng: -122.4194 },
+  "palo-alto": { name: "Palo Alto", lat: 37.4419, lng: -122.1430 },
+  "san-jose": { name: "San Jose", lat: 37.3382, lng: -121.8863 },
+  oakland: { name: "Oakland", lat: 37.8044, lng: -122.2712 }
+};
+
+let storedLocationKey = "san-mateo";
+try {
+  const candidate = localStorage.getItem("little-weekends-location");
+  if (candidate && locationOptions[candidate]) storedLocationKey = candidate;
+} catch {
+  storedLocationKey = "san-mateo";
+}
+
 const evergreenIds = new Set(["coyote-point", "curiodyssey", "palo-alto-junior"]);
-const staticOutings = outings.filter((item) => !item.startDate || new Date(item.startDate).getTime() >= Date.now() - 21600000);
+const staticOutings = outings.map(normalizeOuting).filter((item) => !item.startDate || new Date(item.startDate).getTime() >= Date.now() - 21600000);
 const evergreenOutings = staticOutings.filter((item) => evergreenIds.has(item.id));
 outings = staticOutings;
 
@@ -397,6 +446,7 @@ const mapBounds = {
 const state = {
   date: "today",
   distance: "25",
+  age: "toddler",
   type: "all",
   setting: "all",
   price: "all",
@@ -406,7 +456,8 @@ const state = {
   savedOnly: false,
   saved: new Set(),
   search: "",
-  selectedId: null
+  selectedId: null,
+  locationKey: storedLocationKey
 };
 
 try {
@@ -424,15 +475,95 @@ const syncStatusEl = document.querySelector("#syncStatus");
 const contentGrid = document.querySelector("#contentGrid");
 const detailDialog = document.querySelector("#detailDialog");
 const detailBody = document.querySelector("#detailBody");
+const locationDialog = document.querySelector("#locationDialog");
 
 function persistSaved() {
   localStorage.setItem("little-weekends-saved", JSON.stringify([...state.saved]));
 }
 
 function trustStatus(item) {
-  if (item.updated.includes("공식 확인")) return { key: "verified", icon: "✓", short: item.updated, detail: `${item.sourceName}에서 최근 일정을 확인했어요.` };
-  if (item.updated.includes("후보") || item.updated.includes("리뷰")) return { key: "stale", icon: "!", short: "정보가 오래되었어요", detail: "현재 정보가 충분히 확인되지 않았어요. 방문 전 공식 페이지를 확인해 주세요." };
+  if (item.confidenceStatus === "human_verified") {
+    return { key: "verified", icon: "✓", short: item.updated, detail: `${item.sourceName}의 공식 정보와 세부 내용을 사람이 확인했어요.` };
+  }
+  if (item.confidenceStatus === "source_confirmed") {
+    return { key: "source-confirmed", icon: "✓", short: item.updated, detail: `${item.sourceName}의 공식 출처에서 자동으로 확인했어요. 일정 변경 가능성은 공식 페이지에서 최종 확인해 주세요.` };
+  }
+  if (item.confidenceStatus === "stale") {
+    return { key: "stale", icon: "!", short: "정보가 오래되었어요", detail: "현재 정보가 충분히 확인되지 않았어요. 방문 전 공식 페이지를 확인해 주세요." };
+  }
   return { key: "recheck", icon: "!", short: "방문 전 일정 확인", detail: `${item.sourceName}의 공식 페이지에서 운영 여부를 다시 확인해 주세요.` };
+}
+
+function selectedLocation() {
+  return locationOptions[state.locationKey] || locationOptions["san-mateo"];
+}
+
+function distanceBetweenMiles(left, right) {
+  const toRadians = (value) => value * Math.PI / 180;
+  const earthRadiusMiles = 3958.8;
+  const latitudeDelta = toRadians(right.lat - left.lat);
+  const longitudeDelta = toRadians(right.lng - left.lng);
+  const a = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(toRadians(left.lat)) * Math.cos(toRadians(right.lat)) * Math.sin(longitudeDelta / 2) ** 2;
+  return earthRadiusMiles * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function distanceFor(item) {
+  if (!item.location || !Number.isFinite(item.location.lat) || !Number.isFinite(item.location.lng)) return item.distance;
+  return Math.round(distanceBetweenMiles(selectedLocation(), item.location) * 10) / 10;
+}
+
+const ageFilterRanges = {
+  toddler: { min: 12, max: 47 },
+  age1: { min: 12, max: 23 },
+  age2: { min: 24, max: 35 },
+  age3: { min: 36, max: 47 }
+};
+
+function ageMatches(item) {
+  if (state.age === "all") return true;
+  const range = ageFilterRanges[state.age] || ageFilterRanges.toddler;
+  return item.minAgeMonths <= range.max && item.maxAgeMonths >= range.min;
+}
+
+function recommendationScore(item) {
+  const toddlerRange = ageFilterRanges.toddler;
+  const ageWidth = Math.max(0, item.maxAgeMonths - item.minAgeMonths);
+  const fullyToddlerFocused = item.minAgeMonths >= toddlerRange.min && item.maxAgeMonths <= toddlerRange.max;
+  let score = Math.max(0, 30 - distanceFor(item) * 1.25);
+
+  score += fullyToddlerFocused ? 28 : ageWidth <= 36 ? 20 : ageWidth <= 72 ? 10 : 3;
+  score += { human_verified: 18, source_confirmed: 12, recheck: 0, stale: -18 }[item.confidenceStatus] || 0;
+  if (item.price === "free") score += 4;
+  if (String(item.reservation).includes("불필요")) score += 4;
+
+  if (item.startDate) {
+    const hoursUntilStart = (new Date(item.startDate).getTime() - Date.now()) / 3600000;
+    if (hoursUntilStart >= -1 && hoursUntilStart <= 6) score += 20;
+    else if (hoursUntilStart > 6 && hoursUntilStart <= 24) score += 12;
+    else if (hoursUntilStart < -1) score -= 20;
+  } else {
+    score += 6;
+  }
+
+  return score;
+}
+
+function diversifyRecommended(entries) {
+  const firstOfSeries = [];
+  const repeatedSeries = [];
+  const seenSeries = new Set();
+
+  entries.forEach((entry) => {
+    const seriesKey = `${normalizeSearchText(entry.item.name)}|${normalizeSearchText(entry.item.city)}`;
+    if (seenSeries.has(seriesKey)) repeatedSeries.push(entry);
+    else {
+      seenSeries.add(seriesKey);
+      firstOfSeries.push(entry);
+    }
+  });
+
+  return [...firstOfSeries, ...repeatedSeries];
 }
 
 function dateLabel() {
@@ -469,7 +600,7 @@ function syncTimeLabel(value) {
 }
 
 function activeFilterCount() {
-  return Number(state.distance !== "25") + Number(state.type !== "all") + Number(state.setting !== "all") + Number(state.price !== "all") + Number(Boolean(state.search));
+  return Number(state.distance !== "25") + Number(state.age !== "toddler") + Number(state.type !== "all") + Number(state.setting !== "all") + Number(state.price !== "all") + Number(Boolean(state.search));
 }
 
 let toastTimer;
@@ -673,8 +804,10 @@ function mapPoint(name, location, className = "") {
 }
 
 function renderMapBase() {
+  const originPoint = projectLocation(selectedLocation());
   return `
     <img class="bay-map-base" src="assets/bay-area-location-map.svg" alt="" aria-hidden="true" />
+    <span class="current-location-marker" style="left: ${originPoint.x}%; top: ${originPoint.y}%;" title="${selectedLocation().name} 기준 위치" aria-label="${selectedLocation().name} 기준 위치"></span>
     <a
       class="map-attribution"
       href="https://commons.wikimedia.org/wiki/File:United_States_San_Francisco_Bay_Area_location_map.svg"
@@ -693,22 +826,31 @@ function matchesDate(item) {
 }
 
 function filteredOutings() {
-  let result = outings.map((item) => ({ item, score: searchScore(item, state.search) })).filter(({ item, score }) => {
-    const searchMatch = !state.search || score >= 0;
+  let result = outings.map((item) => ({
+    item,
+    searchScore: searchScore(item, state.search),
+    recommendationScore: recommendationScore(item)
+  })).filter(({ item, searchScore: itemSearchScore }) => {
+    const searchMatch = !state.search || itemSearchScore >= 0;
     const savedMatch = !state.savedOnly || state.saved.has(item.id);
-    const distanceMatch = item.distance <= Number(state.distance);
+    const distanceMatch = distanceFor(item) <= Number(state.distance);
+    const ageMatch = ageMatches(item);
     const typeMatch = state.type === "all" || item.type === state.type;
     const settingMatch = state.setting === "all" || item.setting === state.setting;
     const priceMatch = state.price === "all" || item.price === state.price;
-    return searchMatch && savedMatch && matchesDate(item) && distanceMatch && typeMatch && settingMatch && priceMatch;
+    return searchMatch && savedMatch && matchesDate(item) && distanceMatch && ageMatch && typeMatch && settingMatch && priceMatch;
   });
 
-  if (state.search && state.sort === "recommended") {
-    result = result.toSorted((a, b) => b.score - a.score || a.item.distance - b.item.distance);
+  if (state.sort === "recommended") {
+    result = result.toSorted((a, b) => {
+      const searchDifference = state.search ? b.searchScore - a.searchScore : 0;
+      return searchDifference || b.recommendationScore - a.recommendationScore || distanceFor(a.item) - distanceFor(b.item);
+    });
+    result = diversifyRecommended(result);
   }
 
   if (state.sort === "nearest") {
-    result = result.toSorted((a, b) => a.item.distance - b.item.distance);
+    result = result.toSorted((a, b) => distanceFor(a.item) - distanceFor(b.item));
   }
 
   if (state.sort === "soonest") {
@@ -733,6 +875,7 @@ function renderCards(items) {
 
   items.forEach((item) => {
     const trust = trustStatus(item);
+    const distance = distanceFor(item);
     const card = document.createElement("article");
     card.className = `outing-card${state.selectedId === item.id ? " is-selected" : ""}`;
     card.innerHTML = `
@@ -741,7 +884,7 @@ function renderCards(items) {
       <span class="card-content">
         <span class="time-row"><span class="card-time">${item.timeLabel}</span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${item.id}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
         <h3>${item.name}</h3>
-        <span class="card-place"><span>${item.city}</span><span>${item.distance.toFixed(1)} mi</span><span>${typeLabel(item.type)}</span></span>
+        <span class="card-place"><span>${item.city}</span><span>${distance.toFixed(1)} mi</span><span>${typeLabel(item.type)}</span></span>
         <span class="essentials"><span class="essential"><small>연령</small>${item.age}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${item.price === "free" ? "무료" : "유료"}</span></span>
         <p class="why">${item.why}</p>
         <span class="trust ${trust.key}">${trust.short}</span>
@@ -795,8 +938,9 @@ function selectMapItem(id) {
   const item = outings.find((outing) => outing.id === id);
   const preview = document.querySelector("#mapPreview");
   const trust = trustStatus(item);
+  const distance = distanceFor(item);
   preview.hidden = false;
-  preview.innerHTML = `<button type="button" aria-label="${item.name} 상세 보기"><strong>${item.name}</strong><span>${item.timeLabel}, ${item.distance.toFixed(1)} mi<br />${trust.short}</span></button>`;
+  preview.innerHTML = `<button type="button" aria-label="${item.name} 상세 보기"><strong>${item.name}</strong><span>${item.timeLabel}, ${distance.toFixed(1)} mi<br />${trust.short}</span></button>`;
   preview.querySelector("button").addEventListener("click", () => openDetail(id));
   renderMap(filteredOutings());
 }
@@ -818,7 +962,14 @@ function render() {
   document.querySelector("#filterCount").textContent = activeFilterCount();
   document.querySelector("#savedCount").textContent = state.saved.size;
   document.querySelector("#mobileSavedCount").textContent = state.saved.size;
-  document.querySelector("#listContext").textContent = `${state.savedOnly ? "저장한 곳" : "San Mateo 중심"}, ${dateLabel()}`;
+  document.querySelector("#locationName").textContent = selectedLocation().name;
+  document.querySelector("#mapLocationLabel").textContent = `${selectedLocation().name} 중심`;
+  document.querySelector("#listContext").textContent = `${state.savedOnly ? "저장한 곳" : `${selectedLocation().name} 중심`}, ${dateLabel()}`;
+  document.querySelectorAll("[data-location-key]").forEach((button) => {
+    const active = button.dataset.locationKey === state.locationKey;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
   document.querySelector("#saveToggle").classList.toggle("is-active", state.savedOnly);
   document.querySelector("#saveToggle").setAttribute("aria-pressed", state.savedOnly);
   contentGrid.className = `content-grid is-${state.view}`;
@@ -844,7 +995,7 @@ async function loadAutomaticOutings() {
     if (!response.ok) throw new Error("자동 일정 API를 불러오지 못했어요.");
     const payload = await response.json();
     if (!Array.isArray(payload.events) || !payload.events.length) throw new Error("새 일정이 아직 준비되지 않았어요.");
-    outings = [...evergreenOutings, ...payload.events];
+    outings = [...evergreenOutings, ...payload.events.map(normalizeOuting)];
     const activeSources = Array.isArray(payload.sources) ? payload.sources.filter((source) => source.status === "ok").length : 0;
     syncStatusEl.textContent = `${syncTimeLabel(payload.lastSyncedAt)} · 공식 수집처 ${activeSources}곳`;
     render();
@@ -874,20 +1025,21 @@ function openDetail(id) {
 
   const isSaved = state.saved.has(id);
   const trust = trustStatus(item);
+  const distance = distanceFor(item);
   const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.name}, ${item.city}, CA`)}`;
   detailBody.innerHTML = `
     <figure class="detail-visual"><img src="${itemImage(item)}" alt="" /><figcaption>장소 이해를 돕는 분위기 참고 이미지입니다.</figcaption></figure>
     <article class="detail-body">
       <div class="detail-title"><p class="detail-category">${typeLabel(item.type)}, ${item.city}</p><h2>${item.name}</h2><p>${item.why}</p></div>
       <div class="decision-grid">
-        <div class="decision-item"><small>언제</small><strong>${item.timeLabel}</strong></div><div class="decision-item"><small>거리</small><strong>${item.distance.toFixed(1)} mi</strong></div><div class="decision-item"><small>연령</small><strong>${item.age}</strong></div><div class="decision-item"><small>환경</small><strong>${item.setting === "indoor" ? "실내" : "야외"}</strong></div><div class="decision-item"><small>비용</small><strong>${item.price === "free" ? "무료" : "유료"}</strong></div><div class="decision-item"><small>예약</small><strong>${item.reservation}</strong></div>
+        <div class="decision-item"><small>언제</small><strong>${item.timeLabel}</strong></div><div class="decision-item"><small>거리</small><strong>${distance.toFixed(1)} mi</strong></div><div class="decision-item"><small>연령</small><strong>${item.age}</strong></div><div class="decision-item"><small>환경</small><strong>${item.setting === "indoor" ? "실내" : "야외"}</strong></div><div class="decision-item"><small>비용</small><strong>${item.price === "free" ? "무료" : "유료"}</strong></div><div class="decision-item"><small>예약</small><strong>${item.reservation}</strong></div>
       </div>
       <div class="trust-panel ${trust.key}"><strong>${trust.short}</strong><span>${trust.detail}</span></div>
       <div class="detail-notes">
         <div class="note-row"><strong>주차</strong><span>${item.notes.parking}</span></div><div class="note-row"><strong>화장실</strong><span>${item.notes.bathroom}</span></div><div class="note-row"><strong>유모차</strong><span>${item.notes.stroller}</span></div><div class="note-row"><strong>예상 체류</strong><span>${item.type === "storytime" ? "30-60분" : "60-90분"} 정도를 추천해요.</span></div><div class="note-row"><strong>날씨 대응</strong><span>${item.setting === "indoor" ? "실내 활동이라 비 오는 날에도 좋아요." : "출발 전 기온과 공원 운영 상태를 확인하세요."}</span></div>
       </div>
       <div class="detail-actions">
-        <a class="primary-action" href="${item.source}" target="_blank" rel="noopener noreferrer">${trust.key === "verified" ? "공식 정보 보기" : "공식 일정 확인"}</a><a class="secondary-action" href="${directions}" target="_blank" rel="noopener noreferrer">길찾기</a><button class="secondary-action" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
+        <a class="primary-action" href="${item.source}" target="_blank" rel="noopener noreferrer">${trust.key === "verified" || trust.key === "source-confirmed" ? "공식 정보 보기" : "공식 일정 확인"}</a><a class="secondary-action" href="${directions}" target="_blank" rel="noopener noreferrer">길찾기</a><button class="secondary-action" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
       </div>
     </article>
   `;
@@ -983,6 +1135,11 @@ document.querySelector("#distanceFilter").addEventListener("change", (event) => 
   render();
 });
 
+document.querySelector("#ageFilter").addEventListener("change", (event) => {
+  state.age = event.target.value;
+  render();
+});
+
 document.querySelector("#typeFilter").addEventListener("change", (event) => {
   state.type = event.target.value;
   render();
@@ -1019,12 +1176,14 @@ function resetFilters() {
   state.mobileSection = "home";
   state.date = "today";
   state.distance = "25";
+  state.age = "toddler";
   state.type = "all";
   state.setting = "all";
   state.price = "all";
   state.search = "";
   document.querySelector("#dateFilter").value = "today";
   document.querySelector("#distanceFilter").value = "25";
+  document.querySelector("#ageFilter").value = "toddler";
   document.querySelector("#typeFilter").value = "all";
   document.querySelector("#settingFilter").value = "all";
   document.querySelector("#priceFilter").value = "all";
@@ -1038,6 +1197,28 @@ document.querySelector("#filterButton").addEventListener("click", () => { const 
 document.querySelector("#closeFilters").addEventListener("click", () => { document.querySelector("#filterPanel").hidden = true; document.querySelector("#filterButton").setAttribute("aria-expanded", "false"); });
 document.querySelector("#applyFilters").addEventListener("click", () => { document.querySelector("#filterPanel").hidden = true; document.querySelector("#filterButton").setAttribute("aria-expanded", "false"); document.querySelector("#cards").scrollIntoView({ behavior: "smooth", block: "start" }); });
 document.querySelector("#searchToggle").addEventListener("click", () => { const panel = document.querySelector("#searchPanel"); panel.hidden = !panel.hidden; state.mobileSection = panel.hidden ? "home" : "search"; document.querySelector("#searchToggle").setAttribute("aria-expanded", String(!panel.hidden)); render(); if (!panel.hidden) document.querySelector("#searchInput").focus(); });
+
+document.querySelector("#locationButton").addEventListener("click", () => {
+  if (!locationDialog.open) locationDialog.showModal();
+});
+
+document.querySelectorAll("[data-location-key]").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.locationKey = button.dataset.locationKey;
+    state.selectedId = null;
+    try {
+      localStorage.setItem("little-weekends-location", state.locationKey);
+    } catch {
+      // The selected location still applies for the current session.
+    }
+    locationDialog.close();
+    showToast(`${selectedLocation().name} 기준으로 거리를 다시 계산했어요.`);
+    render();
+  });
+});
+
+document.querySelector("#closeLocationDialog").addEventListener("click", () => locationDialog.close());
+locationDialog.addEventListener("click", (event) => { if (event.target === locationDialog) locationDialog.close(); });
 
 document.querySelector("#closeDialog").addEventListener("click", () => {
   detailDialog.close();

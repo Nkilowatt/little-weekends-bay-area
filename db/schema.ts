@@ -10,6 +10,8 @@ export const events = sqliteTable("events", {
   city: text("city").notNull(),
   distance: real("distance").notNull(),
   age: text("age").notNull(),
+  minAgeMonths: integer("min_age_months").notNull().default(0),
+  maxAgeMonths: integer("max_age_months").notNull().default(216),
   price: text("price").notNull(),
   reservation: text("reservation").notNull(),
   sourceUrl: text("source_url").notNull(),
@@ -19,6 +21,7 @@ export const events = sqliteTable("events", {
   notesJson: text("notes_json").notNull(),
   latitude: real("latitude").notNull(),
   longitude: real("longitude").notNull(),
+  confidenceStatus: text("confidence_status").notNull().default("source_confirmed"),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   lastSeenAt: text("last_seen_at").notNull(),
 });

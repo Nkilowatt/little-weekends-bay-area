@@ -1,12 +1,29 @@
 # Roadmap
 
-Last updated: 2026-05-17
+Last updated: 2026-07-12
 
 This roadmap is organized as small, handoff-friendly tasks for future chat sessions.
 
 ## Now
 
-These are the best next tasks while the product is still a static prototype.
+OpenAI Sites is now the primary service. The event ingestion foundation is live; the next work should improve toddler relevance, location accuracy, trust, and release discipline.
+
+### 0. Primary Deployment And Git Reconciliation
+
+Goal: make the repository and canonical OpenAI Sites deployment traceable to the same source state.
+
+Tasks:
+
+- Preserve the current local product commits and uncommitted documents.
+- Reconcile divergent local and GitHub histories without destructive resets.
+- Push the exact source state used for the next Sites version.
+- Keep Netlify as a temporary redirect-only legacy URL.
+- Verify public access, `/api/outings`, and security headers after deployment.
+
+Done when:
+
+- A GitHub commit can be identified as the source of the current Sites deployment.
+- Old Netlify links redirect to OpenAI Sites.
 
 ### 1. Friend Testing Loop
 
@@ -41,21 +58,21 @@ Done when:
 - The app feels usable on a typical phone viewport.
 - No button text or card content overlaps.
 
-### 3. Better Seed Data
+### 3. Toddler Relevance And Place Data
 
 Goal: replace demo-ish entries with a stronger first curated set.
 
 Tasks:
 
-- Create a structured seed data file, such as `data/outings.json`.
-- Move hardcoded outing records out of `app.js`.
-- Add 20-30 high-confidence records from official sources.
-- Add fields for `last_reviewed_at`, `confidence_status`, and `source_url`.
+- Add structured minimum and maximum ages in months.
+- Exclude activities that do not overlap the 12-36 month target by default.
+- Add 20-30 high-confidence evergreen places from official sources.
+- Add `last_reviewed_at`, structured confidence, address, and source fields.
 
 Done when:
 
-- Cards render from structured data.
-- Every record has an official source and freshness status.
+- Results are toddler-relevant by default.
+- Every event and place has an official source and freshness status.
 
 ### 4. Trust And Freshness UI
 
@@ -135,16 +152,16 @@ Tasks:
 - Move seed data into JSON or a lightweight local data layer first.
 - Add API routes only when needed.
 
-### 10. Source Ingestion Prototype
+### 10. Source Ingestion Quality And Monitoring
 
-Goal: test one official source before building a full ingestion system.
+Goal: make the six-source ingestion system observable and safe as source pages change.
 
 Tasks:
 
-- Pick one library or city source with predictable data.
-- Build a script that fetches and normalizes raw events.
-- Store raw and normalized payloads separately.
-- Require human review before display.
+- Add parser fixtures and regression tests for every source.
+- Alert on failed sources, zero-event parses, and sudden count changes.
+- Separate automatic source confirmation from human verification.
+- Add a review path for ambiguous or age-inappropriate events.
 
 ## Later
 

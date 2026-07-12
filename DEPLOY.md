@@ -1,71 +1,44 @@
 # Deployment Guide
 
-The current app is a static site, so the fastest sharing path is static hosting.
+Last updated: 2026-07-12
 
-## Recommended Option: Netlify Drop
+## Primary Production Service
 
-Good for fast friend testing because it does not require changing the codebase.
+OpenAI Sites is the canonical production service:
 
-Steps:
+- URL: https://little-weekends-bay-area.cashmire2.chatgpt.site
+- Access: public
+- Project configuration: `.openai/hosting.json`
+- Static Worker build: `scripts/build-sites-static.mjs`
+- Event API: `/api/outings`
+- Storage: OpenAI Sites D1 binding named `DB`
 
-1. Go to `https://app.netlify.com/drop`.
-2. Drag the project folder into the page, or upload only these files:
-   - `index.html`
-   - `styles.css`
-   - `app.js`
-   - `netlify.toml`
-3. Netlify gives you a public URL.
-4. Send that URL to friends with the message in `FRIEND_TESTING_MESSAGE.md`.
+The Sites deployment serves the HTML, CSS, JavaScript, image assets, and same-origin event API. It is the only deployment that currently supports the automatic official-event refresh pipeline.
 
-Pros:
+## Build
 
-- Fastest.
-- Works well for static prototypes.
-- Easy to replace with a newer version.
+Use the Node version declared in `package.json`:
 
-Cons:
+```bash
+npm run build
+```
 
-- Manual upload unless connected to Git.
+The build writes the deployable Worker to `dist/server/index.js`, copies `worker/event-sync.js`, and includes `.openai/hosting.json` in the output.
 
-## Option 2: GitHub Pages
+Before deploying a new version:
 
-Good once the project is in a GitHub repository.
+1. Confirm the exact source state is committed and pushed.
+2. Run the build and available tests.
+3. Save a Sites version from that pushed commit.
+4. Deploy the saved version.
+5. Verify the home page, `/api/outings`, security headers, and public access.
 
-Steps:
+## Netlify Legacy URL
 
-1. Push this repo to GitHub.
-2. Open repository settings.
-3. Enable Pages from the main branch root.
-4. Send the generated GitHub Pages URL.
+The Netlify site is no longer the product source of truth. `netlify.toml` contains a temporary redirect to the OpenAI Sites URL so old shared links can continue to work after the current Git history is reconciled and pushed.
 
-Pros:
+Use a temporary `302` redirect during the alpha period. Change it to `301` only after the canonical URL has remained stable through user testing.
 
-- Free and stable.
-- Good for versioned prototypes.
+## Git Prerequisite
 
-Cons:
-
-- Requires GitHub repository setup.
-
-## Option 3: Vercel
-
-Good if the next step is moving to Next.js.
-
-Steps:
-
-1. Import the repository into Vercel.
-2. Keep the project as a static site for now.
-3. Later, replace the static prototype with a Next.js app.
-
-Pros:
-
-- Best fit for the future Next.js version.
-- Preview deployments are useful.
-
-Cons:
-
-- Slightly more setup than Netlify Drop.
-
-## My Recommendation
-
-For this exact moment, use Netlify Drop for the first friend test. Once the feedback is useful, move the project to GitHub and then choose either GitHub Pages for static prototypes or Vercel for the Next.js version.
+Local `main` and GitHub `main` currently have divergent history. Do not deploy the current repository to Netlify or save a new Sites version from an unpushed local-only commit. Reconcile Git history first without discarding local product work.

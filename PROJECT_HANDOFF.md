@@ -1,6 +1,6 @@
 # Project Handoff
 
-Last updated: 2026-07-10
+Last updated: 2026-07-12
 
 ## Product
 
@@ -15,15 +15,16 @@ The core experience is:
 
 ## Current Deployment
 
-- Public site: https://little-weekends-bay-area.netlify.app
-- OpenAI Sites deployment: https://little-weekends-bay-area.cashmire2.chatgpt.site
-- OpenAI Sites access: owner-only/custom access as of 2026-07-10
+- Canonical public site: https://little-weekends-bay-area.cashmire2.chatgpt.site
+- OpenAI Sites access: public as verified on 2026-07-12
+- Legacy Netlify URL: https://little-weekends-bay-area.netlify.app
 - GitHub repo: https://github.com/Nkilowatt/little-weekends-bay-area
-- Hosting: Netlify connected to GitHub `main`
-- Build command: none
-- Publish directory: `.`
+- Primary runtime: OpenAI Sites Worker
+- Event API: `/api/outings`
+- Database: D1 binding `DB`
+- Refresh schedule: six official sources every six hours
 
-The current app is still a dependency-free static site for the Netlify path. It does not require npm, a backend, a database, or environment variables.
+The user interface is lightweight HTML, CSS, and JavaScript, but the primary service now includes a Worker backend and D1 database for automatic official-event updates.
 
 OpenAI Sites support is configured through `.openai/hosting.json` plus a small static Worker build script at `scripts/build-sites-static.mjs`. The Sites build wraps the same `index.html`, `styles.css`, `app.js`, and map SVG into `dist/server/index.js` for deployment.
 
@@ -34,10 +35,19 @@ The map is still dependency-free and does not call a live map API. `app.js` stor
 The current basemap is intentionally lightweight:
 
 - No API keys.
-- No browser-side network calls.
-- No CSP changes.
+- No third-party browser-side API calls.
+- The browser calls only the same-origin `/api/outings` endpoint.
 - Static Wikimedia Commons Bay Area location map asset with in-app attribution.
 - City labels and nearby-pin offsets for readability on mobile.
+
+## Current P0 Decision Baseline
+
+- Results default to activities overlapping the 12-47 month range.
+- Parents can filter specifically for age 1, 2, or 3.
+- Location can be set to San Mateo, San Francisco, Palo Alto, San Jose, or Oakland without storing an exact address.
+- Distances, distance filtering, map origin, and nearest sorting recalculate from the selected location.
+- Recommended sorting scores age specificity, distance, time, source confidence, cost, and reservation burden while pushing repeated series below unique options.
+- Trust is structured as `human_verified`, `source_confirmed`, `recheck`, or `stale`; automatic source parsing is not presented as human verification.
 
 ## Current Code Shape
 
@@ -66,6 +76,7 @@ Planning and operations docs:
 - `FRIEND_TESTING_MESSAGE.md`
 - `PROJECT_HANDOFF.md`
 - `ROADMAP.md`
+- `tests/rendered-html.test.mjs`
 
 ## Security Baseline
 
@@ -73,15 +84,14 @@ Current security posture is intentionally simple:
 
 - No API keys.
 - No secrets.
-- No backend endpoints.
 - No auth.
 - No payments.
-- No database.
 - No form submission.
 - No cookies.
-- No external API calls from the browser.
+- One same-origin read-only public endpoint: `/api/outings`.
+- D1 stores normalized event and source-sync state.
 
-`netlify.toml` sets security headers for the public Netlify deployment:
+The OpenAI Sites build and `netlify.toml` set security headers including:
 
 - `Content-Security-Policy`
 - `Permissions-Policy`
@@ -89,13 +99,13 @@ Current security posture is intentionally simple:
 - `X-Content-Type-Options`
 - `Referrer-Policy`
 
-The CSP currently uses `connect-src 'none'`, which means browser-side network calls are blocked by default. If future work adds real-time data, maps, analytics, fonts, or external APIs, update the CSP deliberately and document why.
+OpenAI Sites uses `connect-src 'self'` for `/api/outings`. The Netlify legacy configuration remains restrictive because it redirects to the canonical service instead of hosting the event API.
 
 External official-source links in `app.js` use `target="_blank"` with `rel="noopener noreferrer"`.
 
 ## Important Data Note
 
-The current outing records are seed/sample records, not a fully verified live data feed. Before a real launch:
+The service combines automatically collected official events with a small curated set of evergreen places. Automatic source parsing is not the same as human verification. Before a broader launch:
 
 - Every public event needs an official source URL.
 - Every public event needs freshness metadata.
@@ -109,9 +119,9 @@ There was one period where local Git history and GitHub web commits diverged bec
 
 For a new development session:
 
-1. Treat GitHub `main` as the deployment source of truth.
+1. Treat the current OpenAI Sites deployment as the public product source of truth.
 2. Check `git status --short --branch`.
-3. Fetch remote before making changes.
+3. Inspect both local and remote history before changing branches; they are currently divergent.
 4. Avoid destructive Git commands unless the user explicitly asks.
 5. Keep `app.js`, `netlify.toml`, and `vercel.json` security changes intact.
 
@@ -131,12 +141,13 @@ https://github.com/Nkilowatt/little-weekends-bay-area
 
 먼저 PROJECT_HANDOFF.md, ROADMAP.md, README.md, PRD.md, UX_SPEC.md, DATA_PLAN.md, TECHNICAL_PLAN.md를 읽고 현재 상태를 파악해줘.
 
-배포는 Netlify 자동 배포로 연결되어 있고 공개 URL은:
-https://little-weekends-bay-area.netlify.app
+대표 배포는 OpenAI Sites이고 공개 URL은:
+https://little-weekends-bay-area.cashmire2.chatgpt.site
 
 중요:
-- 현재는 dependency-free static prototype이야.
-- GitHub main을 배포 기준으로 삼아줘.
+- 현재 UI는 가벼운 정적 구조지만 OpenAI Sites Worker, D1, /api/outings를 사용해.
+- OpenAI Sites를 대표 서비스로 유지해줘.
+- 로컬 main과 GitHub main이 갈라져 있으니 Git 작업 전에 반드시 상태를 확인해줘.
 - API key나 secret은 넣지 말 것.
 - 외부 데이터/실시간 이벤트 기능을 추가할 때는 클라이언트에 secret을 노출하지 않는 구조로 설계할 것.
 - netlify.toml의 보안 헤더와 CSP를 유지할 것.

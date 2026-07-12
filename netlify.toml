@@ -1,3 +1,9 @@
+[[redirects]]
+  from = "/*"
+  to = "https://little-weekends-bay-area.cashmire2.chatgpt.site/:splat"
+  status = 302
+  force = true
+
 [[headers]]
   for = "/*"
   [headers.values]

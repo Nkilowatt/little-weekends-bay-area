@@ -1,40 +1,45 @@
 # Little Weekends Bay Area
 
-Prototype for a Bay Area toddler outings service. It helps parents of 1-3 year olds browse toddler-friendly story times, parks, indoor play, museums, and seasonal activities through a list and map-style view.
+Working alpha for a Bay Area toddler outings service. It helps parents of 1-3 year olds browse toddler-friendly story times, parks, indoor play, museums, and seasonal activities through list and map views.
 
-## Current Prototype
+## Primary Service
 
-This version is a dependency-free static web app:
+- Live site: https://little-weekends-bay-area.cashmire2.chatgpt.site
+- Access: public
+- Runtime: OpenAI Sites Worker with a D1-backed `/api/outings` endpoint
+- Data refresh: six official event sources, refreshed on a six-hour schedule
 
-- `index.html`
-- `styles.css`
-- `app.js`
+The UI remains lightweight HTML, CSS, and JavaScript. OpenAI Sites serves those assets and the same-origin event API. A static fallback remains available when the API is delayed.
 
-It does not need npm, Next.js, or a database yet.
+The current P0 experience includes structured 1-3 age filtering, selectable Bay Area origin hubs with recalculated distances, structured trust states, and recommendation scoring that favors toddler-specific and practical options.
+
+The old Netlify URL is a legacy entry point. Once the current Git history is reconciled and pushed, Netlify will redirect visitors to the OpenAI Sites deployment.
 
 ## Run Locally
+
+For the static UI fallback:
 
 ```bash
 python3 -m http.server 4173
 ```
 
-Then open:
+For the Sites build, use the Node version declared in `package.json` and run:
 
-```txt
-http://localhost:4173
+```bash
+npm run build
 ```
 
 ## Share With Testers
 
-Best path for friend testing:
+Use the OpenAI Sites URL for all friend testing:
 
-1. Deploy the static site with Netlify Drop, Vercel, or GitHub Pages.
-2. Send the public URL with the tester message in `FRIEND_TESTING_MESSAGE.md`.
-3. Ask testers to try it on mobile first.
-4. Collect feedback on whether they can decide where to go within 10 seconds.
+1. Send `https://little-weekends-bay-area.cashmire2.chatgpt.site` with the tester message in `FRIEND_TESTING_MESSAGE.md`.
+2. Ask testers to try it on mobile first.
+3. Collect feedback on whether they can decide where to go within 10 seconds.
 
 ## Product Docs
 
+- `DESIGNER_BRIEF_KO.md`: Korean product and redesign brief for design collaborators
 - `PRD.md`: product requirements
 - `UX_SPEC.md`: UX recommendations
 - `DATA_PLAN.md`: seed data and source strategy
@@ -44,4 +49,4 @@ Best path for friend testing:
 
 ## Important Prototype Note
 
-The listed outings are sample seed records. Before a real launch, every event should show an official source link, freshness status, and human-reviewed confidence state.
+The service combines automatically collected official events with a small set of curated evergreen places. Automatic collection is not the same as human verification, so every event should retain its official source and freshness status.

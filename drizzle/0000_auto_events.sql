@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS events (
   city TEXT NOT NULL,
   distance REAL NOT NULL,
   age TEXT NOT NULL,
+  min_age_months INTEGER NOT NULL DEFAULT 0,
+  max_age_months INTEGER NOT NULL DEFAULT 216,
   price TEXT NOT NULL,
   reservation TEXT NOT NULL,
   source_url TEXT NOT NULL,
@@ -17,6 +19,7 @@ CREATE TABLE IF NOT EXISTS events (
   notes_json TEXT NOT NULL,
   latitude REAL NOT NULL,
   longitude REAL NOT NULL,
+  confidence_status TEXT NOT NULL DEFAULT 'source_confirmed',
   active INTEGER NOT NULL DEFAULT 1,
   last_seen_at TEXT NOT NULL
 );

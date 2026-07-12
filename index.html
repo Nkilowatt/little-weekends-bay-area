@@ -14,9 +14,10 @@
     <meta name="twitter:title" content="Little Weekends Bay Area" />
     <meta name="twitter:description" content="영유아 가족을 위한 빠르고 믿을 수 있는 Bay Area 나들이 가이드." />
     <meta name="twitter:image" content="https://little-weekends-bay-area.cashmire2.chatgpt.site/og.png" />
+    <link rel="canonical" href="https://little-weekends-bay-area.cashmire2.chatgpt.site/" />
     <link rel="icon" href="favicon.svg" />
     <link rel="preload" as="image" href="assets/photos/bay-family-hero.webp" fetchpriority="high" />
-    <link rel="stylesheet" href="styles.css?v=9" />
+    <link rel="stylesheet" href="styles.css?v=10" />
   </head>
   <body>
     <a class="skip-link" href="#cards">추천 목록으로 건너뛰기</a>
@@ -30,7 +31,7 @@
         <nav class="top-actions" aria-label="사용자 도구">
           <button class="location-button" id="locationButton" type="button" aria-label="기준 위치 변경">
             <span class="action-label">기준 위치</span>
-            <strong>San Mateo</strong>
+            <strong id="locationName">San Mateo</strong>
           </button>
           <button class="saved-button" id="saveToggle" type="button" aria-pressed="false">
             <span>저장</span>
@@ -103,6 +104,7 @@
           <div class="filters">
             <label>날짜<select id="dateFilter"><option value="today">오늘</option><option value="week">이번 주</option><option value="weekend">이번 주말</option><option value="nextweek">다음 주</option><option value="anytime">언제든</option></select></label>
             <label>거리<select id="distanceFilter"><option value="25">25 mi</option><option value="10">10 mi</option><option value="5">5 mi</option><option value="3">3 mi</option></select></label>
+            <label>아이 나이<select id="ageFilter"><option value="toddler">1-3세</option><option value="age1">1세</option><option value="age2">2세</option><option value="age3">3세</option><option value="all">전체 연령</option></select></label>
             <label>유형<select id="typeFilter"><option value="all">전체</option><option value="storytime">스토리타임</option><option value="park">공원 및 놀이터</option><option value="indoor">실내 놀이</option><option value="museum">뮤지엄</option><option value="seasonal">시즌 이벤트</option></select></label>
             <label>환경<select id="settingFilter"><option value="all">전체</option><option value="indoor">실내</option><option value="outdoor">야외</option></select></label>
             <label>비용<select id="priceFilter"><option value="all">전체</option><option value="free">무료</option><option value="paid">유료</option></select></label>
@@ -116,7 +118,7 @@
             <div class="cards" id="cards" aria-live="polite"></div>
           </div>
           <aside class="map-panel" aria-label="지도 보기">
-            <div class="map-toolbar"><span>San Mateo 중심</span><span class="map-legend">선택한 장소가 진하게 표시됩니다</span></div>
+            <div class="map-toolbar"><span id="mapLocationLabel">San Mateo 중심</span><span class="map-legend">선택한 장소가 진하게 표시됩니다</span></div>
             <div class="map-canvas" id="mapCanvas" aria-label="추천 장소가 표시된 베이 지역 지도"></div>
             <div class="map-preview" id="mapPreview" hidden></div>
           </aside>
@@ -132,7 +134,23 @@
     </nav>
 
     <dialog class="detail-dialog" id="detailDialog"><button class="dialog-close" id="closeDialog" type="button" aria-label="상세 닫기">닫기</button><div id="detailBody"></div></dialog>
+    <dialog class="location-dialog" id="locationDialog">
+      <section class="location-sheet" aria-labelledby="locationTitle">
+        <header class="location-heading">
+          <div><p>거리 계산 기준</p><h2 id="locationTitle">어디에서 출발하나요?</h2></div>
+          <button class="text-button" id="closeLocationDialog" type="button">닫기</button>
+        </header>
+        <p class="location-description">정확한 주소를 저장하지 않고 선택한 지역 중심점으로만 거리를 계산해요.</p>
+        <div class="location-options">
+          <button class="location-option" data-location-key="san-mateo" type="button"><strong>San Mateo</strong><span>Peninsula 중심</span></button>
+          <button class="location-option" data-location-key="san-francisco" type="button"><strong>San Francisco</strong><span>도심과 북부 Peninsula</span></button>
+          <button class="location-option" data-location-key="palo-alto" type="button"><strong>Palo Alto</strong><span>남부 Peninsula</span></button>
+          <button class="location-option" data-location-key="san-jose" type="button"><strong>San Jose</strong><span>South Bay</span></button>
+          <button class="location-option" data-location-key="oakland" type="button"><strong>Oakland</strong><span>East Bay</span></button>
+        </div>
+      </section>
+    </dialog>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=11"></script>
+    <script src="app.js?v=12"></script>
   </body>
 </html>

@@ -179,6 +179,21 @@ function ageForProgram(name) {
   return "2-6세";
 }
 
+function ageRangeFromLabel(label) {
+  const value = String(label || "").replace(/\s+/g, "");
+  const monthRange = value.match(/(\d+)개월-(\d+)개월/);
+  if (monthRange) return { minAgeMonths: Number(monthRange[1]), maxAgeMonths: Number(monthRange[2]) };
+
+  const mixedRange = value.match(/(\d+)개월-(\d+)세/);
+  if (mixedRange) return { minAgeMonths: Number(mixedRange[1]), maxAgeMonths: (Number(mixedRange[2]) + 1) * 12 - 1 };
+
+  const yearRange = value.match(/(\d+)-(\d+)세/);
+  if (yearRange) return { minAgeMonths: Number(yearRange[1]) * 12, maxAgeMonths: (Number(yearRange[2]) + 1) * 12 - 1 };
+
+  if (/가족|전연령/.test(value)) return { minAgeMonths: 0, maxAgeMonths: 216 };
+  return { minAgeMonths: 0, maxAgeMonths: 72 };
+}
+
 function distanceFromSanMateo(latitude, longitude) {
   const toRadians = (value) => value * Math.PI / 180;
   const origin = { latitude: 37.563, longitude: -122.3255 };
@@ -208,6 +223,8 @@ function makeEvent({
   if (!clock) return null;
   const startAt = pacificIso(dateKey, clock);
   const eventType = type || (/storytime|cuentos|move and groove/i.test(name) ? "storytime" : "seasonal");
+  const ageLabel = age || ageForProgram(name);
+  const ageRange = ageRangeFromLabel(ageLabel);
   const id = `${sourceKey}-${dateKey}-${clock.replace(":", "")}-${slugify(name)}-${slugify(location.label)}`;
   return {
     id,
@@ -218,7 +235,9 @@ function makeEvent({
     startAt,
     city: location.city,
     distance: location.distance,
-    age: age || ageForProgram(name),
+    age: ageLabel,
+    minAgeMonths: ageRange.minAgeMonths,
+    maxAgeMonths: ageRange.maxAgeMonths,
     price,
     reservation,
     sourceUrl,
@@ -233,6 +252,7 @@ function makeEvent({
     },
     latitude: location.latitude,
     longitude: location.longitude,
+    confidenceStatus: "source_confirmed",
   };
 }
 
@@ -664,6 +684,8 @@ function createSchemaStatements(db) {
       city TEXT NOT NULL,
       distance REAL NOT NULL,
       age TEXT NOT NULL,
+      min_age_months INTEGER NOT NULL DEFAULT 0,
+      max_age_months INTEGER NOT NULL DEFAULT 216,
       price TEXT NOT NULL,
       reservation TEXT NOT NULL,
       source_url TEXT NOT NULL,
@@ -673,6 +695,7 @@ function createSchemaStatements(db) {
       notes_json TEXT NOT NULL,
       latitude REAL NOT NULL,
       longitude REAL NOT NULL,
+      confidence_status TEXT NOT NULL DEFAULT 'source_confirmed',
       active INTEGER NOT NULL DEFAULT 1,
       last_seen_at TEXT NOT NULL
     )`),
@@ -690,16 +713,28 @@ function createSchemaStatements(db) {
 }
 
 async function ensureSchema(db) {
-  schemaReady ||= db.batch(createSchemaStatements(db));
+  schemaReady ||= (async () => {
+    await db.batch(createSchemaStatements(db));
+    const tableInfo = await db.prepare("PRAGMA table_info(events)").all();
+    const columns = new Set((tableInfo.results || []).map((column) => column.name));
+    const migrations = [];
+    if (!columns.has("min_age_months")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN min_age_months INTEGER NOT NULL DEFAULT 0"));
+    if (!columns.has("max_age_months")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN max_age_months INTEGER NOT NULL DEFAULT 216"));
+    if (!columns.has("confidence_status")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN confidence_status TEXT NOT NULL DEFAULT 'source_confirmed'"));
+    if (migrations.length) {
+      await db.batch(migrations);
+      await db.prepare("UPDATE events SET active = 0").run();
+    }
+  })();
   await schemaReady;
 }
 
 function upsertStatement(db, event, verifiedAt) {
   return db.prepare(`INSERT INTO events (
-    id, source_key, name, type, setting, start_at, city, distance, age, price,
-    reservation, source_url, source_name, verified_at, why, notes_json,
-    latitude, longitude, active, last_seen_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+    id, source_key, name, type, setting, start_at, city, distance, age,
+    min_age_months, max_age_months, price, reservation, source_url, source_name,
+    verified_at, why, notes_json, latitude, longitude, confidence_status, active, last_seen_at
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
   ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
     type = excluded.type,
@@ -708,6 +743,8 @@ function upsertStatement(db, event, verifiedAt) {
     city = excluded.city,
     distance = excluded.distance,
     age = excluded.age,
+    min_age_months = excluded.min_age_months,
+    max_age_months = excluded.max_age_months,
     price = excluded.price,
     reservation = excluded.reservation,
     source_url = excluded.source_url,
@@ -717,6 +754,7 @@ function upsertStatement(db, event, verifiedAt) {
     notes_json = excluded.notes_json,
     latitude = excluded.latitude,
     longitude = excluded.longitude,
+    confidence_status = excluded.confidence_status,
     active = 1,
     last_seen_at = excluded.last_seen_at`).bind(
       event.id,
@@ -728,6 +766,8 @@ function upsertStatement(db, event, verifiedAt) {
       event.city,
       event.distance,
       event.age,
+      event.minAgeMonths,
+      event.maxAgeMonths,
       event.price,
       event.reservation,
       event.sourceUrl,
@@ -737,6 +777,7 @@ function upsertStatement(db, event, verifiedAt) {
       JSON.stringify(event.notes),
       event.latitude,
       event.longitude,
+      event.confidenceStatus,
       verifiedAt,
     );
 }
@@ -802,7 +843,7 @@ function dateBucket(startAt, now = new Date()) {
   const difference = dayDifference(eventDate, today);
   const todayWeekday = utcDateFromKey(today).getUTCDay();
   const eventWeekday = utcDateFromKey(eventDate).getUTCDay();
-  const currentWeekEnd = 7 - todayWeekday;
+  const currentWeekEnd = todayWeekday === 0 ? 0 : 7 - todayWeekday;
   const nextWeekStart = todayWeekday === 0 ? 1 : 8 - todayWeekday;
   const nextWeekEnd = nextWeekStart + 6;
   if (difference === 0) return "today";
@@ -848,6 +889,8 @@ function rowToOuting(row, now) {
     city: row.city,
     distance: row.distance,
     age: row.age,
+    minAgeMonths: row.min_age_months,
+    maxAgeMonths: row.max_age_months,
     price: row.price,
     reservation: row.reservation,
     source: row.source_url,
@@ -856,6 +899,7 @@ function rowToOuting(row, now) {
     why: row.why,
     notes: JSON.parse(row.notes_json),
     location: { lat: row.latitude, lng: row.longitude },
+    confidenceStatus: row.confidence_status || "source_confirmed",
   };
 }
 
@@ -916,6 +960,7 @@ async function getOutingsResponse(request, env, context) {
 }
 
 export {
+  ageRangeFromLabel,
   dateBucket,
   getOutingsResponse,
   parseBayAreaDiscoveryMuseumEvents,
