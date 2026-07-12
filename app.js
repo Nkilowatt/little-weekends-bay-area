@@ -502,8 +502,22 @@ function typeInitial(type) {
 }
 
 function itemImage(item) {
-  if (item.type === "storytime" || item.type === "indoor") return "assets/photos/library-storytime.webp";
+  const imageContext = `${item.name || ""} ${item.why || ""} ${item.sourceName || ""} ${item.source || ""}`.toLowerCase();
+
+  if (/bubble|버블|discovery museum/.test(imageContext)) return "assets/photos/bubble-play.webp";
+  if (/animal|wildlife|otter|reptile|turtle|bee|nature|curiodyssey|동물|자연/.test(imageContext)) {
+    return "assets/photos/animal-encounter.webp";
+  }
+  if (/music|concert|dance|puppet|theater|theatre|performance|storyland|공연|음악|콘서트/.test(imageContext)) {
+    return "assets/photos/family-music-performance.webp";
+  }
+  if (/maker|craft|art|steam|robot|lego|create|paint|print|만들기|공예|미술/.test(imageContext)) {
+    return "assets/photos/maker-activity.webp";
+  }
+  if (item.type === "storytime") return "assets/photos/library-storytime.webp";
   if (item.type === "park") return "assets/photos/nature-playground.webp";
+  if (item.type === "museum") return "assets/photos/bubble-play.webp";
+  if (item.type === "indoor") return "assets/photos/maker-activity.webp";
   return "assets/photos/bay-family-hero.webp";
 }
 

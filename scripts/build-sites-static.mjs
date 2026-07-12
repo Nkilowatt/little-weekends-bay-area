@@ -40,6 +40,26 @@ const files = {
     contentType: "image/webp",
     binary: true,
   },
+  "/assets/photos/family-music-performance.webp": {
+    path: "assets/photos/family-music-performance.webp",
+    contentType: "image/webp",
+    binary: true,
+  },
+  "/assets/photos/animal-encounter.webp": {
+    path: "assets/photos/animal-encounter.webp",
+    contentType: "image/webp",
+    binary: true,
+  },
+  "/assets/photos/maker-activity.webp": {
+    path: "assets/photos/maker-activity.webp",
+    contentType: "image/webp",
+    binary: true,
+  },
+  "/assets/photos/bubble-play.webp": {
+    path: "assets/photos/bubble-play.webp",
+    contentType: "image/webp",
+    binary: true,
+  },
   "/favicon.svg": {
     path: "favicon.svg",
     contentType: "image/svg+xml; charset=utf-8",
