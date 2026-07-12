@@ -28,6 +28,27 @@ const sources = [
     url: "https://www.ssfca.gov/Departments/Library/Services/Kids-Teens/Storytime-Schedule",
     parse: parseSouthSanFranciscoStorytimes,
   },
+  {
+    key: "san-mateo-county-libraries",
+    url: "https://gateway.bibliocommons.com/v2/libraries/smcl/rss/events",
+    accept: "application/rss+xml,application/xml,text/xml",
+    parse: parseSanMateoCountyLibraryEvents,
+  },
+  {
+    key: "san-mateo-city-events",
+    url: sanMateoCityCalendarUrl,
+    parse: parseSanMateoCityEvents,
+  },
+  {
+    key: "curiodyssey-daily",
+    url: "https://curiodyssey.org/animals/animal-presentations/",
+    parse: parseCuriOdysseyDailyEvents,
+  },
+  {
+    key: "bay-area-discovery-museum",
+    url: "https://bayareadiscoverymuseum.org/events/",
+    parse: parseBayAreaDiscoveryMuseumEvents,
+  },
 ];
 
 let schemaReady;
@@ -158,29 +179,53 @@ function ageForProgram(name) {
   return "2-6세";
 }
 
-function makeEvent({ sourceKey, sourceUrl, sourceName, name, dateKey, time, location, setting = "indoor" }) {
+function distanceFromSanMateo(latitude, longitude) {
+  const toRadians = (value) => value * Math.PI / 180;
+  const origin = { latitude: 37.563, longitude: -122.3255 };
+  const latitudeDelta = toRadians(latitude - origin.latitude);
+  const longitudeDelta = toRadians(longitude - origin.longitude);
+  const a = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(toRadians(origin.latitude)) * Math.cos(toRadians(latitude)) * Math.sin(longitudeDelta / 2) ** 2;
+  return Math.round((3958.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 10) / 10;
+}
+
+function makeEvent({
+  sourceKey,
+  sourceUrl,
+  sourceName,
+  name,
+  dateKey,
+  time,
+  location,
+  setting = "indoor",
+  type,
+  age,
+  price = "free",
+  reservation = "예약 불필요 · 정원은 현장 상황에 따라 달라요",
+  why,
+}) {
   const clock = parseClock(time);
   if (!clock) return null;
   const startAt = pacificIso(dateKey, clock);
-  const type = /storytime|cuentos|move and groove/i.test(name) ? "storytime" : "seasonal";
+  const eventType = type || (/storytime|cuentos|move and groove/i.test(name) ? "storytime" : "seasonal");
   const id = `${sourceKey}-${dateKey}-${clock.replace(":", "")}-${slugify(name)}-${slugify(location.label)}`;
   return {
     id,
     sourceKey,
     name,
-    type,
+    type: eventType,
     setting,
     startAt,
     city: location.city,
     distance: location.distance,
-    age: ageForProgram(name),
-    price: "free",
-    reservation: "예약 불필요 · 정원은 현장 상황에 따라 달라요",
+    age: age || ageForProgram(name),
+    price,
+    reservation,
     sourceUrl,
     sourceName,
-    why: setting === "outdoor"
+    why: why || (setting === "outdoor"
       ? "공식 일정에서 확인한 야외 스토리타임으로 책과 바깥놀이를 한 번에 즐기기 좋아요."
-      : "공식 도서관 일정에서 자동 확인한 영유아 프로그램이에요.",
+      : "공식 도서관 일정에서 자동 확인한 영유아 프로그램이에요."),
     notes: {
       parking: location.parking,
       bathroom: location.bathroom,
@@ -362,6 +407,251 @@ function parseSanMateoStorytimes(html, now = new Date()) {
   return events;
 }
 
+function xmlValue(block, tagName) {
+  const escaped = tagName.replace(":", "\\:");
+  const match = block.match(new RegExp(`<${escaped}>([\\s\\S]*?)<\\/${escaped}>`, "i"));
+  return match ? stripHtml(match[1].replace(/^<!\[CDATA\[/, "").replace(/\]\]>$/, "")) : "";
+}
+
+function xmlValues(block, tagName) {
+  const escaped = tagName.replace(":", "\\:");
+  return [...block.matchAll(new RegExp(`<${escaped}>([\\s\\S]*?)<\\/${escaped}>`, "gi"))]
+    .map((match) => stripHtml(match[1].replace(/^<!\[CDATA\[/, "").replace(/\]\]>$/, "")));
+}
+
+function displayClockFrom24(value) {
+  const [hourValue, minuteValue = "00"] = value.split(":");
+  const hour = Number(hourValue);
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minuteValue} ${suffix}`;
+}
+
+function eventWhy(name, categories) {
+  const context = `${name} ${categories.join(" ")}`;
+  if (/animal|wildlife|nature|bee|reptile/i.test(context)) return "아이와 동물과 자연을 가까이에서 관찰하며 호기심을 키우기 좋은 공식 프로그램이에요.";
+  if (/music|performance|concert|dance|puppet|theater/i.test(context)) return "노래와 움직임, 공연을 함께 즐길 수 있어 아이가 적극적으로 참여하기 좋아요.";
+  if (/steam|technology|maker|art|creativity|craft|game/i.test(context)) return "만들기와 탐색을 통해 손을 쓰고 새로운 것을 발견할 수 있는 체험형 프로그램이에요.";
+  if (/storytime/i.test(context)) return "책, 노래, 움직임을 짧게 함께 즐길 수 있는 영유아 친화 프로그램이에요.";
+  return "공식 일정에서 확인한 아이와 가족이 함께 참여할 수 있는 프로그램이에요.";
+}
+
+function parseSanMateoCountyLibraryEvents(xml, now = new Date()) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const events = [];
+  const itemPattern = /<item>([\s\S]*?)<\/item>/gi;
+  let item;
+
+  while ((item = itemPattern.exec(xml))) {
+    const block = item[1];
+    const categories = xmlValues(block, "category");
+    const audienceMatch = categories.some((category) => /Preschoolers \(0-5\)|All Ages/i.test(category));
+    const childMatch = categories.some((category) => /Children \(6-11\)/i.test(category));
+    const name = xmlValue(block, "title");
+    const broadlyKidFriendly = /animal|music|puppet|magic|play|dance|family|kids|craft|maker|steam|story/i.test(`${name} ${categories.join(" ")}`);
+    if (!audienceMatch && !(childMatch && broadlyKidFriendly)) continue;
+    if (xmlValue(block, "bc:is_cancelled") === "true" || xmlValue(block, "bc:is_virtual") === "true") continue;
+
+    const startAt = xmlValue(block, "bc:start_date");
+    const localStart = xmlValue(block, "bc:start_date_local");
+    const dateKey = localStart.slice(0, 10);
+    if (!startAt || dateKey < today || dateKey > lastDate) continue;
+    const locationBlock = block.match(/<bc:location>([\s\S]*?)<\/bc:location>/i)?.[1] || "";
+    const latitude = Number(xmlValue(locationBlock, "bc:latitude"));
+    const longitude = Number(xmlValue(locationBlock, "bc:longitude"));
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) continue;
+    const locationName = xmlValue(locationBlock, "bc:name");
+    const city = xmlValue(locationBlock, "bc:city") || locationName;
+    const street = `${xmlValue(locationBlock, "bc:number")} ${xmlValue(locationBlock, "bc:street")}`.trim();
+    const registrationBlock = block.match(/<bc:registration_info>([\s\S]*?)<\/bc:registration_info>/i)?.[1] || "";
+    const registrationRequired = xmlValue(registrationBlock, "bc:is_required") === "true";
+    const registrationFull = xmlValue(registrationBlock, "bc:is_full") === "true";
+    const type = categories.some((category) => /Storytime/i.test(category))
+      ? "storytime"
+      : categories.some((category) => /STEAM|Technology|Art & Creativity|Games/i.test(category))
+        ? "indoor"
+        : "seasonal";
+    const location = {
+      label: locationName || city,
+      city,
+      distance: distanceFromSanMateo(latitude, longitude),
+      latitude,
+      longitude,
+      parking: `${locationName || city} 주변 주차 정보를 공식 장소 페이지에서 확인하세요.`,
+      bathroom: "도서관 내 화장실 이용 가능.",
+      stroller: `${street || "도서관"}의 출입구와 프로그램 공간 동선을 이용하세요.`,
+    };
+    const localTime = localStart.slice(11, 16);
+    const event = makeEvent({
+      sourceKey: sources[2].key,
+      sourceUrl: xmlValue(block, "link"),
+      sourceName: "San Mateo County Libraries",
+      name,
+      dateKey,
+      time: displayClockFrom24(localTime),
+      location,
+      type,
+      age: audienceMatch ? "0-5세·가족" : "4-11세",
+      reservation: registrationFull ? "예약 마감" : registrationRequired ? "예약 필요" : "예약 불필요",
+      why: eventWhy(name, categories),
+    });
+    if (event) {
+      event.startAt = startAt;
+      events.push(event);
+    }
+  }
+
+  return events;
+}
+
+function sanMateoCityCalendarUrl(now = new Date()) {
+  const parts = dateParts(now);
+  return `https://www.cityofsanmateo.org/calendar.aspx?CID=0&month=${Number(parts.month)}&view=list&year=${parts.year}`;
+}
+
+function parseSanMateoCityEvents(html, now = new Date()) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const sourceUrl = sanMateoCityCalendarUrl(now);
+  const events = [];
+  const eventPattern = /<div class="hidden" itemscope itemtype="http:\/\/schema\.org\/Event">([\s\S]*?)<\/div><p>/gi;
+  let match;
+
+  while ((match = eventPattern.exec(html))) {
+    const block = match[1];
+    const name = stripHtml(block.match(/itemprop="name"[^>]*>([\s\S]*?)<\/span>/i)?.[1] || "");
+    const localStart = block.match(/itemprop="startDate"[^>]*>([^<]+)</i)?.[1] || "";
+    const description = stripHtml(block.match(/itemprop="description"[^>]*>([\s\S]*?)<\/p>/i)?.[1] || "");
+    const locationName = stripHtml(block.match(/itemprop="location"[\s\S]*?itemprop="name"[^>]*>([^<]+)</i)?.[1] || "San Mateo");
+    const dateKey = localStart.slice(0, 10);
+    const localTime = localStart.slice(11, 16);
+    const context = `${name} ${description} ${locationName}`;
+    if (!dateKey || dateKey < today || dateKey > lastDate) continue;
+    if (!/family|kid|child|music|concert|movie|festival|park|play/i.test(context)) continue;
+    if (/cancelled|commission|meeting|senior|planning/i.test(context)) continue;
+    const centralPark = /Central Park/i.test(locationName);
+    const latitude = centralPark ? 37.5624 : 37.563;
+    const longitude = centralPark ? -122.3252 : -122.3255;
+    const location = {
+      label: locationName,
+      city: "San Mateo",
+      distance: distanceFromSanMateo(latitude, longitude),
+      latitude,
+      longitude,
+      parking: `${locationName} 주변 공영·노상 주차 정보를 확인하세요.`,
+      bathroom: "행사장 화장실 위치와 운영 여부를 공식 안내에서 확인하세요.",
+      stroller: "야외 행사장은 유모차 이동이 가능하지만 혼잡 시간을 고려하세요.",
+    };
+    const event = makeEvent({
+      sourceKey: sources[3].key,
+      sourceUrl,
+      sourceName: "City of San Mateo",
+      name,
+      dateKey,
+      time: displayClockFrom24(localTime),
+      location,
+      setting: /park|outdoor|music|movie|festival/i.test(context) ? "outdoor" : "indoor",
+      type: "seasonal",
+      age: "가족·전 연령",
+      price: /free/i.test(description) ? "free" : "paid",
+      reservation: "공식 행사 안내 확인",
+      why: "시에서 공식 운영하는 가족 친화 행사로 공연과 야외 활동을 함께 즐기기 좋아요.",
+    });
+    if (event) events.push(event);
+  }
+
+  return events;
+}
+
+function parseCuriOdysseyDailyEvents(html, now = new Date()) {
+  const text = stripHtml(html);
+  const schedule = text.match(/Animals in Action.*?Every Day at\s+(\d{1,2}\s*PM),\s*(\d{1,2}\s*PM),\s*and\s*(\d{1,2}\s*PM)/i);
+  if (!schedule) return [];
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const location = {
+    label: "CuriOdyssey",
+    city: "San Mateo",
+    distance: 4.6,
+    latitude: 37.5906,
+    longitude: -122.3188,
+    parking: "Coyote Point 입장·주차 요금을 확인하세요.",
+    bathroom: "시설 내 화장실과 기저귀 교환 공간을 이용할 수 있어요.",
+    stroller: "전시관과 야외 동물 구역을 유모차로 이동할 수 있어요.",
+  };
+  const times = schedule.slice(1).join(" · ");
+  const events = [];
+  for (let dateKey = today; dateKey <= lastDate; dateKey = addDays(dateKey, 1)) {
+    const event = makeEvent({
+      sourceKey: sources[4].key,
+      sourceUrl: sources[4].url,
+      sourceName: "CuriOdyssey",
+      name: "CuriOdyssey Animals in Action",
+      dateKey,
+      time: schedule[1],
+      location,
+      type: "museum",
+      age: "1-6세·가족",
+      price: "paid",
+      reservation: "입장권 확인",
+      why: `동물 돌봄과 훈련 모습을 가까이에서 볼 수 있어요. 공식 발표 시간은 ${times}입니다.`,
+    });
+    if (event) events.push(event);
+  }
+  return events;
+}
+
+function parseBayAreaDiscoveryMuseumEvents(html, now = new Date()) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const currentYear = Number(today.slice(0, 4));
+  const events = [];
+  const blockPattern = /<h3[^>]*>([\s\S]*?)<\/h3>[\s\S]{0,1400}?<p[^>]*>([\s\S]*?)<\/p>/gi;
+  let block;
+
+  while ((block = blockPattern.exec(html))) {
+    const name = stripHtml(block[1]);
+    const description = stripHtml(block[2]);
+    const range = description.match(new RegExp(`(${monthNames.join("|")})\\s+(\\d{1,2})\\s*[-–—]\\s*(${monthNames.join("|")})\\s+(\\d{1,2})`, "i"));
+    if (!range) continue;
+    const startMonth = monthNames.findIndex((month) => month.toLowerCase() === range[1].toLowerCase());
+    const endMonth = monthNames.findIndex((month) => month.toLowerCase() === range[3].toLowerCase());
+    const startDate = `${currentYear}-${String(startMonth + 1).padStart(2, "0")}-${String(range[2]).padStart(2, "0")}`;
+    const endDate = `${currentYear}-${String(endMonth + 1).padStart(2, "0")}-${String(range[4]).padStart(2, "0")}`;
+    const location = {
+      label: "Bay Area Discovery Museum",
+      city: "Sausalito",
+      distance: distanceFromSanMateo(37.8356, -122.4764),
+      latitude: 37.8356,
+      longitude: -122.4764,
+      parking: "박물관 전용 주차와 입장 시간을 확인하세요.",
+      bathroom: "어린이 동반 가족을 위한 화장실과 편의시설이 있어요.",
+      stroller: "실내외 전시 공간을 유모차로 이동할 수 있어요.",
+    };
+    for (let dateKey = startDate > today ? startDate : today; dateKey <= endDate && dateKey <= lastDate; dateKey = addDays(dateKey, 1)) {
+      if (utcDateFromKey(dateKey).getUTCDay() === 2) continue;
+      const event = makeEvent({
+        sourceKey: sources[5].key,
+        sourceUrl: sources[5].url,
+        sourceName: "Bay Area Discovery Museum",
+        name,
+        dateKey,
+        time: "10:00 AM",
+        location,
+        setting: "outdoor",
+        type: "museum",
+        age: "0-8세·가족",
+        price: "paid",
+        reservation: "입장권 권장",
+        why: `${name} 기간에 운영되는 어린이 박물관 특별 프로그램으로 감각 놀이와 야외 활동을 함께 즐기기 좋아요.`,
+      });
+      if (event) events.push(event);
+    }
+  }
+  return events;
+}
+
 function createSchemaStatements(db) {
   return [
     db.prepare(`CREATE TABLE IF NOT EXISTS events (
@@ -454,9 +744,10 @@ function upsertStatement(db, event, verifiedAt) {
 async function syncSource(db, source, now) {
   const attemptedAt = now.toISOString();
   try {
-    const response = await fetch(source.url, {
+    const sourceUrl = typeof source.url === "function" ? source.url(now) : source.url;
+    const response = await fetch(sourceUrl, {
       headers: {
-        Accept: "text/html,application/xhtml+xml",
+        Accept: source.accept || "text/html,application/xhtml+xml",
         "User-Agent": "LittleWeekendsBayArea/1.0 (+https://little-weekends-bay-area.cashmire2.chatgpt.site)",
       },
       signal: AbortSignal.timeout(15000),
@@ -493,9 +784,9 @@ async function syncSource(db, source, now) {
 async function refreshOutings(env, force = false) {
   if (!env?.DB) return { refreshed: false, reason: "D1 binding unavailable" };
   await ensureSchema(env.DB);
-  const status = await env.DB.prepare("SELECT MAX(last_success_at) AS last_success_at FROM sync_state").first();
+  const status = await env.DB.prepare("SELECT MAX(last_success_at) AS last_success_at, COUNT(*) AS source_count FROM sync_state").first();
   const lastSuccess = status?.last_success_at ? new Date(status.last_success_at).getTime() : 0;
-  if (!force && Date.now() - lastSuccess < REFRESH_INTERVAL_MS) {
+  if (!force && Number(status?.source_count || 0) >= sources.length && Date.now() - lastSuccess < REFRESH_INTERVAL_MS) {
     return { refreshed: false, reason: "fresh" };
   }
 
@@ -597,9 +888,10 @@ async function getOutingsResponse(request, env, context) {
   let events = await queryOutings(env.DB, now);
   const metadata = await syncMetadata(env.DB);
   const lastSuccess = metadata.lastSyncedAt ? new Date(metadata.lastSyncedAt).getTime() : 0;
+  const sourceSetIncomplete = metadata.sources.length < sources.length;
   const isStale = Date.now() - lastSuccess >= REFRESH_INTERVAL_MS;
 
-  if (!events.length) {
+  if (!events.length || sourceSetIncomplete) {
     await refreshOutings(env, true);
     events = await queryOutings(env.DB, now);
   } else if (isStale) {
@@ -626,6 +918,10 @@ async function getOutingsResponse(request, env, context) {
 export {
   dateBucket,
   getOutingsResponse,
+  parseBayAreaDiscoveryMuseumEvents,
+  parseCuriOdysseyDailyEvents,
+  parseSanMateoCityEvents,
+  parseSanMateoCountyLibraryEvents,
   parseSanMateoStorytimes,
   parseSouthSanFranciscoStorytimes,
   refreshOutings,

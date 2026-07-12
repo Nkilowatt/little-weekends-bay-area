@@ -831,7 +831,8 @@ async function loadAutomaticOutings() {
     const payload = await response.json();
     if (!Array.isArray(payload.events) || !payload.events.length) throw new Error("새 일정이 아직 준비되지 않았어요.");
     outings = [...evergreenOutings, ...payload.events];
-    syncStatusEl.textContent = `${syncTimeLabel(payload.lastSyncedAt)} · 6시간 간격`;
+    const activeSources = Array.isArray(payload.sources) ? payload.sources.filter((source) => source.status === "ok").length : 0;
+    syncStatusEl.textContent = `${syncTimeLabel(payload.lastSyncedAt)} · 공식 수집처 ${activeSources}곳`;
     render();
   } catch {
     outings = staticOutings;
