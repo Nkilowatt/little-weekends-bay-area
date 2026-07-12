@@ -1,0 +1,33 @@
+import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+export const events = sqliteTable("events", {
+  id: text("id").primaryKey(),
+  sourceKey: text("source_key").notNull(),
+  name: text("name").notNull(),
+  type: text("type").notNull(),
+  setting: text("setting").notNull(),
+  startAt: text("start_at").notNull(),
+  city: text("city").notNull(),
+  distance: real("distance").notNull(),
+  age: text("age").notNull(),
+  price: text("price").notNull(),
+  reservation: text("reservation").notNull(),
+  sourceUrl: text("source_url").notNull(),
+  sourceName: text("source_name").notNull(),
+  verifiedAt: text("verified_at").notNull(),
+  why: text("why").notNull(),
+  notesJson: text("notes_json").notNull(),
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  lastSeenAt: text("last_seen_at").notNull(),
+});
+
+export const syncState = sqliteTable("sync_state", {
+  sourceKey: text("source_key").primaryKey(),
+  status: text("status").notNull(),
+  lastAttemptAt: text("last_attempt_at").notNull(),
+  lastSuccessAt: text("last_success_at"),
+  message: text("message"),
+  eventCount: integer("event_count").notNull().default(0),
+});

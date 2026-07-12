@@ -16,7 +16,7 @@
     <meta name="twitter:image" content="https://little-weekends-bay-area.cashmire2.chatgpt.site/og.png" />
     <link rel="icon" href="favicon.svg" />
     <link rel="preload" as="image" href="assets/photos/bay-family-hero.webp" fetchpriority="high" />
-    <link rel="stylesheet" href="styles.css?v=8" />
+    <link rel="stylesheet" href="styles.css?v=9" />
   </head>
   <body>
     <a class="skip-link" href="#cards">추천 목록으로 건너뛰기</a>
@@ -67,7 +67,7 @@
         <div class="quick-strip" aria-label="상황별 빠른 탐색">
           <button class="quick-card is-active" data-date="today" type="button"><strong>오늘</strong><small>바로 갈 수 있는 곳</small></button>
           <button class="quick-card" data-date="weekend" type="button"><strong>이번 주말</strong><small>가족이 함께</small></button>
-          <button class="quick-card" data-date="nextweek" type="button"><strong>다음 주</strong><small>7월 13-19일 일정</small></button>
+          <button class="quick-card" data-date="nextweek" type="button"><strong>다음 주</strong><small id="nextWeekRange">다가오는 일정</small></button>
           <button class="quick-card" data-setting="indoor" type="button"><strong>비 오는 날</strong><small>실내에서 편하게</small></button>
           <button class="quick-card" data-price="free" type="button"><strong>무료</strong><small>비용 부담 없이</small></button>
           <button class="quick-card" data-distance="5" type="button"><strong>가까운 곳</strong><small>5마일 안쪽</small></button>
@@ -80,7 +80,10 @@
             <p id="summaryEyebrow">오늘의 추천</p>
             <h2 id="summaryTitle">낮잠 전에 다녀오기 좋은 가까운 곳</h2>
           </div>
-          <p id="resultSummary" aria-live="polite">후보를 찾고 있어요.</p>
+          <div class="results-meta">
+            <p id="resultSummary" aria-live="polite">후보를 찾고 있어요.</p>
+            <p id="syncStatus" aria-live="polite">공식 일정 자동 업데이트 준비 중</p>
+          </div>
         </header>
 
         <div class="toolbar" aria-label="결과 도구">
@@ -130,6 +133,6 @@
 
     <dialog class="detail-dialog" id="detailDialog"><button class="dialog-close" id="closeDialog" type="button" aria-label="상세 닫기">닫기</button><div id="detailBody"></div></dialog>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js?v=8"></script>
+    <script src="app.js?v=9"></script>
   </body>
 </html>

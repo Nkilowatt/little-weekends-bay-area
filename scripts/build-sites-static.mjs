@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -56,7 +56,7 @@ const securityHeaders = {
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Content-Security-Policy":
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
 };
 
@@ -75,7 +75,9 @@ const entries = Object.fromEntries(
   ),
 );
 
-const workerSource = `const entries = ${JSON.stringify(entries)};
+const workerSource = `import { getOutingsResponse, refreshOutings } from "./event-sync.js";
+
+const entries = ${JSON.stringify(entries)};
 const securityHeaders = ${JSON.stringify(securityHeaders)};
 
 function headers(contentType) {
@@ -86,9 +88,10 @@ function headers(contentType) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env, context) {
     const url = new URL(request.url);
     const pathname = url.pathname.endsWith("/") && url.pathname !== "/" ? url.pathname.slice(0, -1) : url.pathname;
+    if (pathname === "/api/outings") return getOutingsResponse(request, env, context);
     const entry = entries[pathname];
 
     if (!entry) {
@@ -107,12 +110,16 @@ export default {
       headers: headers(entry.contentType),
     });
   },
+  async scheduled(controller, env, context) {
+    context.waitUntil(refreshOutings(env, true));
+  },
 };
 `;
 
 const outputPath = join(root, "dist/server/index.js");
 await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, workerSource, "utf8");
+await copyFile(join(root, "worker/event-sync.js"), join(root, "dist/server/event-sync.js"));
 const hostingOutputPath = join(root, "dist/.openai/hosting.json");
 await mkdir(dirname(hostingOutputPath), { recursive: true });
 await writeFile(

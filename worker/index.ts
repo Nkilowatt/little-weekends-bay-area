@@ -1,6 +1,7 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { getOutingsResponse, refreshOutings } from "./event-sync.js";
 
 interface Env {
   ASSETS: Fetcher;
@@ -40,7 +41,14 @@ const worker = {
       }, allowedWidths);
     }
 
+    if (url.pathname === "/api/outings") {
+      return getOutingsResponse(request, env, ctx);
+    }
+
     return handler.fetch(request, env, ctx);
+  },
+  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(refreshOutings(env, true));
   },
 };
 

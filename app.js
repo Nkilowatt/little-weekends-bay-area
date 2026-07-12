@@ -1,4 +1,4 @@
-const outings = [
+let outings = [
   {
     id: "sfpl-main-toddler",
     name: "SFPL Main Toddler Storytime",
@@ -382,6 +382,11 @@ const outings = [
   }
 ];
 
+const evergreenIds = new Set(["coyote-point", "curiodyssey", "palo-alto-junior"]);
+const staticOutings = outings.filter((item) => !item.startDate || new Date(item.startDate).getTime() >= Date.now() - 21600000);
+const evergreenOutings = staticOutings.filter((item) => evergreenIds.has(item.id));
+outings = staticOutings;
+
 const mapBounds = {
   north: 38.2033,
   south: 37.1897,
@@ -415,6 +420,7 @@ const mapEl = document.querySelector("#mapCanvas");
 const summaryEl = document.querySelector("#resultSummary");
 const summaryEyebrowEl = document.querySelector("#summaryEyebrow");
 const summaryTitleEl = document.querySelector("#summaryTitle");
+const syncStatusEl = document.querySelector("#syncStatus");
 const contentGrid = document.querySelector("#contentGrid");
 const detailDialog = document.querySelector("#detailDialog");
 const detailBody = document.querySelector("#detailBody");
@@ -431,6 +437,35 @@ function trustStatus(item) {
 
 function dateLabel() {
   return { today: "오늘", week: "이번 주", weekend: "이번 주말", nextweek: "다음 주", anytime: "언제든" }[state.date];
+}
+
+function nextWeekRangeLabel(includeSuffix = false) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date()).filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+  const today = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), 12));
+  const daysUntilMonday = today.getUTCDay() === 0 ? 1 : 8 - today.getUTCDay();
+  const start = new Date(today);
+  start.setUTCDate(start.getUTCDate() + daysUntilMonday);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 6);
+  const startLabel = `${start.getUTCMonth() + 1}월 ${start.getUTCDate()}일`;
+  const endLabel = start.getUTCMonth() === end.getUTCMonth() ? `${end.getUTCDate()}일` : `${end.getUTCMonth() + 1}월 ${end.getUTCDate()}일`;
+  return `${startLabel}-${endLabel}${includeSuffix ? " 일정" : ""}`;
+}
+
+function syncTimeLabel(value) {
+  if (!value) return "자동 업데이트 대기 중";
+  return `${new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "America/Los_Angeles",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(new Date(value))} 자동 확인`;
 }
 
 function activeFilterCount() {
@@ -758,7 +793,7 @@ function render() {
     today: ["오늘의 추천", "낮잠 전에 다녀오기 좋은 가까운 곳"],
     week: ["이번 주 추천", "평일 루틴에 넣기 좋은 곳"],
     weekend: ["이번 주말 추천", "가족이 함께 다녀오기 좋은 곳"],
-    nextweek: ["7월 13-19일", "다음 주에 열리는 유아 친화 행사"],
+    nextweek: [nextWeekRangeLabel(), "다음 주에 열리는 유아 친화 행사"],
     anytime: ["전체 추천", "날짜에 구애받지 않고 가볼 만한 곳"]
   };
   const [eyebrow, title] = summaries[state.date];
@@ -785,6 +820,24 @@ function render() {
   });
   renderCards(items);
   renderMap(items);
+}
+
+async function loadAutomaticOutings() {
+  syncStatusEl.textContent = "공식 도서관 일정 확인 중";
+  document.querySelector("#nextWeekRange").textContent = nextWeekRangeLabel(true);
+  try {
+    const response = await fetch("/api/outings", { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error("자동 일정 API를 불러오지 못했어요.");
+    const payload = await response.json();
+    if (!Array.isArray(payload.events) || !payload.events.length) throw new Error("새 일정이 아직 준비되지 않았어요.");
+    outings = [...evergreenOutings, ...payload.events];
+    syncStatusEl.textContent = `${syncTimeLabel(payload.lastSyncedAt)} · 6시간 간격`;
+    render();
+  } catch {
+    outings = staticOutings;
+    syncStatusEl.textContent = "자동 확인 지연 · 기존 확인 목록 표시 중";
+    render();
+  }
 }
 
 function toggleSaved(id) {
@@ -978,3 +1031,4 @@ document.querySelector("#closeDialog").addEventListener("click", () => {
 detailDialog.addEventListener("click", (event) => { if (event.target === detailDialog) detailDialog.close(); });
 
 render();
+loadAutomaticOutings();

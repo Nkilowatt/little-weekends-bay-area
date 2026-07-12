@@ -5,7 +5,7 @@ import Script from "next/script";
 const source = readFileSync(join(process.cwd(), "index.html"), "utf8");
 const appScript = readFileSync(join(process.cwd(), "app.js"), "utf8");
 const appMarkup = source
-  .match(/<body>([\s\S]*?)<script src="app\.js\?v=8"><\/script>[\s\S]*?<\/body>/)?.[1]
+  .match(/<body>([\s\S]*?)<script src="app\.js\?v=9"><\/script>[\s\S]*?<\/body>/)?.[1]
   ?.trim();
 
 export default function Home() {
