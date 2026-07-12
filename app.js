@@ -834,6 +834,23 @@ document.querySelectorAll("[data-date]").forEach((button) => {
     document.querySelectorAll(".quick-card").forEach((item) => item.classList.remove("is-active"));
     button.classList.add("is-active");
     state.date = button.dataset.date;
+    if (state.date === "nextweek") {
+      state.savedOnly = false;
+      state.distance = "25";
+      state.type = "all";
+      state.setting = "all";
+      state.price = "all";
+      state.search = "";
+      state.sort = "soonest";
+      state.view = "list";
+      state.mobileSection = "home";
+      document.querySelector("#distanceFilter").value = "25";
+      document.querySelector("#typeFilter").value = "all";
+      document.querySelector("#settingFilter").value = "all";
+      document.querySelector("#priceFilter").value = "all";
+      document.querySelector("#sortSelect").value = "soonest";
+      document.querySelector("#searchInput").value = "";
+    }
     document.querySelector("#dateFilter").value = state.date;
     render();
   });
