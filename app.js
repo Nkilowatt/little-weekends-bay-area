@@ -583,7 +583,7 @@ const mapBounds = {
 
 const state = {
   date: "today",
-  distance: "25",
+  distance: "10",
   region: "all",
   age: "toddler",
   type: "all",
@@ -744,7 +744,7 @@ function syncTimeLabel(value) {
 
 function activeFilterCount() {
   return Number(state.date !== "today")
-    + Number(state.distance !== "25")
+    + Number(state.distance !== "10")
     + Number(state.region !== "all")
     + Number(state.age !== "toddler")
     + Number(state.type !== "all")
@@ -1189,7 +1189,10 @@ function render() {
   summaryTitleEl.textContent = title;
   summaryEl.textContent = `${items.length}개 후보를 찾았어요.`;
   document.querySelector("#filterResultCount").textContent = items.length;
-  document.querySelector("#filterCount").textContent = activeFilterCount();
+  const filterCount = activeFilterCount();
+  const filterCountEl = document.querySelector("#filterCount");
+  filterCountEl.textContent = filterCount;
+  filterCountEl.hidden = filterCount === 0;
   document.querySelector("#savedCount").textContent = state.saved.size;
   document.querySelector("#mobileSavedCount").textContent = state.saved.size;
   document.querySelector("#locationName").textContent = selectedLocation().name;
@@ -1197,7 +1200,7 @@ function render() {
   const contextParts = [state.savedOnly ? "저장한 곳" : `${selectedLocation().name} 중심`, dateLabel()];
   if (state.region !== "all") contextParts.push(regionLabels[state.region]);
   if (state.time !== "all") contextParts.push({ morning: "오전", afternoon: "오후", evening: "저녁" }[state.time]);
-  document.querySelector("#listContext").textContent = contextParts.join(" · ");
+  document.querySelector("#listContext").textContent = contextParts.join(" / ");
   document.querySelectorAll("[data-location-key]").forEach((button) => {
     const active = button.dataset.locationKey === state.locationKey;
     button.classList.toggle("is-active", active);
@@ -1277,7 +1280,7 @@ async function shareOuting(item) {
   const shareUrl = `${window.location.origin}${window.location.pathname}`;
   const shareData = {
     title: item.name,
-    text: `${item.name} · ${item.timeLabel} · ${item.city}`,
+    text: `${item.name}\n${item.timeLabel}\n${item.city}`,
     url: shareUrl
   };
   try {
@@ -1346,7 +1349,7 @@ document.querySelectorAll("[data-date]").forEach((button) => {
     state.date = button.dataset.date;
     if (state.date === "nextweek") {
       state.savedOnly = false;
-      state.distance = "25";
+      state.distance = "10";
       state.region = "all";
       state.type = "all";
       state.setting = "all";
@@ -1359,7 +1362,7 @@ document.querySelectorAll("[data-date]").forEach((button) => {
       state.sort = "soonest";
       state.view = "list";
       state.mobileSection = "home";
-      document.querySelector("#distanceFilter").value = "25";
+      document.querySelector("#distanceFilter").value = "10";
       document.querySelector("#regionFilter").value = "all";
       document.querySelector("#typeFilter").value = "all";
       document.querySelector("#settingFilter").value = "all";
@@ -1500,7 +1503,7 @@ function resetFilters() {
   state.savedOnly = false;
   state.mobileSection = "home";
   state.date = "today";
-  state.distance = "25";
+  state.distance = "10";
   state.region = "all";
   state.age = "toddler";
   state.type = "all";
@@ -1512,7 +1515,7 @@ function resetFilters() {
   state.strollerKnown = false;
   state.search = "";
   document.querySelector("#dateFilter").value = "today";
-  document.querySelector("#distanceFilter").value = "25";
+  document.querySelector("#distanceFilter").value = "10";
   document.querySelector("#regionFilter").value = "all";
   document.querySelector("#ageFilter").value = "toddler";
   document.querySelector("#typeFilter").value = "all";

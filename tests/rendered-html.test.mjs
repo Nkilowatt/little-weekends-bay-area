@@ -21,8 +21,9 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /evergreen-outings\.js\?v=1/);
-  assert.match(html, /styles\.css\?v=11/);
-  assert.match(html, /app\.js\?v=14/);
+  assert.match(html, /styles\.css\?v=12/);
+  assert.match(html, /app\.js\?v=15/);
+  assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
 });
 
 test("client bundle includes decision filters, recovery actions, and detail alternatives", async () => {
