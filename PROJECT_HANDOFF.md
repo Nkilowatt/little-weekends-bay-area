@@ -52,6 +52,7 @@ The current basemap is intentionally lightweight:
 - Automatic events include `endAt`; ended programs do not remain in today's results on a six-hour grace window.
 - Source status is current only when that source has a recent successful sync and active future events. Partial coverage is shown as `partial`, and stale-source events become `recheck`.
 - On-demand recovery has a five-minute cooldown and records `syncing` before network fetches to limit repeated external calls and abuse.
+- On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all six sources.
 
 ## Current Code Shape
 

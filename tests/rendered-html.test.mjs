@@ -53,5 +53,6 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(eventSync, /end_at/);
   assert.match(eventSync, /active_event_count/);
   assert.match(eventSync, /REFRESH_ATTEMPT_COOLDOWN_MS/);
+  assert.match(eventSync, /targetSources = force \? sources/);
   assert.match(eventSync, /events\.length \? "public, max-age=300/);
 });

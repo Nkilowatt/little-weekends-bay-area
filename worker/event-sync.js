@@ -857,7 +857,9 @@ async function refreshOutings(env, force = false) {
     return { refreshed: false, reason: "recent-attempt" };
   }
 
-  const results = await Promise.all(sources.map((source) => syncSource(env.DB, source, now)));
+  const currentSourceKeys = new Set(metadata.sources.filter((source) => source.is_current).map((source) => source.source_key));
+  const targetSources = force ? sources : sources.filter((source) => !currentSourceKeys.has(source.key));
+  const results = await Promise.all(targetSources.map((source) => syncSource(env.DB, source, now)));
   await env.DB.prepare("DELETE FROM events WHERE COALESCE(end_at, start_at) < ?").bind(new Date(Date.now() - 86400000).toISOString()).run();
   return { refreshed: true, results };
 }
