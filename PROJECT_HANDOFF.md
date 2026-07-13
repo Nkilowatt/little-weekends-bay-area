@@ -10,7 +10,7 @@ The core experience is:
 
 - Browse a curated list of storytimes, parks, indoor play, museums, and seasonal outings.
 - Switch between list, map, and split views.
-- Filter by date, distance, category, indoor/outdoor, and price.
+- Filter by date, distance, region, age, category, indoor/outdoor, price, event time, reservation burden, and known bathroom or stroller information.
 - Open a detail panel with practical parent notes such as parking, bathrooms, stroller fit, age range, reservation status, and official source link.
 
 ## Current Deployment
@@ -53,6 +53,15 @@ The current basemap is intentionally lightweight:
 - Source status is current only when that source has a recent successful sync and active future events. Partial coverage is shown as `partial`, and stale-source events become `recheck`.
 - On-demand recovery has a five-minute cooldown and records `syncing` before network fetches to limit repeated external calls and abuse.
 - On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all six sources.
+
+## Current P1 Discovery Baseline
+
+- The date filter includes tomorrow while retaining anytime places as flexible alternatives.
+- Region filtering covers San Francisco, Peninsula, South Bay, East Bay, and North Bay.
+- Event-time, reservation, bathroom-information, and stroller-information filters support practical parent decisions.
+- Result cards distinguish scheduled events from anytime places, show reservation status, and surface at most two concise recommendation reasons.
+- Empty states can expand distance, include anytime places, or reset all conditions.
+- Detail panels provide native sharing with clipboard fallback and three deduplicated nearby alternatives.
 
 ## Current Code Shape
 

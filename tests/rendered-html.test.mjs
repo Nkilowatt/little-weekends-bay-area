@@ -6,7 +6,7 @@ import { ageRangeFromLabel, dateBucket } from "../worker/event-sync.js";
 
 const root = new URL("../", import.meta.url);
 
-test("primary HTML exposes the P0 discovery controls", async () => {
+test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   const html = await readFile(new URL("index.html", root), "utf8");
 
   assert.match(html, /rel="canonical" href="https:\/\/little-weekends-bay-area\.cashmire2\.chatgpt\.site\/"/);
@@ -14,17 +14,30 @@ test("primary HTML exposes the P0 discovery controls", async () => {
   assert.match(html, /value="toddler">1-3세/);
   assert.match(html, /id="locationDialog"/);
   assert.match(html, /data-location-key="oakland"/);
+  assert.match(html, /value="tomorrow">내일/);
+  assert.match(html, /id="regionFilter"/);
+  assert.match(html, /id="timeFilter"/);
+  assert.match(html, /id="reservationFilter"/);
+  assert.match(html, /id="bathroomFilter"/);
+  assert.match(html, /id="strollerFilter"/);
   assert.match(html, /evergreen-outings\.js\?v=1/);
-  assert.match(html, /app\.js\?v=13/);
+  assert.match(html, /styles\.css\?v=11/);
+  assert.match(html, /app\.js\?v=14/);
 });
 
-test("client bundle includes dynamic distance, trust, and recommendation logic", async () => {
+test("client bundle includes decision filters, recovery actions, and detail alternatives", async () => {
   const script = await readFile(new URL("app.js", root), "utf8");
 
   assert.match(script, /function distanceFor\(item\)/);
   assert.match(script, /function recommendationScore\(item\)/);
   assert.match(script, /confidenceStatus === "source_confirmed"/);
   assert.match(script, /little-weekends-location/);
+  assert.match(script, /function regionForCity\(city\)/);
+  assert.match(script, /function matchesTime\(item\)/);
+  assert.match(script, /function recommendationReasons\(item\)/);
+  assert.match(script, /function nearbyAlternatives\(item\)/);
+  assert.match(script, /function shareOuting\(item\)/);
+  assert.match(script, /emptyExpandDistance/);
 });
 
 test("age labels normalize to month ranges", () => {

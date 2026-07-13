@@ -349,7 +349,24 @@ h1, h2, h3, p, figure { margin-top: 0; }
 .filter-panel-heading { gap: 18px; }
 .filter-panel-heading h2 { font-family: var(--font-display); font-size: 1.45rem; letter-spacing: -0.035em; margin-bottom: 5px; }
 .filter-panel-heading p { color: var(--muted); font-size: 0.8rem; margin-bottom: 0; }
-.filters { display: grid; gap: 12px; grid-template-columns: repeat(6, 1fr); margin: 22px 0; }
+.filters { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 22px 0; }
+.filters .check-filter {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 46px;
+  padding: 8px 12px;
+}
+.check-filter input { accent-color: var(--accent); height: 18px; margin: 0; width: 18px; }
+.check-filter span { display: grid; gap: 2px; }
+.check-filter strong { font-size: 0.72rem; }
+.check-filter small { color: var(--muted); font-size: 0.62rem; font-weight: 700; }
 .filter-actions { border-top: 1px solid var(--line); gap: 10px; justify-content: flex-end; padding-top: 18px; }
 .primary-action, .secondary-action {
   align-items: center;
@@ -400,6 +417,8 @@ h1, h2, h3, p, figure { margin-top: 0; }
 .outing-card:hover .card-image img { transform: scale(1.035); }
 .card-content { display: flex; flex-direction: column; min-width: 0; padding: 17px; }
 .time-row { align-items: center; display: flex; gap: 10px; justify-content: space-between; }
+.schedule-label { display: grid; gap: 3px; min-width: 0; }
+.outing-kind { color: var(--muted); font-size: 0.6rem; font-weight: 850; text-transform: uppercase; }
 .card-time { color: var(--accent); font-size: 0.78rem; font-weight: 900; }
 .heart {
   background: transparent;
@@ -420,6 +439,8 @@ h1, h2, h3, p, figure { margin-top: 0; }
 .essentials { display: flex; flex-wrap: wrap; gap: 5px; margin: 14px 0; }
 .essential { background: var(--accent-soft); border-radius: 7px; color: var(--accent-strong); display: inline-flex; font-size: 0.66rem; font-weight: 800; gap: 4px; line-height: 1.25; padding: 6px 8px; }
 .essential small { color: var(--muted); font-size: 0.58rem; font-weight: 750; }
+.recommendation-cues { display: flex; flex-wrap: wrap; gap: 5px; margin: -6px 0 10px; }
+.recommendation-cues span { border: 1px solid color-mix(in srgb, var(--sun) 62%, var(--line)); border-radius: var(--radius-pill); color: var(--ink); font-size: 0.62rem; font-weight: 850; padding: 4px 7px; }
 .why { color: var(--muted); font-size: 0.74rem; line-height: 1.48; margin-bottom: 12px; }
 .trust { color: var(--accent-strong); font-size: 0.68rem; font-weight: 850; margin-top: auto; }
 .trust.recheck, .trust.stale { color: var(--warning); }
@@ -520,6 +541,7 @@ h1, h2, h3, p, figure { margin-top: 0; }
 }
 .empty-state strong { font-size: 1.55rem; letter-spacing: -0.04em; margin-bottom: 8px; }
 .empty-state p { color: var(--muted); margin-bottom: 22px; }
+.empty-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .detail-dialog {
   background: var(--surface);
@@ -567,7 +589,26 @@ h1, h2, h3, p, figure { margin-top: 0; }
 .note-row { display: grid; gap: 8px; grid-template-columns: 100px 1fr; }
 .note-row strong { font-size: 0.76rem; }
 .note-row span { color: var(--muted); font-size: 0.78rem; line-height: 1.5; }
-.detail-actions { display: grid; gap: 8px; grid-template-columns: 1.5fr 1fr 1fr; margin-top: 22px; }
+.nearby-alternatives { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 18px; }
+.nearby-alternatives h3 { font-family: var(--font-display); font-size: 1.05rem; margin-bottom: 10px; }
+.alternative-list { display: grid; gap: 7px; }
+.alternative-button {
+  align-items: center;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  color: var(--ink);
+  display: flex;
+  justify-content: space-between;
+  min-height: 58px;
+  padding: 10px 12px;
+  text-align: left;
+}
+.alternative-button span { display: grid; gap: 3px; min-width: 0; }
+.alternative-button strong { font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alternative-button small { color: var(--muted); font-size: 0.66rem; }
+.alternative-button b { color: var(--accent); font-size: 0.68rem; margin-left: 12px; }
+.detail-actions { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-top: 22px; }
 
 .location-dialog {
   background: transparent;

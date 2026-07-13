@@ -6,7 +6,7 @@ This roadmap is organized as small, handoff-friendly tasks for future chat sessi
 
 ## Now
 
-OpenAI Sites is now the primary service. P0.5 product and data stabilization is complete; the next product gate is friend testing and release-discipline cleanup.
+OpenAI Sites is now the primary service. P0.5 stabilization and P1 discovery polish are complete; the next product gate is friend testing and release-discipline cleanup.
 
 ### P0.5 Stabilization Completed
 
@@ -17,6 +17,14 @@ OpenAI Sites is now the primary service. P0.5 product and data stabilization is 
 - Partial syncs are shown honestly and stale-source events are downgraded to recheck.
 - External event text is escaped and official links use an HTTPS host allowlist.
 - Regression fixtures cover all six automatic source parsers.
+
+### P1 Discovery Polish Completed
+
+- Full filters now cover tomorrow, Bay Area region, event time, reservation burden, and known bathroom or stroller information.
+- Cards distinguish scheduled events from anytime places and show no more than two concise recommendation reasons.
+- Reservation status is visible before opening a detail panel.
+- Empty results preserve selected constraints while offering distance expansion, anytime places, or a full reset.
+- Detail panels include share actions and three deduplicated nearby alternatives.
 
 ### 0. Primary Deployment And Git Reconciliation
 
@@ -118,16 +126,16 @@ Done when:
 
 These come after initial friend feedback and Git reconciliation.
 
-### 6. Search And Sort Polish
+### 6. Search And Sort Polish (Completed In P1)
 
 Goal: make discovery feel sharper.
 
 Tasks:
 
-- Add neighborhood/city grouping.
-- Add "rainy day", "free", and "near me" quick filters.
-- Improve recommended sort logic.
-- Add empty-state suggestions that feel helpful.
+- Added region filtering and region-aware result context.
+- Retained the existing "rainy day", "free", and "near me" quick filters.
+- Added visible recommendation reasons on top of the P0.5 recommendation score.
+- Added contextual empty-state recovery actions.
 
 ### 7. Real Map Foundation
 

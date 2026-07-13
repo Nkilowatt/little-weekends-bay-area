@@ -17,7 +17,7 @@
     <link rel="canonical" href="https://little-weekends-bay-area.cashmire2.chatgpt.site/" />
     <link rel="icon" href="favicon.svg" />
     <link rel="preload" as="image" href="assets/photos/bay-family-hero.webp" fetchpriority="high" />
-    <link rel="stylesheet" href="styles.css?v=10" />
+    <link rel="stylesheet" href="styles.css?v=11" />
   </head>
   <body>
     <a class="skip-link" href="#cards">추천 목록으로 건너뛰기</a>
@@ -102,12 +102,17 @@
             <button id="closeFilters" class="text-button" type="button">닫기</button>
           </div>
           <div class="filters">
-            <label>날짜<select id="dateFilter"><option value="today">오늘</option><option value="week">이번 주</option><option value="weekend">이번 주말</option><option value="nextweek">다음 주</option><option value="anytime">언제든</option></select></label>
+            <label>날짜<select id="dateFilter"><option value="today">오늘</option><option value="tomorrow">내일</option><option value="week">이번 주</option><option value="weekend">이번 주말</option><option value="nextweek">다음 주</option><option value="anytime">언제든</option></select></label>
             <label>거리<select id="distanceFilter"><option value="25">25 mi</option><option value="10">10 mi</option><option value="5">5 mi</option><option value="3">3 mi</option></select></label>
+            <label>지역<select id="regionFilter"><option value="all">Bay Area 전체</option><option value="sf">San Francisco</option><option value="peninsula">Peninsula</option><option value="south-bay">South Bay</option><option value="east-bay">East Bay</option><option value="north-bay">North Bay</option></select></label>
             <label>아이 나이<select id="ageFilter"><option value="toddler">1-3세</option><option value="age1">1세</option><option value="age2">2세</option><option value="age3">3세</option><option value="all">전체 연령</option></select></label>
             <label>유형<select id="typeFilter"><option value="all">전체</option><option value="storytime">스토리타임</option><option value="park">공원 및 놀이터</option><option value="indoor">실내 놀이</option><option value="museum">뮤지엄</option><option value="seasonal">시즌 이벤트</option></select></label>
             <label>환경<select id="settingFilter"><option value="all">전체</option><option value="indoor">실내</option><option value="outdoor">야외</option></select></label>
             <label>비용<select id="priceFilter"><option value="all">전체</option><option value="free">무료</option><option value="paid">유료</option></select></label>
+            <label>시간대<select id="timeFilter"><option value="all">전체 시간대</option><option value="morning">오전 일정</option><option value="afternoon">오후 일정</option><option value="evening">저녁 일정</option></select></label>
+            <label>예약<select id="reservationFilter"><option value="all">전체</option><option value="none">예약 없이</option><option value="required">예약·티켓 필요</option></select></label>
+            <label class="check-filter"><input id="bathroomFilter" type="checkbox" /><span><strong>화장실 정보</strong><small>확인된 곳만</small></span></label>
+            <label class="check-filter"><input id="strollerFilter" type="checkbox" /><span><strong>유모차 정보</strong><small>확인된 곳만</small></span></label>
           </div>
           <div class="filter-actions"><button class="secondary-action" id="resetFilters" type="button">전체 초기화</button><button class="primary-action" id="applyFilters" type="button"><span id="filterResultCount">0</span>개 결과 보기</button></div>
         </section>
@@ -152,6 +157,6 @@
     </dialog>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="evergreen-outings.js?v=1"></script>
-    <script src="app.js?v=13"></script>
+    <script src="app.js?v=14"></script>
   </body>
 </html>

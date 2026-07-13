@@ -440,6 +440,35 @@ const outingTypes = new Set(["storytime", "park", "indoor", "museum", "seasonal"
 const outingSettings = new Set(["indoor", "outdoor"]);
 const outingPrices = new Set(["free", "paid"]);
 const confidenceStatuses = new Set(["human_verified", "source_confirmed", "recheck", "stale"]);
+const regionLabels = {
+  sf: "San Francisco",
+  peninsula: "Peninsula",
+  "south-bay": "South Bay",
+  "east-bay": "East Bay",
+  "north-bay": "North Bay"
+};
+
+function regionForCity(city) {
+  const normalizedCity = String(city || "").toLowerCase();
+  if (["san mateo", "south san francisco", "san carlos", "palo alto", "half moon bay", "redwood city", "burlingame", "belmont", "foster city"].some((name) => normalizedCity.includes(name))) return "peninsula";
+  if (normalizedCity.includes("san francisco")) return "sf";
+  if (["san jose", "cupertino", "santa clara", "sunnyvale", "mountain view", "los gatos", "milpitas"].some((name) => normalizedCity.includes(name))) return "south-bay";
+  if (["oakland", "berkeley", "walnut creek", "fremont", "hayward", "alameda", "concord", "pleasanton", "richmond"].some((name) => normalizedCity.includes(name))) return "east-bay";
+  if (["sausalito", "sonoma", "marin", "novato", "san rafael", "napa", "petaluma"].some((name) => normalizedCity.includes(name))) return "north-bay";
+  return "other";
+}
+
+function reservationLevel(value) {
+  const label = String(value || "");
+  if (/불필요|필요 없음|예약 없이/.test(label)) return "none";
+  if (/필요|권장|티켓|선착순|등록/.test(label)) return "required";
+  return "check";
+}
+
+function practicalNoteKnown(value) {
+  const note = String(value || "").trim();
+  return Boolean(note) && !/확인|문의|정보 없음|알 수|준비 중/.test(note);
+}
 
 function safeText(value, fallback = "", maxLength = 500) {
   const text = String(value ?? fallback).replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
@@ -481,6 +510,8 @@ function normalizeOuting(item) {
   const longitude = Number(item.location?.lng);
   const notes = item.notes || {};
   const confidenceStatus = inferredConfidenceStatus(item);
+  const city = safeText(item.city, "Bay Area", 100);
+  const reservation = safeText(item.reservation, "공식 페이지 확인", 180);
   return {
     ...item,
     id: safeText(item.id, "unknown", 180),
@@ -488,13 +519,15 @@ function normalizeOuting(item) {
     type: outingTypes.has(item.type) ? item.type : "seasonal",
     setting: outingSettings.has(item.setting) ? item.setting : "indoor",
     timeLabel: safeText(item.timeLabel, "운영시간 확인", 120),
-    city: safeText(item.city, "Bay Area", 100),
+    city,
+    region: regionForCity(city),
     distance: Number.isFinite(Number(item.distance)) ? Number(item.distance) : Number.POSITIVE_INFINITY,
     age: safeText(item.age, "가족", 80),
     minAgeMonths: Number.isFinite(item.minAgeMonths) ? item.minAgeMonths : ageRange.minAgeMonths,
     maxAgeMonths: Number.isFinite(item.maxAgeMonths) ? item.maxAgeMonths : ageRange.maxAgeMonths,
     price: outingPrices.has(item.price) ? item.price : "paid",
-    reservation: safeText(item.reservation, "공식 페이지 확인", 180),
+    reservation,
+    reservationLevel: reservationLevel(reservation),
     source: safeSourceUrl(item.source),
     sourceName: safeText(item.sourceName, "공식 운영기관", 140),
     updated: safeText(item.updated, "확인 시각 없음", 120),
@@ -505,6 +538,8 @@ function normalizeOuting(item) {
       bathroom: safeText(notes.bathroom, "공식 페이지에서 화장실 정보를 확인하세요.", 300),
       stroller: safeText(notes.stroller, "공식 페이지에서 유모차 동선을 확인하세요.", 300)
     },
+    bathroomKnown: practicalNoteKnown(notes.bathroom),
+    strollerKnown: practicalNoteKnown(notes.stroller),
     location: Number.isFinite(latitude) && Number.isFinite(longitude) ? { lat: latitude, lng: longitude } : null,
     confidenceStatus: confidenceStatuses.has(confidenceStatus) ? confidenceStatus : "recheck"
   };
@@ -549,10 +584,15 @@ const mapBounds = {
 const state = {
   date: "today",
   distance: "25",
+  region: "all",
   age: "toddler",
   type: "all",
   setting: "all",
   price: "all",
+  time: "all",
+  reservation: "all",
+  bathroomKnown: false,
+  strollerKnown: false,
   view: window.matchMedia("(min-width: 901px)").matches ? "split" : "list",
   sort: "recommended",
   mobileSection: "home",
@@ -670,7 +710,7 @@ function diversifyRecommended(entries) {
 }
 
 function dateLabel() {
-  return { today: "오늘", week: "이번 주", weekend: "이번 주말", nextweek: "다음 주", anytime: "언제든" }[state.date];
+  return { today: "오늘", tomorrow: "내일", week: "이번 주", weekend: "이번 주말", nextweek: "다음 주", anytime: "언제든" }[state.date];
 }
 
 function nextWeekRangeLabel(includeSuffix = false) {
@@ -703,7 +743,18 @@ function syncTimeLabel(value) {
 }
 
 function activeFilterCount() {
-  return Number(state.distance !== "25") + Number(state.age !== "toddler") + Number(state.type !== "all") + Number(state.setting !== "all") + Number(state.price !== "all") + Number(Boolean(state.search));
+  return Number(state.date !== "today")
+    + Number(state.distance !== "25")
+    + Number(state.region !== "all")
+    + Number(state.age !== "toddler")
+    + Number(state.type !== "all")
+    + Number(state.setting !== "all")
+    + Number(state.price !== "all")
+    + Number(state.time !== "all")
+    + Number(state.reservation !== "all")
+    + Number(state.bathroomKnown)
+    + Number(state.strollerKnown)
+    + Number(Boolean(state.search));
 }
 
 let toastTimer;
@@ -920,12 +971,68 @@ function renderMapBase() {
   `;
 }
 
+function pacificDateKey(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date).filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function addDaysToDateKey(dateKey, days) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days, 12));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+}
+
 function matchesDate(item) {
   if (state.date === "anytime") return true;
+  if (state.date === "tomorrow") {
+    if (!item.startDate) return item.dateBucket === "anytime";
+    return pacificDateKey(item.startDate) === addDaysToDateKey(pacificDateKey(), 1);
+  }
   if (state.date === "week") return item.dateBucket === "today" || item.dateBucket === "week" || item.dateBucket === "anytime";
   if (state.date === "weekend") return item.dateBucket === "weekend" || item.dateBucket === "anytime";
   if (state.date === "nextweek") return item.dateBucket === "nextweek";
   return item.dateBucket === "today" || item.dateBucket === "anytime";
+}
+
+function matchesTime(item) {
+  if (state.time === "all" || !item.startDate) return true;
+  const hour = Number(new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    hour: "2-digit",
+    hourCycle: "h23"
+  }).format(new Date(item.startDate)));
+  if (!Number.isFinite(hour)) return false;
+  if (state.time === "morning") return hour < 12;
+  if (state.time === "afternoon") return hour >= 12 && hour < 17;
+  return hour >= 17;
+}
+
+function outingKindLabel(item) {
+  if (!item.startDate) return "상시 장소";
+  const itemDate = pacificDateKey(item.startDate);
+  const today = pacificDateKey();
+  if (itemDate === today) return "오늘 일정";
+  if (itemDate === addDaysToDateKey(today, 1)) return "내일 일정";
+  return "시간 지정 일정";
+}
+
+function recommendationReasons(item) {
+  const reasons = [];
+  const ageWidth = Math.max(0, item.maxAgeMonths - item.minAgeMonths);
+  if (ageWidth <= 36 && item.minAgeMonths <= 36 && item.maxAgeMonths >= 23) reasons.push("유아 연령 집중");
+  if (distanceFor(item) <= 5) reasons.push("5 mi 안쪽");
+  if (item.price === "free") reasons.push("무료");
+  if (item.reservationLevel === "none") reasons.push("예약 불필요");
+  if (item.confidenceStatus === "human_verified") reasons.push("사람이 확인");
+  if (item.setting === "indoor") reasons.push("실내");
+  return reasons.slice(0, 2);
 }
 
 function filteredOutings() {
@@ -937,11 +1044,15 @@ function filteredOutings() {
     const searchMatch = !state.search || itemSearchScore >= 0;
     const savedMatch = !state.savedOnly || state.saved.has(item.id);
     const distanceMatch = distanceFor(item) <= Number(state.distance);
+    const regionMatch = state.region === "all" || item.region === state.region;
     const ageMatch = ageMatches(item);
     const typeMatch = state.type === "all" || item.type === state.type;
     const settingMatch = state.setting === "all" || item.setting === state.setting;
     const priceMatch = state.price === "all" || item.price === state.price;
-    return searchMatch && savedMatch && matchesDate(item) && distanceMatch && ageMatch && typeMatch && settingMatch && priceMatch;
+    const reservationMatch = state.reservation === "all" || item.reservationLevel === state.reservation;
+    const bathroomMatch = !state.bathroomKnown || item.bathroomKnown;
+    const strollerMatch = !state.strollerKnown || item.strollerKnown;
+    return searchMatch && savedMatch && matchesDate(item) && matchesTime(item) && distanceMatch && regionMatch && ageMatch && typeMatch && settingMatch && priceMatch && reservationMatch && bathroomMatch && strollerMatch;
   });
 
   if (state.sort === "recommended") {
@@ -971,7 +1082,19 @@ function renderCards(items) {
   cardsEl.innerHTML = "";
 
   if (!items.length) {
-    cardsEl.innerHTML = '<div class="empty-state"><strong>딱 맞는 후보가 아직 없어요.</strong><p>거리나 날짜를 조금 넓히면 새로운 장소를 만날 수 있어요.</p><button class="secondary-action" type="button" id="emptyReset">조건 초기화</button></div>';
+    const expandDistanceAction = state.distance !== "25" ? '<button class="primary-action" type="button" id="emptyExpandDistance">25 mi로 넓히기</button>' : "";
+    const includeAnytimeAction = state.date !== "anytime" ? '<button class="secondary-action" type="button" id="emptyIncludeAnytime">상시 장소 함께 보기</button>' : "";
+    cardsEl.innerHTML = `<div class="empty-state"><strong>이 조건에 맞는 후보가 아직 없어요.</strong><p>중요한 조건은 남기고 탐색 범위만 넓혀 보세요.</p><div class="empty-actions">${expandDistanceAction}${includeAnytimeAction}<button class="secondary-action" type="button" id="emptyReset">조건 초기화</button></div></div>`;
+    cardsEl.querySelector("#emptyExpandDistance")?.addEventListener("click", () => {
+      state.distance = "25";
+      document.querySelector("#distanceFilter").value = "25";
+      render();
+    });
+    cardsEl.querySelector("#emptyIncludeAnytime")?.addEventListener("click", () => {
+      state.date = "anytime";
+      document.querySelector("#dateFilter").value = "anytime";
+      render();
+    });
     cardsEl.querySelector("#emptyReset").addEventListener("click", resetFilters);
     return;
   }
@@ -979,16 +1102,19 @@ function renderCards(items) {
   items.forEach((item) => {
     const trust = trustStatus(item);
     const distance = distanceFor(item);
+    const reasons = recommendationReasons(item);
+    const reasonMarkup = reasons.map((reason) => `<span>${escapeHtml(reason)}</span>`).join("");
     const card = document.createElement("article");
     card.className = `outing-card${state.selectedId === item.id ? " is-selected" : ""}`;
     card.innerHTML = `
       <button class="card-open" type="button" aria-label="${escapeHtml(item.name)} 상세 보기"></button>
       <span class="card-image" aria-hidden="true"><img src="${itemImage(item)}" alt="" loading="lazy" /></span>
       <span class="card-content">
-        <span class="time-row"><span class="card-time">${escapeHtml(item.timeLabel)}</span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
+        <span class="time-row"><span class="schedule-label"><span class="outing-kind">${escapeHtml(outingKindLabel(item))}</span><span class="card-time">${escapeHtml(item.timeLabel)}</span></span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
         <h3>${escapeHtml(item.name)}</h3>
         <span class="card-place"><span>${escapeHtml(item.city)}</span><span>${distance.toFixed(1)} mi</span><span>${escapeHtml(typeLabel(item.type))}</span></span>
-        <span class="essentials"><span class="essential"><small>연령</small>${escapeHtml(item.age)}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${item.price === "free" ? "무료" : "유료"}</span></span>
+        <span class="essentials"><span class="essential"><small>연령</small>${escapeHtml(item.age)}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${item.price === "free" ? "무료" : "유료"}</span><span class="essential"><small>예약</small>${escapeHtml(item.reservation)}</span></span>
+        <span class="recommendation-cues" aria-label="추천 이유">${reasonMarkup}</span>
         <p class="why">${escapeHtml(item.why)}</p>
         <span class="trust ${trust.key}">${escapeHtml(trust.short)}</span>
       </span>
@@ -1052,6 +1178,7 @@ function render() {
   const items = filteredOutings();
   const summaries = {
     today: ["오늘의 추천", "낮잠 전에 다녀오기 좋은 가까운 곳"],
+    tomorrow: ["내일의 추천", "내일 일정과 언제든 갈 수 있는 곳"],
     week: ["이번 주 추천", "평일 루틴에 넣기 좋은 곳"],
     weekend: ["이번 주말 추천", "가족이 함께 다녀오기 좋은 곳"],
     nextweek: [nextWeekRangeLabel(), "다음 주에 열리는 유아 친화 행사"],
@@ -1067,7 +1194,10 @@ function render() {
   document.querySelector("#mobileSavedCount").textContent = state.saved.size;
   document.querySelector("#locationName").textContent = selectedLocation().name;
   document.querySelector("#mapLocationLabel").textContent = `${selectedLocation().name} 중심`;
-  document.querySelector("#listContext").textContent = `${state.savedOnly ? "저장한 곳" : `${selectedLocation().name} 중심`}, ${dateLabel()}`;
+  const contextParts = [state.savedOnly ? "저장한 곳" : `${selectedLocation().name} 중심`, dateLabel()];
+  if (state.region !== "all") contextParts.push(regionLabels[state.region]);
+  if (state.time !== "all") contextParts.push({ morning: "오전", afternoon: "오후", evening: "저녁" }[state.time]);
+  document.querySelector("#listContext").textContent = contextParts.join(" · ");
   document.querySelectorAll("[data-location-key]").forEach((button) => {
     const active = button.dataset.locationKey === state.locationKey;
     button.classList.toggle("is-active", active);
@@ -1125,6 +1255,43 @@ function toggleSaved(id) {
   render();
 }
 
+function nearbyAlternatives(item) {
+  const seenSeries = new Set([`${normalizeSearchText(item.name)}|${normalizeSearchText(item.city)}`]);
+  return outings
+    .filter((candidate) => {
+      if (candidate.id === item.id || candidate.minAgeMonths > 47 || candidate.maxAgeMonths < 12) return false;
+      const seriesKey = `${normalizeSearchText(candidate.name)}|${normalizeSearchText(candidate.city)}`;
+      if (seenSeries.has(seriesKey)) return false;
+      seenSeries.add(seriesKey);
+      return true;
+    })
+    .toSorted((left, right) => {
+      const locationDifference = distanceBetweenMiles(item.location || selectedLocation(), left.location || selectedLocation())
+        - distanceBetweenMiles(item.location || selectedLocation(), right.location || selectedLocation());
+      return locationDifference || recommendationScore(right) - recommendationScore(left);
+    })
+    .slice(0, 3);
+}
+
+async function shareOuting(item) {
+  const shareUrl = `${window.location.origin}${window.location.pathname}`;
+  const shareData = {
+    title: item.name,
+    text: `${item.name} · ${item.timeLabel} · ${item.city}`,
+    url: shareUrl
+  };
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+      return;
+    }
+    await navigator.clipboard.writeText(`${shareData.text}\n${shareUrl}`);
+    showToast("나들이 정보와 링크를 복사했어요.");
+  } catch (error) {
+    if (error?.name !== "AbortError") showToast("공유하지 못했어요. 잠시 후 다시 시도해 주세요.");
+  }
+}
+
 function openDetail(id) {
   const item = outings.find((outing) => outing.id === id);
   if (!item) return;
@@ -1136,6 +1303,11 @@ function openDetail(id) {
   const sourceAction = item.source
     ? `<a class="primary-action" href="${escapeHtml(item.source)}" target="_blank" rel="noopener noreferrer">${trust.key === "verified" || trust.key === "source-confirmed" ? "공식 정보 보기" : "공식 일정 확인"}</a>`
     : "";
+  const alternatives = nearbyAlternatives(item);
+  const alternativesMarkup = alternatives.map((alternative) => {
+    const nearbyDistance = alternative.location && item.location ? distanceBetweenMiles(item.location, alternative.location) : distanceFor(alternative);
+    return `<button class="alternative-button" data-alternative-id="${escapeHtml(alternative.id)}" type="button"><span><strong>${escapeHtml(alternative.name)}</strong><small>${escapeHtml(alternative.city)} · ${nearbyDistance.toFixed(1)} mi</small></span><b>보기</b></button>`;
+  }).join("");
   detailBody.innerHTML = `
     <figure class="detail-visual"><img src="${itemImage(item)}" alt="" /><figcaption>장소 이해를 돕는 분위기 참고 이미지입니다.</figcaption></figure>
     <article class="detail-body">
@@ -1147,13 +1319,22 @@ function openDetail(id) {
       <div class="detail-notes">
         <div class="note-row"><strong>주차</strong><span>${escapeHtml(item.notes.parking)}</span></div><div class="note-row"><strong>화장실</strong><span>${escapeHtml(item.notes.bathroom)}</span></div><div class="note-row"><strong>유모차</strong><span>${escapeHtml(item.notes.stroller)}</span></div><div class="note-row"><strong>예상 체류</strong><span>${item.type === "storytime" ? "30-60분" : "60-90분"} 정도를 추천해요.</span></div><div class="note-row"><strong>날씨 대응</strong><span>${item.setting === "indoor" ? "실내 활동이라 비 오는 날에도 좋아요." : "출발 전 기온과 공원 운영 상태를 확인하세요."}</span></div>
       </div>
+      <section class="nearby-alternatives" aria-labelledby="nearbyTitle"><h3 id="nearbyTitle">가까운 대안</h3><div class="alternative-list">${alternativesMarkup}</div></section>
       <div class="detail-actions">
-        ${sourceAction}<a class="secondary-action" href="${escapeHtml(directions)}" target="_blank" rel="noopener noreferrer">길찾기</a><button class="secondary-action" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
+        ${sourceAction}<a class="secondary-action" href="${escapeHtml(directions)}" target="_blank" rel="noopener noreferrer">길찾기</a><button class="secondary-action" type="button" id="shareDetail">공유</button><button class="secondary-action" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
       </div>
     </article>
   `;
 
   detailBody.querySelector("#saveDetail").addEventListener("click", () => { toggleSaved(id); openDetail(id); });
+  detailBody.querySelector("#shareDetail").addEventListener("click", () => shareOuting(item));
+  detailBody.querySelectorAll("[data-alternative-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedId = button.dataset.alternativeId;
+      openDetail(button.dataset.alternativeId);
+      render();
+    });
+  });
 
   if (!detailDialog.open) detailDialog.showModal();
 }
@@ -1166,17 +1347,27 @@ document.querySelectorAll("[data-date]").forEach((button) => {
     if (state.date === "nextweek") {
       state.savedOnly = false;
       state.distance = "25";
+      state.region = "all";
       state.type = "all";
       state.setting = "all";
       state.price = "all";
+      state.time = "all";
+      state.reservation = "all";
+      state.bathroomKnown = false;
+      state.strollerKnown = false;
       state.search = "";
       state.sort = "soonest";
       state.view = "list";
       state.mobileSection = "home";
       document.querySelector("#distanceFilter").value = "25";
+      document.querySelector("#regionFilter").value = "all";
       document.querySelector("#typeFilter").value = "all";
       document.querySelector("#settingFilter").value = "all";
       document.querySelector("#priceFilter").value = "all";
+      document.querySelector("#timeFilter").value = "all";
+      document.querySelector("#reservationFilter").value = "all";
+      document.querySelector("#bathroomFilter").checked = false;
+      document.querySelector("#strollerFilter").checked = false;
       document.querySelector("#sortSelect").value = "soonest";
       document.querySelector("#searchInput").value = "";
     }
@@ -1244,6 +1435,11 @@ document.querySelector("#distanceFilter").addEventListener("change", (event) => 
   render();
 });
 
+document.querySelector("#regionFilter").addEventListener("change", (event) => {
+  state.region = event.target.value;
+  render();
+});
+
 document.querySelector("#ageFilter").addEventListener("change", (event) => {
   state.age = event.target.value;
   render();
@@ -1261,6 +1457,26 @@ document.querySelector("#settingFilter").addEventListener("change", (event) => {
 
 document.querySelector("#priceFilter").addEventListener("change", (event) => {
   state.price = event.target.value;
+  render();
+});
+
+document.querySelector("#timeFilter").addEventListener("change", (event) => {
+  state.time = event.target.value;
+  render();
+});
+
+document.querySelector("#reservationFilter").addEventListener("change", (event) => {
+  state.reservation = event.target.value;
+  render();
+});
+
+document.querySelector("#bathroomFilter").addEventListener("change", (event) => {
+  state.bathroomKnown = event.target.checked;
+  render();
+});
+
+document.querySelector("#strollerFilter").addEventListener("change", (event) => {
+  state.strollerKnown = event.target.checked;
   render();
 });
 
@@ -1285,17 +1501,27 @@ function resetFilters() {
   state.mobileSection = "home";
   state.date = "today";
   state.distance = "25";
+  state.region = "all";
   state.age = "toddler";
   state.type = "all";
   state.setting = "all";
   state.price = "all";
+  state.time = "all";
+  state.reservation = "all";
+  state.bathroomKnown = false;
+  state.strollerKnown = false;
   state.search = "";
   document.querySelector("#dateFilter").value = "today";
   document.querySelector("#distanceFilter").value = "25";
+  document.querySelector("#regionFilter").value = "all";
   document.querySelector("#ageFilter").value = "toddler";
   document.querySelector("#typeFilter").value = "all";
   document.querySelector("#settingFilter").value = "all";
   document.querySelector("#priceFilter").value = "all";
+  document.querySelector("#timeFilter").value = "all";
+  document.querySelector("#reservationFilter").value = "all";
+  document.querySelector("#bathroomFilter").checked = false;
+  document.querySelector("#strollerFilter").checked = false;
   document.querySelector("#searchInput").value = "";
   document.querySelectorAll(".quick-card").forEach((item) => item.classList.toggle("is-active", item.dataset.date === "today"));
   render();
