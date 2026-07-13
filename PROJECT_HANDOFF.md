@@ -1,6 +1,6 @@
 # Project Handoff
 
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
 ## Product
 
@@ -22,7 +22,7 @@ The core experience is:
 - Primary runtime: OpenAI Sites Worker
 - Event API: `/api/outings`
 - Database: D1 binding `DB`
-- Refresh schedule: six official sources every six hours
+- Refresh schedule: seven official sources every six hours
 
 The user interface is lightweight HTML, CSS, and JavaScript, but the primary service now includes a Worker backend and D1 database for automatic official-event updates.
 
@@ -44,7 +44,7 @@ The current basemap is intentionally lightweight:
 
 - Results default to activities overlapping the 12-47 month range.
 - Parents can filter specifically for age 1, 2, or 3.
-- Location can be set to San Mateo, San Francisco, Palo Alto, San Jose, or Oakland without storing an exact address.
+- Location can be set to San Mateo, Redwood City, San Francisco, Palo Alto, San Jose, or Oakland without storing an exact address.
 - Distances, distance filtering, map origin, and nearest sorting recalculate from the selected location.
 - Recommended sorting scores age specificity, distance, time, source confidence, cost, and reservation burden while pushing repeated series below unique options.
 - Trust is structured as `human_verified`, `source_confirmed`, `recheck`, or `stale`; automatic source parsing is not presented as human verification.
@@ -52,7 +52,14 @@ The current basemap is intentionally lightweight:
 - Automatic events include `endAt`; ended programs do not remain in today's results on a six-hour grace window.
 - Source status is current only when that source has a recent successful sync and active future events. Partial coverage is shown as `partial`, and stale-source events become `recheck`.
 - On-demand recovery has a five-minute cooldown and records `syncing` before network fetches to limit repeated external calls and abuse.
-- On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all six sources.
+- On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all seven sources.
+
+## Redwood City Coverage
+
+- The official City of Redwood City calendar RSS feed is the seventh automatic source.
+- The parser keeps toddler storytimes, Tiny Tales, bilingual storytimes, music and movement, puppet shows, and selected family programs while excluding cancellations and unrelated city events.
+- Schaberg, Redwood Shores, Downtown Library, Magical Bridge, and Stafford Park receive location-specific coordinates and parent logistics when the event title identifies the venue.
+- The city RSS feed is capped to the next 50 citywide events, so Redwood City coverage is intentionally near-term rather than a complete 45-day calendar. The six-hour refresh keeps that rolling window current.
 
 ## Current P1 Discovery Baseline
 

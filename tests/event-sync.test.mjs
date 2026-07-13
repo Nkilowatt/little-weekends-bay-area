@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   parseBayAreaDiscoveryMuseumEvents,
   parseCuriOdysseyDailyEvents,
+  parseRedwoodCityEvents,
   parseSanMateoCityEvents,
   parseSanMateoCountyLibraryEvents,
   parseSanMateoStorytimes,
@@ -43,9 +44,18 @@ const fixtures = {
   `,
   curiodyssey: "<main>Animals in Action Every Day at 12 PM, 1 PM, and 2 PM</main>",
   discoveryMuseum: "<section><h3>Bubble Bash</h3><p>June 6 - September 7</p></section>",
+  redwoodCity: `
+    <rss><channel><item>
+      <title>Toddler/Preschool Storytime @ Schaberg (07/13/2026 10:30 AM - 11:00 AM)</title>
+      <description>Designed for toddlers ages 2-5 with books and songs.</description>
+      <link>https://www.redwoodcity.org/Home/Components/Calendar/Event/fixture/</link>
+      <eventStartDate>7/13/2026 10:30:00 AM</eventStartDate>
+      <eventEndDate>7/13/2026 11:00:00 AM</eventEndDate>
+    </item></channel></rss>
+  `,
 };
 
-test("all six official-source parsers retain their expected fixture contract", () => {
+test("all seven official-source parsers retain their expected fixture contract", () => {
   const parsed = [
     parseSanMateoStorytimes(fixtures.sanMateo, now),
     parseSouthSanFranciscoStorytimes(fixtures.southSanFrancisco, now),
@@ -53,6 +63,7 @@ test("all six official-source parsers retain their expected fixture contract", (
     parseSanMateoCityEvents(fixtures.city, now),
     parseCuriOdysseyDailyEvents(fixtures.curiodyssey, now),
     parseBayAreaDiscoveryMuseumEvents(fixtures.discoveryMuseum, now),
+    parseRedwoodCityEvents(fixtures.redwoodCity, now),
   ];
 
   parsed.forEach((events) => assert.ok(events.length > 0));
@@ -62,6 +73,11 @@ test("all six official-source parsers retain their expected fixture contract", (
     assert.ok(Number.isFinite(event.minAgeMonths));
     assert.ok(Number.isFinite(event.maxAgeMonths));
   });
+
+  const redwoodEvent = parsed.at(-1)[0];
+  assert.equal(redwoodEvent.city, "Redwood City");
+  assert.equal(redwoodEvent.age, "2-5세");
+  assert.equal(new Date(redwoodEvent.endAt) - new Date(redwoodEvent.startAt), 30 * 60000);
 });
 
 test("source health requires success, freshness, and active future events", () => {

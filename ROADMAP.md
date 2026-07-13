@@ -16,7 +16,7 @@ OpenAI Sites is now the primary service. P0.5 stabilization and P1 discovery pol
 - Source health requires a recent successful sync and active future events for every source.
 - Partial syncs are shown honestly and stale-source events are downgraded to recheck.
 - External event text is escaped and official links use an HTTPS host allowlist.
-- Regression fixtures cover all six automatic source parsers.
+- Regression fixtures cover all seven automatic source parsers, including Redwood City.
 
 ### P1 Discovery Polish Completed
 
@@ -172,7 +172,7 @@ Tasks:
 
 ### 10. Source Ingestion Quality And Monitoring
 
-Goal: make the six-source ingestion system observable and safe as source pages change.
+Goal: make the seven-source ingestion system observable and safe as source pages change.
 
 Tasks:
 

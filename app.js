@@ -426,6 +426,7 @@ const officialSourceHosts = new Set([
   "paloaltozoo.org",
   "presidio.gov",
   "randallmuseum.org",
+  "redwoodcity.org",
   "sanjoseca.gov",
   "sccld.org",
   "sfpl.org",
@@ -547,6 +548,7 @@ function normalizeOuting(item) {
 
 const locationOptions = {
   "san-mateo": { name: "San Mateo", lat: 37.5630, lng: -122.3255 },
+  "redwood-city": { name: "Redwood City", lat: 37.4852, lng: -122.2364 },
   "san-francisco": { name: "San Francisco", lat: 37.7749, lng: -122.4194 },
   "palo-alto": { name: "Palo Alto", lat: 37.4419, lng: -122.1430 },
   "san-jose": { name: "San Jose", lat: 37.3382, lng: -121.8863 },
@@ -1137,6 +1139,7 @@ function renderMap(items) {
     ${mapLabel("San Francisco", { lat: 37.7749, lng: -122.4194 }, "", { x: 16, y: 5 })}
     ${mapLabel("South SF", { lat: 37.6547, lng: -122.4077 }, "", { x: -7, y: 1 })}
     ${mapLabel("San Mateo", { lat: 37.5630, lng: -122.3255 }, "", { x: -7, y: 5 })}
+    ${mapLabel("Redwood City", { lat: 37.4852, lng: -122.2364 }, "", { x: -11, y: 3 })}
     ${mapLabel("Half Moon Bay", { lat: 37.4636, lng: -122.4286 }, "coast", { x: -4, y: 6 })}
     ${mapLabel("Palo Alto", { lat: 37.4419, lng: -122.1430 }, "", { x: 12, y: 2 })}
     ${mapLabel("Cupertino", { lat: 37.3229, lng: -122.0322 }, "", { x: -5, y: -3 })}

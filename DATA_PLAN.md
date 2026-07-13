@@ -119,7 +119,7 @@ First place batch:
 
 First event batch:
 
-- Storytime events from SFPL, San Mateo, South San Francisco, and Santa Clara County libraries.
+- Storytime events from SFPL, San Mateo, South San Francisco, Redwood City, and Santa Clara County libraries.
 - Museum toddler hours where official schedules are clear.
 - A small set of seasonal weekend events that can be manually verified.
 

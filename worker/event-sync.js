@@ -52,6 +52,12 @@ const sources = [
     url: "https://bayareadiscoverymuseum.org/events/",
     parse: parseBayAreaDiscoveryMuseumEvents,
   },
+  {
+    key: "redwood-city-events",
+    url: "https://www.redwoodcity.org/Home/Components/RssFeeds/RssFeed/View?id=1",
+    accept: "application/rss+xml,application/xml,text/xml",
+    parse: parseRedwoodCityEvents,
+  },
 ];
 
 let schemaReady;
@@ -683,6 +689,133 @@ function parseBayAreaDiscoveryMuseumEvents(html, now = new Date()) {
   return events;
 }
 
+function redwoodCityDateTime(value) {
+  const match = String(value || "").match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::\d{2})?\s+(AM|PM)$/i);
+  if (!match) return null;
+  const dateKey = `${match[3]}-${String(match[1]).padStart(2, "0")}-${String(match[2]).padStart(2, "0")}`;
+  const time = `${match[4]}:${match[5]} ${match[6].toUpperCase()}`;
+  const clock = parseClock(time);
+  return { dateKey, time, iso: clock ? pacificIso(dateKey, clock) : null };
+}
+
+function redwoodCityLocation(name, description) {
+  const context = `${name} ${description}`;
+  const locations = [
+    {
+      match: /Schaberg/i,
+      label: "Schaberg Branch Library",
+      latitude: 37.4661,
+      longitude: -122.2386,
+      parking: "Schaberg Branch Library 주변 주차 상황을 확인하세요.",
+      bathroom: "도서관 내 화장실을 이용할 수 있어요.",
+      stroller: "도서관 출입구와 프로그램 공간까지 유모차로 이동할 수 있어요.",
+    },
+    {
+      match: /Redwood Shores/i,
+      label: "Redwood Shores Branch Library",
+      latitude: 37.5311,
+      longitude: -122.2587,
+      parking: "Redwood Shores Branch Library 주차장을 이용할 수 있어요.",
+      bathroom: "도서관 내 화장실을 이용할 수 있어요.",
+      stroller: "도서관 출입구와 프로그램 공간까지 유모차로 이동할 수 있어요.",
+    },
+    {
+      match: /Magical Bridge/i,
+      label: "Magical Bridge Playground at Red Morton Park",
+      latitude: 37.4869,
+      longitude: -122.2470,
+      parking: "Red Morton Park 주변 주차장을 이용하고 행사 위치를 공식 안내에서 확인하세요.",
+      bathroom: "공원 화장실 위치와 운영 여부를 공식 안내에서 확인하세요.",
+      stroller: "공원 포장 동선으로 접근할 수 있지만 행사 혼잡도를 고려하세요.",
+    },
+    {
+      match: /Stafford Park|Music in the Park/i,
+      label: "Stafford Park",
+      latitude: 37.4716,
+      longitude: -122.2445,
+      parking: "Stafford Park 주변 노상 주차 상황을 확인하세요.",
+      bathroom: "공원 화장실 운영 여부를 방문 전에 확인하세요.",
+      stroller: "공원 잔디와 포장 동선을 고려해 유모차를 준비하세요.",
+    },
+    {
+      match: /Downtown|Cuentos y Cantos|Música con Val|Music with Val/i,
+      label: "Downtown Library",
+      latitude: 37.4844,
+      longitude: -122.2286,
+      parking: "Downtown Library 주변 공영 주차장을 확인하세요.",
+      bathroom: "도서관 내 화장실을 이용할 수 있어요.",
+      stroller: "도서관 출입구와 프로그램 공간까지 유모차로 이동할 수 있어요.",
+    },
+  ];
+  const selected = locations.find((location) => location.match.test(context));
+  if (selected) return { ...selected, city: "Redwood City", distance: distanceFromSanMateo(selected.latitude, selected.longitude) };
+  return {
+    label: "Redwood City",
+    city: "Redwood City",
+    latitude: 37.4852,
+    longitude: -122.2364,
+    distance: distanceFromSanMateo(37.4852, -122.2364),
+    parking: "행사 페이지에서 정확한 Redwood City 장소와 주차 정보를 확인하세요.",
+    bathroom: "행사장 화장실 위치와 운영 여부를 공식 안내에서 확인하세요.",
+    stroller: "행사장 접근 동선을 공식 안내에서 확인하세요.",
+  };
+}
+
+function redwoodCityAge(name) {
+  if (/Tiny Tales/i.test(name)) return "0-24개월";
+  if (/Toddler\/Preschool|JAMaROO/i.test(name)) return "2-5세";
+  if (/Cuentos|Storytime|Stories|Pajama|Story Hour/i.test(name)) return "가족·전 연령";
+  return "1-6세·가족";
+}
+
+function parseRedwoodCityEvents(xml, now = new Date()) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const events = [];
+  const itemPattern = /<item>([\s\S]*?)<\/item>/gi;
+  const relevantEvent = /toddler|tiny tales|storytime|stories and songs|stories in the park|cuentos|pajama time|family wiggles|music with val|música con val|jamaroo kids|malinky music|puppet|kids rock|fun fridays|story hour|free art project/i;
+  let item;
+
+  while ((item = itemPattern.exec(xml))) {
+    const block = item[1];
+    const rawName = xmlValue(block, "title");
+    const name = rawName.replace(/\s+\(\d{1,2}\/\d{1,2}\/\d{4}[\s\S]*\)$/, "").trim();
+    const description = xmlValue(block, "description");
+    if (!relevantEvent.test(`${name} ${description}`) || /cancelled|canceled|closed/i.test(name)) continue;
+
+    const start = redwoodCityDateTime(xmlValue(block, "eventStartDate"));
+    const end = redwoodCityDateTime(xmlValue(block, "eventEndDate"));
+    if (!start?.iso || start.dateKey < today || start.dateKey > lastDate) continue;
+
+    const location = redwoodCityLocation(name, description);
+    const storytime = /story|tales|cuentos/i.test(name);
+    const outdoor = /park|magical bridge/i.test(`${name} ${location.label}`);
+    const event = makeEvent({
+      sourceKey: sources[6].key,
+      sourceUrl: xmlValue(block, "link") || sources[6].url,
+      sourceName: "City of Redwood City",
+      name,
+      dateKey: start.dateKey,
+      time: start.time,
+      location,
+      setting: outdoor ? "outdoor" : "indoor",
+      type: storytime ? "storytime" : outdoor ? "seasonal" : "indoor",
+      age: redwoodCityAge(name),
+      price: "free",
+      reservation: "예약 불필요 · 정원은 현장 상황에 따라 달라요",
+      why: storytime
+        ? "Redwood City 공식 일정에서 확인한 책·노래·움직임 중심의 영유아 프로그램이에요."
+        : "Redwood City 공식 일정에서 확인한 어린이와 가족 대상 참여형 프로그램이에요.",
+    });
+    if (event) {
+      if (end?.iso && new Date(end.iso) > new Date(start.iso)) event.endAt = end.iso;
+      events.push(event);
+    }
+  }
+
+  return events;
+}
+
 function createSchemaStatements(db) {
   return [
     db.prepare(`CREATE TABLE IF NOT EXISTS events (
@@ -1028,6 +1161,7 @@ export {
   getOutingsResponse,
   parseBayAreaDiscoveryMuseumEvents,
   parseCuriOdysseyDailyEvents,
+  parseRedwoodCityEvents,
   parseSanMateoCityEvents,
   parseSanMateoCountyLibraryEvents,
   parseSanMateoStorytimes,
