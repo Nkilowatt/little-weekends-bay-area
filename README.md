@@ -11,7 +11,7 @@ Working alpha for a Bay Area toddler outings service. It helps parents of 1-3 ye
 
 The UI remains lightweight HTML, CSS, and JavaScript. OpenAI Sites serves those assets and the same-origin event API. A static fallback remains available when the API is delayed.
 
-The current P0 experience includes structured 1-3 age filtering, selectable Bay Area origin hubs with recalculated distances, structured trust states, and recommendation scoring that favors toddler-specific and practical options.
+The current P0.5 experience includes structured 1-3 age filtering, selectable Bay Area origin hubs with recalculated distances, structured trust states, recommendation scoring that favors toddler-specific and practical options, and 21 human-reviewed evergreen places across the Bay Area.
 
 The old Netlify URL is a legacy entry point. Once the current Git history is reconciled and pushed, Netlify will redirect visitors to the OpenAI Sites deployment.
 
@@ -49,4 +49,4 @@ Use the OpenAI Sites URL for all friend testing:
 
 ## Important Prototype Note
 
-The service combines automatically collected official events with a small set of curated evergreen places. Automatic collection is not the same as human verification, so every event should retain its official source and freshness status.
+The service combines automatically collected official events with 21 curated evergreen places. Automatic collection is not the same as human verification, so every event retains its official source and per-source freshness status. Ended events are removed using a structured end time, and stale source records are downgraded to recheck status.

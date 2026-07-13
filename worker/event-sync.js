@@ -1,6 +1,9 @@
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
 const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const FUTURE_WINDOW_DAYS = 45;
+const DEFAULT_EVENT_DURATION_MINUTES = 60;
+const LEGACY_EVENT_GRACE_MINUTES = 90;
+const REFRESH_ATTEMPT_COOLDOWN_MS = 5 * 60 * 1000;
 
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
@@ -218,10 +221,12 @@ function makeEvent({
   price = "free",
   reservation = "예약 불필요 · 정원은 현장 상황에 따라 달라요",
   why,
+  durationMinutes = DEFAULT_EVENT_DURATION_MINUTES,
 }) {
   const clock = parseClock(time);
   if (!clock) return null;
   const startAt = pacificIso(dateKey, clock);
+  const endAt = new Date(new Date(startAt).getTime() + durationMinutes * 60000).toISOString();
   const eventType = type || (/storytime|cuentos|move and groove/i.test(name) ? "storytime" : "seasonal");
   const ageLabel = age || ageForProgram(name);
   const ageRange = ageRangeFromLabel(ageLabel);
@@ -233,6 +238,7 @@ function makeEvent({
     type: eventType,
     setting,
     startAt,
+    endAt,
     city: location.city,
     distance: location.distance,
     age: ageLabel,
@@ -518,6 +524,8 @@ function parseSanMateoCountyLibraryEvents(xml, now = new Date()) {
     });
     if (event) {
       event.startAt = startAt;
+      const explicitEndAt = xmlValue(block, "bc:end_date");
+      event.endAt = explicitEndAt || new Date(new Date(startAt).getTime() + DEFAULT_EVENT_DURATION_MINUTES * 60000).toISOString();
       events.push(event);
     }
   }
@@ -577,6 +585,7 @@ function parseSanMateoCityEvents(html, now = new Date()) {
       price: /free/i.test(description) ? "free" : "paid",
       reservation: "공식 행사 안내 확인",
       why: "시에서 공식 운영하는 가족 친화 행사로 공연과 야외 활동을 함께 즐기기 좋아요.",
+      durationMinutes: 180,
     });
     if (event) events.push(event);
   }
@@ -616,6 +625,7 @@ function parseCuriOdysseyDailyEvents(html, now = new Date()) {
       price: "paid",
       reservation: "입장권 확인",
       why: `동물 돌봄과 훈련 모습을 가까이에서 볼 수 있어요. 공식 발표 시간은 ${times}입니다.`,
+      durationMinutes: 150,
     });
     if (event) events.push(event);
   }
@@ -665,6 +675,7 @@ function parseBayAreaDiscoveryMuseumEvents(html, now = new Date()) {
         price: "paid",
         reservation: "입장권 권장",
         why: `${name} 기간에 운영되는 어린이 박물관 특별 프로그램으로 감각 놀이와 야외 활동을 함께 즐기기 좋아요.`,
+        durationMinutes: 360,
       });
       if (event) events.push(event);
     }
@@ -681,6 +692,7 @@ function createSchemaStatements(db) {
       type TEXT NOT NULL,
       setting TEXT NOT NULL,
       start_at TEXT NOT NULL,
+      end_at TEXT,
       city TEXT NOT NULL,
       distance REAL NOT NULL,
       age TEXT NOT NULL,
@@ -721,6 +733,7 @@ async function ensureSchema(db) {
     if (!columns.has("min_age_months")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN min_age_months INTEGER NOT NULL DEFAULT 0"));
     if (!columns.has("max_age_months")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN max_age_months INTEGER NOT NULL DEFAULT 216"));
     if (!columns.has("confidence_status")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN confidence_status TEXT NOT NULL DEFAULT 'source_confirmed'"));
+    if (!columns.has("end_at")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN end_at TEXT"));
     if (migrations.length) {
       await db.batch(migrations);
       await db.prepare("UPDATE events SET active = 0").run();
@@ -731,15 +744,16 @@ async function ensureSchema(db) {
 
 function upsertStatement(db, event, verifiedAt) {
   return db.prepare(`INSERT INTO events (
-    id, source_key, name, type, setting, start_at, city, distance, age,
+    id, source_key, name, type, setting, start_at, end_at, city, distance, age,
     min_age_months, max_age_months, price, reservation, source_url, source_name,
     verified_at, why, notes_json, latitude, longitude, confidence_status, active, last_seen_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
   ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
     type = excluded.type,
     setting = excluded.setting,
     start_at = excluded.start_at,
+    end_at = excluded.end_at,
     city = excluded.city,
     distance = excluded.distance,
     age = excluded.age,
@@ -763,6 +777,7 @@ function upsertStatement(db, event, verifiedAt) {
       event.type,
       event.setting,
       event.startAt,
+      event.endAt,
       event.city,
       event.distance,
       event.age,
@@ -785,6 +800,12 @@ function upsertStatement(db, event, verifiedAt) {
 async function syncSource(db, source, now) {
   const attemptedAt = now.toISOString();
   try {
+    await db.prepare(`INSERT INTO sync_state (source_key, status, last_attempt_at, last_success_at, message, event_count)
+      VALUES (?, 'syncing', ?, NULL, NULL, 0)
+      ON CONFLICT(source_key) DO UPDATE SET
+        status = 'syncing',
+        last_attempt_at = excluded.last_attempt_at,
+        message = NULL`).bind(source.key, attemptedAt).run();
     const sourceUrl = typeof source.url === "function" ? source.url(now) : source.url;
     const response = await fetch(sourceUrl, {
       headers: {
@@ -825,15 +846,19 @@ async function syncSource(db, source, now) {
 async function refreshOutings(env, force = false) {
   if (!env?.DB) return { refreshed: false, reason: "D1 binding unavailable" };
   await ensureSchema(env.DB);
-  const status = await env.DB.prepare("SELECT MAX(last_success_at) AS last_success_at, COUNT(*) AS source_count FROM sync_state").first();
-  const lastSuccess = status?.last_success_at ? new Date(status.last_success_at).getTime() : 0;
-  if (!force && Number(status?.source_count || 0) >= sources.length && Date.now() - lastSuccess < REFRESH_INTERVAL_MS) {
+  const now = new Date();
+  const metadata = await syncMetadata(env.DB, now);
+  if (!force && metadata.currentSourceCount >= sources.length) {
     return { refreshed: false, reason: "fresh" };
   }
+  const attempt = await env.DB.prepare("SELECT MAX(last_attempt_at) AS last_attempt_at FROM sync_state").first();
+  const lastAttempt = attempt?.last_attempt_at ? new Date(attempt.last_attempt_at).getTime() : 0;
+  if (!force && now.getTime() - lastAttempt < REFRESH_ATTEMPT_COOLDOWN_MS) {
+    return { refreshed: false, reason: "recent-attempt" };
+  }
 
-  const now = new Date();
   const results = await Promise.all(sources.map((source) => syncSource(env.DB, source, now)));
-  await env.DB.prepare("DELETE FROM events WHERE start_at < ?").bind(new Date(Date.now() - 86400000).toISOString()).run();
+  await env.DB.prepare("DELETE FROM events WHERE COALESCE(end_at, start_at) < ?").bind(new Date(Date.now() - 86400000).toISOString()).run();
   return { refreshed: true, results };
 }
 
@@ -880,11 +905,13 @@ function verifiedLabel(verifiedAt) {
 function rowToOuting(row, now) {
   return {
     id: row.id,
+    sourceKey: row.source_key,
     name: row.name,
     type: row.type,
     setting: row.setting,
     dateBucket: dateBucket(row.start_at, now),
     startDate: row.start_at,
+    endDate: row.end_at,
     timeLabel: koreanTimeLabel(row.start_at),
     city: row.city,
     distance: row.distance,
@@ -904,20 +931,52 @@ function rowToOuting(row, now) {
 }
 
 async function queryOutings(db, now) {
-  const start = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
-  const end = new Date(Date.now() + FUTURE_WINDOW_DAYS * 86400000).toISOString();
+  const nowIso = now.toISOString();
+  const legacyStart = new Date(now.getTime() - LEGACY_EVENT_GRACE_MINUTES * 60000).toISOString();
+  const end = new Date(now.getTime() + FUTURE_WINDOW_DAYS * 86400000).toISOString();
   const result = await db.prepare(`SELECT * FROM events
-    WHERE active = 1 AND start_at >= ? AND start_at <= ?
-    ORDER BY start_at ASC`).bind(start, end).all();
+    WHERE active = 1
+      AND ((end_at IS NOT NULL AND end_at >= ?) OR (end_at IS NULL AND start_at >= ?))
+      AND start_at <= ?
+    ORDER BY start_at ASC`).bind(nowIso, legacyStart, end).all();
   return (result.results || []).map((row) => rowToOuting(row, now));
 }
 
-async function syncMetadata(db) {
-  const result = await db.prepare("SELECT source_key, status, last_attempt_at, last_success_at, message, event_count FROM sync_state ORDER BY source_key").all();
-  const rows = result.results || [];
-  const successes = rows.map((row) => row.last_success_at).filter(Boolean).sort();
+function sourceIsCurrent(row, now) {
+  const lastSuccess = row.last_success_at ? new Date(row.last_success_at).getTime() : 0;
+  return row.status === "ok"
+    && Number(row.active_event_count || 0) > 0
+    && now.getTime() - lastSuccess < REFRESH_INTERVAL_MS;
+}
+
+async function syncMetadata(db, now = new Date()) {
+  const nowIso = now.toISOString();
+  const legacyStart = new Date(now.getTime() - LEGACY_EVENT_GRACE_MINUTES * 60000).toISOString();
+  const result = await db.prepare(`SELECT
+      sync_state.source_key,
+      sync_state.status,
+      sync_state.last_attempt_at,
+      sync_state.last_success_at,
+      sync_state.message,
+      sync_state.event_count,
+      COUNT(CASE WHEN events.active = 1
+        AND ((events.end_at IS NOT NULL AND events.end_at >= ?)
+          OR (events.end_at IS NULL AND events.start_at >= ?))
+        THEN 1 END) AS active_event_count
+    FROM sync_state
+    LEFT JOIN events ON events.source_key = sync_state.source_key
+    GROUP BY sync_state.source_key
+    ORDER BY sync_state.source_key`).bind(nowIso, legacyStart).all();
+  const rows = (result.results || []).map((row) => ({
+    ...row,
+    active_event_count: Number(row.active_event_count || 0),
+    is_current: sourceIsCurrent(row, now),
+  }));
+  const currentRows = rows.filter((row) => row.is_current);
+  const successes = currentRows.map((row) => row.last_success_at).filter(Boolean).sort();
   return {
-    lastSyncedAt: successes.at(-1) || null,
+    lastSyncedAt: currentRows.length === sources.length ? successes.at(0) || null : null,
+    currentSourceCount: currentRows.length,
     sources: rows,
   };
 }
@@ -930,30 +989,32 @@ async function getOutingsResponse(request, env, context) {
   await ensureSchema(env.DB);
   const now = new Date();
   let events = await queryOutings(env.DB, now);
-  const metadata = await syncMetadata(env.DB);
-  const lastSuccess = metadata.lastSyncedAt ? new Date(metadata.lastSyncedAt).getTime() : 0;
-  const sourceSetIncomplete = metadata.sources.length < sources.length;
-  const isStale = Date.now() - lastSuccess >= REFRESH_INTERVAL_MS;
+  let metadata = await syncMetadata(env.DB, now);
+  const sourceSetIncomplete = metadata.currentSourceCount < sources.length;
 
   if (!events.length || sourceSetIncomplete) {
-    await refreshOutings(env, true);
+    await refreshOutings(env, false);
     events = await queryOutings(env.DB, now);
-  } else if (isStale) {
-    const refresh = refreshOutings(env, true);
-    if (context?.waitUntil) context.waitUntil(refresh);
-    else await refresh;
+    metadata = await syncMetadata(env.DB, now);
   }
 
-  const currentMetadata = events.length ? await syncMetadata(env.DB) : metadata;
+  const currentMetadata = events.length ? metadata : await syncMetadata(env.DB, now);
+  const fullyCurrent = currentMetadata.currentSourceCount === sources.length;
+  const currentSourceKeys = new Set(currentMetadata.sources.filter((source) => source.is_current).map((source) => source.source_key));
+  events = events.map((event) => currentSourceKeys.has(event.sourceKey)
+    ? event
+    : { ...event, confidenceStatus: "recheck", updated: `${event.updated} · 재확인 필요` });
   return Response.json({
     events,
-    status: events.length ? "ok" : "fallback",
+    status: events.length ? (fullyCurrent ? "ok" : "partial") : "fallback",
     lastSyncedAt: currentMetadata.lastSyncedAt,
     sources: currentMetadata.sources,
+    currentSourceCount: currentMetadata.currentSourceCount,
+    sourceCount: sources.length,
     refreshIntervalHours: REFRESH_INTERVAL_MS / 3600000,
   }, {
     headers: {
-      "Cache-Control": "public, max-age=300, stale-while-revalidate=300",
+      "Cache-Control": events.length ? "public, max-age=300, stale-while-revalidate=300" : "no-store",
       "X-Content-Type-Options": "nosniff",
     },
   });
@@ -970,4 +1031,5 @@ export {
   parseSanMateoStorytimes,
   parseSouthSanFranciscoStorytimes,
   refreshOutings,
+  sourceIsCurrent,
 };

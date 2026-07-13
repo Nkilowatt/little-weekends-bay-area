@@ -48,6 +48,10 @@ The current basemap is intentionally lightweight:
 - Distances, distance filtering, map origin, and nearest sorting recalculate from the selected location.
 - Recommended sorting scores age specificity, distance, time, source confidence, cost, and reservation burden while pushing repeated series below unique options.
 - Trust is structured as `human_verified`, `source_confirmed`, `recheck`, or `stale`; automatic source parsing is not presented as human verification.
+- The evergreen catalog contains 21 human-reviewed places across five Bay Area regions.
+- Automatic events include `endAt`; ended programs do not remain in today's results on a six-hour grace window.
+- Source status is current only when that source has a recent successful sync and active future events. Partial coverage is shown as `partial`, and stale-source events become `recheck`.
+- On-demand recovery has a five-minute cooldown and records `syncing` before network fetches to limit repeated external calls and abuse.
 
 ## Current Code Shape
 
@@ -56,6 +60,7 @@ Primary app files:
 - `index.html`
 - `styles.css`
 - `app.js`
+- `evergreen-outings.js`
 - `assets/bay-area-location-map.svg`
 
 OpenAI Sites support files:
@@ -77,6 +82,8 @@ Planning and operations docs:
 - `PROJECT_HANDOFF.md`
 - `ROADMAP.md`
 - `tests/rendered-html.test.mjs`
+- `tests/event-sync.test.mjs`
+- `tests/evergreen-data.test.mjs`
 
 ## Security Baseline
 
@@ -90,6 +97,7 @@ Current security posture is intentionally simple:
 - No cookies.
 - One same-origin read-only public endpoint: `/api/outings`.
 - D1 stores normalized event and source-sync state.
+- Event rows include structured start and end times. Source metadata includes active-event counts and current/stale state.
 
 The OpenAI Sites build and `netlify.toml` set security headers including:
 
@@ -103,9 +111,11 @@ OpenAI Sites uses `connect-src 'self'` for `/api/outings`. The Netlify legacy co
 
 External official-source links in `app.js` use `target="_blank"` with `rel="noopener noreferrer"`.
 
+Imported text is normalized and escaped before HTML rendering. Official source links must use HTTPS and match the client allowlist before they are shown.
+
 ## Important Data Note
 
-The service combines automatically collected official events with a small curated set of evergreen places. Automatic source parsing is not the same as human verification. Before a broader launch:
+The service combines automatically collected official events with 21 human-reviewed evergreen places. Automatic source parsing is not the same as human verification. Before a broader launch:
 
 - Every public event needs an official source URL.
 - Every public event needs freshness metadata.

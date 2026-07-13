@@ -57,10 +57,13 @@ let outings = [
     age: "1-5세",
     price: "paid",
     reservation: "예약 불필요",
-    source: "https://www.smcgov.org/parks/coyote-point-recreation-area",
+    source: "https://www.smcgov.org/parks/coyote-point-recreation-area-activities",
     sourceName: "San Mateo County Parks",
-    updated: "장소 정보 리뷰 필요",
-    why: "넓은 야외 공간과 놀이터가 있어 에너지를 빼기 좋아요.",
+    updated: "7월 12일 직접 확인",
+    lastReviewedAt: "2026-07-12",
+    confidenceStatus: "human_verified",
+    address: "1701 Coyote Point Drive, San Mateo, CA 94401",
+    why: "2-5세 구역이 따로 있는 성과 용 테마 놀이터라 어린아이와 움직이기 좋아요.",
     notes: {
       parking: "카운티 공원 주차/입장 요금을 확인하세요.",
       bathroom: "공원 화장실 위치를 지도에서 먼저 확인하세요.",
@@ -74,16 +77,19 @@ let outings = [
     name: "CuriOdyssey",
     type: "museum",
     setting: "indoor",
-    dateBucket: "weekend",
-    timeLabel: "주말 오전",
+    dateBucket: "anytime",
+    timeLabel: "상시 방문",
     city: "San Mateo",
     distance: 4.6,
     age: "2-6세",
     price: "paid",
     reservation: "티켓 확인",
-    source: "https://curiodyssey.org/",
+    source: "https://curiodyssey.org/visit/",
     sourceName: "CuriOdyssey",
-    updated: "공식 운영시간 확인 필요",
+    updated: "7월 12일 직접 확인",
+    lastReviewedAt: "2026-07-12",
+    confidenceStatus: "human_verified",
+    address: "1651 Coyote Point Drive, San Mateo, CA 94401",
     why: "짧은 실내 전시와 야외 동물 관찰을 함께 할 수 있어 날씨가 애매할 때 좋아요.",
     notes: {
       parking: "Coyote Point 방문 요금과 주차 조건을 함께 확인하세요.",
@@ -98,16 +104,19 @@ let outings = [
     name: "Palo Alto Junior Museum & Zoo",
     type: "museum",
     setting: "indoor",
-    dateBucket: "weekend",
-    timeLabel: "토요일 9:30 AM",
+    dateBucket: "anytime",
+    timeLabel: "화-일 운영",
     city: "Palo Alto",
     distance: 16.2,
     age: "1-5세",
     price: "paid",
     reservation: "티켓 권장",
-    source: "https://www.paloaltozoo.org/",
+    source: "https://www.paloaltozoo.org/Visit",
     sourceName: "Palo Alto Junior Museum & Zoo",
-    updated: "공식 운영시간 확인 필요",
+    updated: "7월 12일 직접 확인",
+    lastReviewedAt: "2026-07-12",
+    confidenceStatus: "human_verified",
+    address: "1451 Middlefield Road, Palo Alto, CA 94301",
     why: "유아에게 맞는 작은 규모라 오래 걷지 않아도 볼거리가 있어요.",
     notes: {
       parking: "인근 공공 주차 옵션을 확인하세요.",
@@ -397,6 +406,67 @@ function ageRangeFromLabel(label) {
   return { minAgeMonths: 0, maxAgeMonths: 72 };
 }
 
+const officialSourceHosts = new Set([
+  "bayareadiscoverymuseum.org",
+  "bibliocommons.com",
+  "cdm.org",
+  "cityofsanmateo.org",
+  "creativity.org",
+  "curiodyssey.org",
+  "ebparks.org",
+  "fairyland.org",
+  "gateway.bibliocommons.com",
+  "grpg.org",
+  "happyhollow.org",
+  "hiller.org",
+  "lawrencehallofscience.org",
+  "lindsaywildlife.org",
+  "oaklandzoo.org",
+  "paloalto.gov",
+  "paloaltozoo.org",
+  "presidio.gov",
+  "randallmuseum.org",
+  "sanjoseca.gov",
+  "sccld.org",
+  "sfpl.org",
+  "sfrecpark.org",
+  "sfzoo.org",
+  "smcgov.org",
+  "ssfca.gov",
+  "traintown.com",
+  "visithalfmoonbay.org"
+]);
+const outingTypes = new Set(["storytime", "park", "indoor", "museum", "seasonal"]);
+const outingSettings = new Set(["indoor", "outdoor"]);
+const outingPrices = new Set(["free", "paid"]);
+const confidenceStatuses = new Set(["human_verified", "source_confirmed", "recheck", "stale"]);
+
+function safeText(value, fallback = "", maxLength = 500) {
+  const text = String(value ?? fallback).replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+  return (text || fallback).slice(0, maxLength);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[character]);
+}
+
+function safeSourceUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    const allowed = [...officialSourceHosts].some((host) => hostname === host || hostname.endsWith(`.${host}`));
+    return url.protocol === "https:" && allowed ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function inferredConfidenceStatus(item) {
   if (item.confidenceStatus) return item.confidenceStatus;
   if (String(item.updated).includes("자동")) return "source_confirmed";
@@ -407,11 +477,36 @@ function inferredConfidenceStatus(item) {
 
 function normalizeOuting(item) {
   const ageRange = ageRangeFromLabel(item.age);
+  const latitude = Number(item.location?.lat);
+  const longitude = Number(item.location?.lng);
+  const notes = item.notes || {};
+  const confidenceStatus = inferredConfidenceStatus(item);
   return {
     ...item,
+    id: safeText(item.id, "unknown", 180),
+    name: safeText(item.name, "이름을 확인 중인 장소", 180),
+    type: outingTypes.has(item.type) ? item.type : "seasonal",
+    setting: outingSettings.has(item.setting) ? item.setting : "indoor",
+    timeLabel: safeText(item.timeLabel, "운영시간 확인", 120),
+    city: safeText(item.city, "Bay Area", 100),
+    distance: Number.isFinite(Number(item.distance)) ? Number(item.distance) : Number.POSITIVE_INFINITY,
+    age: safeText(item.age, "가족", 80),
     minAgeMonths: Number.isFinite(item.minAgeMonths) ? item.minAgeMonths : ageRange.minAgeMonths,
     maxAgeMonths: Number.isFinite(item.maxAgeMonths) ? item.maxAgeMonths : ageRange.maxAgeMonths,
-    confidenceStatus: inferredConfidenceStatus(item)
+    price: outingPrices.has(item.price) ? item.price : "paid",
+    reservation: safeText(item.reservation, "공식 페이지 확인", 180),
+    source: safeSourceUrl(item.source),
+    sourceName: safeText(item.sourceName, "공식 운영기관", 140),
+    updated: safeText(item.updated, "확인 시각 없음", 120),
+    why: safeText(item.why, "공식 페이지에서 세부 정보를 확인해 주세요.", 500),
+    address: safeText(item.address, "", 220),
+    notes: {
+      parking: safeText(notes.parking, "공식 페이지에서 주차 정보를 확인하세요.", 300),
+      bathroom: safeText(notes.bathroom, "공식 페이지에서 화장실 정보를 확인하세요.", 300),
+      stroller: safeText(notes.stroller, "공식 페이지에서 유모차 동선을 확인하세요.", 300)
+    },
+    location: Number.isFinite(latitude) && Number.isFinite(longitude) ? { lat: latitude, lng: longitude } : null,
+    confidenceStatus: confidenceStatuses.has(confidenceStatus) ? confidenceStatus : "recheck"
   };
 }
 
@@ -432,9 +527,17 @@ try {
 }
 
 const evergreenIds = new Set(["coyote-point", "curiodyssey", "palo-alto-junior"]);
-const staticOutings = outings.map(normalizeOuting).filter((item) => !item.startDate || new Date(item.startDate).getTime() >= Date.now() - 21600000);
-const evergreenOutings = staticOutings.filter((item) => evergreenIds.has(item.id));
-outings = staticOutings;
+const staticOutings = outings.map(normalizeOuting).filter((item) => {
+  if (!item.startDate) return true;
+  const fallbackEnd = new Date(item.startDate).getTime() + 90 * 60000;
+  const endTime = item.endDate ? new Date(item.endDate).getTime() : fallbackEnd;
+  return Number.isFinite(endTime) && endTime >= Date.now();
+});
+const catalogEvergreenOutings = Array.isArray(window.LITTLE_WEEKENDS_EVERGREEN)
+  ? window.LITTLE_WEEKENDS_EVERGREEN.map(normalizeOuting)
+  : [];
+const evergreenOutings = [...staticOutings.filter((item) => evergreenIds.has(item.id)), ...catalogEvergreenOutings];
+outings = [...staticOutings, ...catalogEvergreenOutings];
 
 const mapBounds = {
   north: 38.2033,
@@ -879,15 +982,15 @@ function renderCards(items) {
     const card = document.createElement("article");
     card.className = `outing-card${state.selectedId === item.id ? " is-selected" : ""}`;
     card.innerHTML = `
-      <button class="card-open" type="button" aria-label="${item.name} 상세 보기"></button>
+      <button class="card-open" type="button" aria-label="${escapeHtml(item.name)} 상세 보기"></button>
       <span class="card-image" aria-hidden="true"><img src="${itemImage(item)}" alt="" loading="lazy" /></span>
       <span class="card-content">
-        <span class="time-row"><span class="card-time">${item.timeLabel}</span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${item.id}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
-        <h3>${item.name}</h3>
-        <span class="card-place"><span>${item.city}</span><span>${distance.toFixed(1)} mi</span><span>${typeLabel(item.type)}</span></span>
-        <span class="essentials"><span class="essential"><small>연령</small>${item.age}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${item.price === "free" ? "무료" : "유료"}</span></span>
-        <p class="why">${item.why}</p>
-        <span class="trust ${trust.key}">${trust.short}</span>
+        <span class="time-row"><span class="card-time">${escapeHtml(item.timeLabel)}</span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
+        <h3>${escapeHtml(item.name)}</h3>
+        <span class="card-place"><span>${escapeHtml(item.city)}</span><span>${distance.toFixed(1)} mi</span><span>${escapeHtml(typeLabel(item.type))}</span></span>
+        <span class="essentials"><span class="essential"><small>연령</small>${escapeHtml(item.age)}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${item.price === "free" ? "무료" : "유료"}</span></span>
+        <p class="why">${escapeHtml(item.why)}</p>
+        <span class="trust ${trust.key}">${escapeHtml(trust.short)}</span>
       </span>
     `;
     card.querySelector(".card-open").addEventListener("click", () => {
@@ -918,7 +1021,7 @@ function renderMap(items) {
     ${mapLabelText("San Francisco Bay", 52, 45, "bay")}
   `;
 
-  items.forEach((item) => {
+  items.filter((item) => item.location).forEach((item) => {
     const point = projectPin(item);
     const pin = document.createElement("button");
     pin.className = `map-pin ${item.type}${state.selectedId === item.id ? " is-selected" : ""}`;
@@ -940,7 +1043,7 @@ function selectMapItem(id) {
   const trust = trustStatus(item);
   const distance = distanceFor(item);
   preview.hidden = false;
-  preview.innerHTML = `<button type="button" aria-label="${item.name} 상세 보기"><strong>${item.name}</strong><span>${item.timeLabel}, ${distance.toFixed(1)} mi<br />${trust.short}</span></button>`;
+  preview.innerHTML = `<button type="button" aria-label="${escapeHtml(item.name)} 상세 보기"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.timeLabel)}, ${distance.toFixed(1)} mi<br />${escapeHtml(trust.short)}</span></button>`;
   preview.querySelector("button").addEventListener("click", () => openDetail(id));
   renderMap(filteredOutings());
 }
@@ -996,11 +1099,14 @@ async function loadAutomaticOutings() {
     const payload = await response.json();
     if (!Array.isArray(payload.events) || !payload.events.length) throw new Error("새 일정이 아직 준비되지 않았어요.");
     outings = [...evergreenOutings, ...payload.events.map(normalizeOuting)];
-    const activeSources = Array.isArray(payload.sources) ? payload.sources.filter((source) => source.status === "ok").length : 0;
-    syncStatusEl.textContent = `${syncTimeLabel(payload.lastSyncedAt)} · 공식 수집처 ${activeSources}곳`;
+    const activeSources = Number(payload.currentSourceCount || 0);
+    const sourceCount = Number(payload.sourceCount || (Array.isArray(payload.sources) ? payload.sources.length : 0));
+    syncStatusEl.textContent = payload.status === "ok"
+      ? `${syncTimeLabel(payload.lastSyncedAt)} · 공식 수집처 ${activeSources}곳`
+      : `일부 출처 갱신 지연 · 현재 ${activeSources}/${sourceCount}곳 반영`;
     render();
   } catch {
-    outings = staticOutings;
+    outings = [...staticOutings, ...catalogEvergreenOutings];
     syncStatusEl.textContent = "자동 확인 지연 · 기존 확인 목록 표시 중";
     render();
   }
@@ -1026,20 +1132,23 @@ function openDetail(id) {
   const isSaved = state.saved.has(id);
   const trust = trustStatus(item);
   const distance = distanceFor(item);
-  const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.name}, ${item.city}, CA`)}`;
+  const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address || `${item.name}, ${item.city}, CA`)}`;
+  const sourceAction = item.source
+    ? `<a class="primary-action" href="${escapeHtml(item.source)}" target="_blank" rel="noopener noreferrer">${trust.key === "verified" || trust.key === "source-confirmed" ? "공식 정보 보기" : "공식 일정 확인"}</a>`
+    : "";
   detailBody.innerHTML = `
     <figure class="detail-visual"><img src="${itemImage(item)}" alt="" /><figcaption>장소 이해를 돕는 분위기 참고 이미지입니다.</figcaption></figure>
     <article class="detail-body">
-      <div class="detail-title"><p class="detail-category">${typeLabel(item.type)}, ${item.city}</p><h2>${item.name}</h2><p>${item.why}</p></div>
+      <div class="detail-title"><p class="detail-category">${escapeHtml(typeLabel(item.type))}, ${escapeHtml(item.city)}</p><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.why)}</p></div>
       <div class="decision-grid">
-        <div class="decision-item"><small>언제</small><strong>${item.timeLabel}</strong></div><div class="decision-item"><small>거리</small><strong>${distance.toFixed(1)} mi</strong></div><div class="decision-item"><small>연령</small><strong>${item.age}</strong></div><div class="decision-item"><small>환경</small><strong>${item.setting === "indoor" ? "실내" : "야외"}</strong></div><div class="decision-item"><small>비용</small><strong>${item.price === "free" ? "무료" : "유료"}</strong></div><div class="decision-item"><small>예약</small><strong>${item.reservation}</strong></div>
+        <div class="decision-item"><small>언제</small><strong>${escapeHtml(item.timeLabel)}</strong></div><div class="decision-item"><small>거리</small><strong>${distance.toFixed(1)} mi</strong></div><div class="decision-item"><small>연령</small><strong>${escapeHtml(item.age)}</strong></div><div class="decision-item"><small>환경</small><strong>${item.setting === "indoor" ? "실내" : "야외"}</strong></div><div class="decision-item"><small>비용</small><strong>${item.price === "free" ? "무료" : "유료"}</strong></div><div class="decision-item"><small>예약</small><strong>${escapeHtml(item.reservation)}</strong></div>
       </div>
-      <div class="trust-panel ${trust.key}"><strong>${trust.short}</strong><span>${trust.detail}</span></div>
+      <div class="trust-panel ${trust.key}"><strong>${escapeHtml(trust.short)}</strong><span>${escapeHtml(trust.detail)}</span></div>
       <div class="detail-notes">
-        <div class="note-row"><strong>주차</strong><span>${item.notes.parking}</span></div><div class="note-row"><strong>화장실</strong><span>${item.notes.bathroom}</span></div><div class="note-row"><strong>유모차</strong><span>${item.notes.stroller}</span></div><div class="note-row"><strong>예상 체류</strong><span>${item.type === "storytime" ? "30-60분" : "60-90분"} 정도를 추천해요.</span></div><div class="note-row"><strong>날씨 대응</strong><span>${item.setting === "indoor" ? "실내 활동이라 비 오는 날에도 좋아요." : "출발 전 기온과 공원 운영 상태를 확인하세요."}</span></div>
+        <div class="note-row"><strong>주차</strong><span>${escapeHtml(item.notes.parking)}</span></div><div class="note-row"><strong>화장실</strong><span>${escapeHtml(item.notes.bathroom)}</span></div><div class="note-row"><strong>유모차</strong><span>${escapeHtml(item.notes.stroller)}</span></div><div class="note-row"><strong>예상 체류</strong><span>${item.type === "storytime" ? "30-60분" : "60-90분"} 정도를 추천해요.</span></div><div class="note-row"><strong>날씨 대응</strong><span>${item.setting === "indoor" ? "실내 활동이라 비 오는 날에도 좋아요." : "출발 전 기온과 공원 운영 상태를 확인하세요."}</span></div>
       </div>
       <div class="detail-actions">
-        <a class="primary-action" href="${item.source}" target="_blank" rel="noopener noreferrer">${trust.key === "verified" || trust.key === "source-confirmed" ? "공식 정보 보기" : "공식 일정 확인"}</a><a class="secondary-action" href="${directions}" target="_blank" rel="noopener noreferrer">길찾기</a><button class="secondary-action" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
+        ${sourceAction}<a class="secondary-action" href="${escapeHtml(directions)}" target="_blank" rel="noopener noreferrer">길찾기</a><button class="secondary-action" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
       </div>
     </article>
   `;

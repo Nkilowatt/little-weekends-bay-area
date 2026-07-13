@@ -14,6 +14,8 @@ test("primary HTML exposes the P0 discovery controls", async () => {
   assert.match(html, /value="toddler">1-3세/);
   assert.match(html, /id="locationDialog"/);
   assert.match(html, /data-location-key="oakland"/);
+  assert.match(html, /evergreen-outings\.js\?v=1/);
+  assert.match(html, /app\.js\?v=13/);
 });
 
 test("client bundle includes dynamic distance, trust, and recommendation logic", async () => {
@@ -44,7 +46,12 @@ test("Sites build contains the event API and security policy", async () => {
   const eventSync = await readFile(new URL("dist/server/event-sync.js", root), "utf8");
 
   assert.match(worker, /pathname === "\/api\/outings"/);
+  assert.match(worker, /"\/evergreen-outings\.js"/);
   assert.match(worker, /connect-src 'self'/);
   assert.match(eventSync, /min_age_months/);
   assert.match(eventSync, /confidence_status/);
+  assert.match(eventSync, /end_at/);
+  assert.match(eventSync, /active_event_count/);
+  assert.match(eventSync, /REFRESH_ATTEMPT_COOLDOWN_MS/);
+  assert.match(eventSync, /events\.length \? "public, max-age=300/);
 });

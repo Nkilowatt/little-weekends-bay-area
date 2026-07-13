@@ -23,7 +23,7 @@ Use the Node version declared in `package.json`:
 npm run build
 ```
 
-The build writes the deployable Worker to `dist/server/index.js`, copies `worker/event-sync.js`, and includes `.openai/hosting.json` in the output.
+The build writes the deployable Worker to `dist/server/index.js`, copies `worker/event-sync.js`, and includes `.openai/hosting.json` in the output. The Sites packaging helper also stages `drizzle/` migrations under `dist/.openai/drizzle/`.
 
 Before deploying a new version:
 

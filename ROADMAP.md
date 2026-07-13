@@ -6,7 +6,17 @@ This roadmap is organized as small, handoff-friendly tasks for future chat sessi
 
 ## Now
 
-OpenAI Sites is now the primary service. The event ingestion foundation is live; the next work should improve toddler relevance, location accuracy, trust, and release discipline.
+OpenAI Sites is now the primary service. P0.5 product and data stabilization is complete; the next product gate is friend testing and release-discipline cleanup.
+
+### P0.5 Stabilization Completed
+
+- Results default to the inclusive 12-47 month range.
+- 21 human-reviewed evergreen places cover San Francisco, Peninsula, South Bay, East Bay, and North Bay.
+- Scheduled events carry an end time so completed programs leave today's results.
+- Source health requires a recent successful sync and active future events for every source.
+- Partial syncs are shown honestly and stale-source events are downgraded to recheck.
+- External event text is escaped and official links use an HTTPS host allowlist.
+- Regression fixtures cover all six automatic source parsers.
 
 ### 0. Primary Deployment And Git Reconciliation
 
@@ -65,7 +75,7 @@ Goal: replace demo-ish entries with a stronger first curated set.
 Tasks:
 
 - Add structured minimum and maximum ages in months.
-- Exclude activities that do not overlap the 12-36 month target by default.
+- Exclude activities that do not overlap the 12-47 month target by default.
 - Add 20-30 high-confidence evergreen places from official sources.
 - Add `last_reviewed_at`, structured confidence, address, and source fields.
 
@@ -106,7 +116,7 @@ Done when:
 
 ## Next
 
-These come after initial friend feedback.
+These come after initial friend feedback and Git reconciliation.
 
 ### 6. Search And Sort Polish
 
@@ -158,7 +168,7 @@ Goal: make the six-source ingestion system observable and safe as source pages c
 
 Tasks:
 
-- Add parser fixtures and regression tests for every source.
+- Maintain parser fixtures and regression tests for every source.
 - Alert on failed sources, zero-event parses, and sudden count changes.
 - Separate automatic source confirmation from human verification.
 - Add a review path for ambiguous or age-inappropriate events.
