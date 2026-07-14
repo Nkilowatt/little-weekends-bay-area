@@ -1,0 +1,9 @@
+Lee Seoyun (이서윤체)
+
+Copyright holder: Heungkuk Life Insurance (흥국생명)
+Font source: https://fonts.sweethero.kr/ko/leeseoyun
+Webfont package: https://github.com/sweetherofonts/fontshero_pack3/tree/main/leeseoyun
+
+The publisher identifies Lee Seoyun as a free font for personal and corporate
+use and permits website embedding. The font must not be sold as a standalone
+font product. Refer to the source page for the complete current usage terms.
