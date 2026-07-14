@@ -3,7 +3,10 @@ const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const FUTURE_WINDOW_DAYS = 45;
 const DEFAULT_EVENT_DURATION_MINUTES = 60;
 const LEGACY_EVENT_GRACE_MINUTES = 90;
-const REFRESH_ATTEMPT_COOLDOWN_MS = 5 * 60 * 1000;
+// A browser or deployment preview can abandon a request after a source has
+// been marked as syncing. Retry quickly enough that one interrupted request
+// cannot leave a newly added source empty for several minutes.
+const REFRESH_ATTEMPT_COOLDOWN_MS = 30 * 1000;
 const REDWOOD_CITY_RSS_URL = "https://www.redwoodcity.org/Home/Components/RssFeeds/RssFeed/View?id=1";
 
 const monthNames = [
