@@ -1030,11 +1030,12 @@ function recommendationReasons(item) {
   const ageWidth = Math.max(0, item.maxAgeMonths - item.minAgeMonths);
   if (ageWidth <= 36 && item.minAgeMonths <= 36 && item.maxAgeMonths >= 23) reasons.push("유아 연령 집중");
   if (distanceFor(item) <= 5) reasons.push("5 mi 안쪽");
-  if (item.price === "free") reasons.push("무료");
-  if (item.reservationLevel === "none") reasons.push("예약 불필요");
   if (item.confidenceStatus === "human_verified") reasons.push("사람이 확인");
-  if (item.setting === "indoor") reasons.push("실내");
   return reasons.slice(0, 2);
+}
+
+function cardReservationLabel(value) {
+  return String(value || "확인 필요").replace(/^예약\s+/, "");
 }
 
 function filteredOutings() {
@@ -1105,7 +1106,9 @@ function renderCards(items) {
     const trust = trustStatus(item);
     const distance = distanceFor(item);
     const reasons = recommendationReasons(item);
-    const reasonMarkup = reasons.map((reason) => `<span>${escapeHtml(reason)}</span>`).join("");
+    const reasonMarkup = reasons.length
+      ? `<span class="recommendation-cues" aria-label="추천 이유">${reasons.map((reason) => `<span>${escapeHtml(reason)}</span>`).join("")}</span>`
+      : "";
     const card = document.createElement("article");
     card.className = `outing-card${state.selectedId === item.id ? " is-selected" : ""}`;
     card.innerHTML = `
@@ -1115,8 +1118,8 @@ function renderCards(items) {
         <span class="time-row"><span class="schedule-label"><span class="outing-kind">${escapeHtml(outingKindLabel(item))}</span><span class="card-time">${escapeHtml(item.timeLabel)}</span></span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
         <h3>${escapeHtml(item.name)}</h3>
         <span class="card-place"><span>${escapeHtml(item.city)}</span><span>${distance.toFixed(1)} mi</span><span>${escapeHtml(typeLabel(item.type))}</span></span>
-        <span class="essentials"><span class="essential"><small>연령</small>${escapeHtml(item.age)}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${item.price === "free" ? "무료" : "유료"}</span><span class="essential"><small>예약</small>${escapeHtml(item.reservation)}</span></span>
-        <span class="recommendation-cues" aria-label="추천 이유">${reasonMarkup}</span>
+        <span class="essentials"><span class="essential"><small>연령</small>${escapeHtml(item.age)}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${item.price === "free" ? "무료" : "유료"}</span><span class="essential"><small>예약</small>${escapeHtml(cardReservationLabel(item.reservation))}</span></span>
+        ${reasonMarkup}
         <p class="why">${escapeHtml(item.why)}</p>
         <span class="trust ${trust.key}">${escapeHtml(trust.short)}</span>
       </span>
