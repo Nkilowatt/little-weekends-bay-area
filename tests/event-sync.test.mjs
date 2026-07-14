@@ -4,7 +4,6 @@ import test from "node:test";
 import {
   parseBayAreaDiscoveryMuseumEvents,
   parseCuriOdysseyDailyEvents,
-  parseRedwoodCityCalendarPage,
   parseRedwoodCityEvents,
   parseSanMateoCityEvents,
   parseSanMateoCountyLibraryEvents,
@@ -54,29 +53,6 @@ const fixtures = {
       <eventEndDate>7/13/2026 11:00:00 AM</eventEndDate>
     </item></channel></rss>
   `,
-  redwoodCityLibraryCalendar: `
-    <div class="hidden" itemscope itemtype="http://schema.org/Event">
-      <a href="/Home/Components/Calendar/Event/95353/"><span itemprop="name">Toddler/Preschool Storytime @ Redwood Shores</span></a>
-      <span itemprop="startDate">2026-07-16T10:30</span>
-      <span itemprop="endDate">2026-07-16T11:00</span>
-      <p itemprop="description">Books, songs and movement for ages 2-5.</p>
-      <span itemprop="location"><span itemprop="name">Redwood Shores Branch Library</span></span>
-    </div><p></p>
-    <div class="hidden" itemscope itemtype="http://schema.org/Event">
-      <span itemprop="name">Teen Program: Movie Night</span>
-      <span itemprop="startDate">2026-07-16T16:30</span>
-      <p itemprop="description">For teens.</p>
-    </div><p></p>
-  `,
-  redwoodCityFamilyCalendar: `
-    <div class="hidden" itemscope itemtype="http://schema.org/Event">
-      <a href="/Home/Components/Calendar/Event/96277/"><span itemprop="name">Movies on the Square: Family Night</span></a>
-      <span itemprop="startDate">2026-07-18T18:00</span>
-      <span itemprop="endDate">2026-07-18T20:00</span>
-      <p itemprop="description">Free outdoor movie for families.</p>
-      <span itemprop="location"><span itemprop="name">Courthouse Square</span></span>
-    </div><p></p>
-  `,
 };
 
 test("all seven official-source parsers retain their expected fixture contract", () => {
@@ -117,28 +93,13 @@ test("source health requires success, freshness, and active future events", () =
   assert.equal(sourceIsCurrent({ ...healthy, last_success_at: "2026-07-12T08:00:00.000Z" }, now), false);
 });
 
-test("Redwood City month calendars add Shores library and family events beyond the short RSS window", () => {
-  const libraryEvents = parseRedwoodCityCalendarPage(
-    fixtures.redwoodCityLibraryCalendar,
-    now,
-    "library",
-    "https://www.redwoodcity.org/departments/library/events/kids-calendar-events/-curm-7/-cury-2026",
-  );
-  const familyEvents = parseRedwoodCityCalendarPage(
-    fixtures.redwoodCityFamilyCalendar,
-    now,
-    "city",
-    "https://www.redwoodcity.org/residents/redwood-city-events/city-events-calendar/-curm-7/-cury-2026",
-  );
-
-  assert.equal(libraryEvents.length, 1);
-  assert.equal(libraryEvents[0].sourceKey, "redwood-city-library-calendar");
-  assert.equal(libraryEvents[0].city, "Redwood City");
-  assert.equal(libraryEvents[0].age, "2-5세");
-  assert.match(libraryEvents[0].sourceUrl, /^https:\/\/www\.redwoodcity\.org\//);
-  assert.equal(familyEvents.length, 1);
-  assert.equal(familyEvents[0].sourceKey, "redwood-city-family-calendar");
-  assert.equal(new Date(familyEvents[0].endAt) - new Date(familyEvents[0].startAt), 120 * 60000);
+test("Redwood City recurring library programs extend beyond the short RSS window", () => {
+  const events = parseRedwoodCityEvents(fixtures.redwoodCity, now);
+  assert.ok(events.length >= 6);
+  assert.ok(events.every((event) => event.city === "Redwood City"));
+  assert.equal(events[0].age, "2-5세");
+  assert.equal(new Date(events[1].startAt) - new Date(events[0].startAt), 7 * 86400000);
+  assert.ok(new Date(events.at(-1).startAt) - new Date(events[0].startAt) >= 35 * 86400000);
 });
 
 test("museum-wide programs carry an end time instead of a six-hour grace window", () => {
