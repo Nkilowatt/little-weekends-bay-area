@@ -4,6 +4,9 @@ const FUTURE_WINDOW_DAYS = 45;
 const DEFAULT_EVENT_DURATION_MINUTES = 60;
 const LEGACY_EVENT_GRACE_MINUTES = 90;
 const REFRESH_ATTEMPT_COOLDOWN_MS = 5 * 60 * 1000;
+const REDWOOD_CITY_RSS_URL = "https://www.redwoodcity.org/Home/Components/RssFeeds/RssFeed/View?id=1";
+const REDWOOD_CITY_LIBRARY_CALENDAR_URL = "https://www.redwoodcity.org/departments/library/events/kids-calendar-events";
+const REDWOOD_CITY_FAMILY_CALENDAR_URL = "https://www.redwoodcity.org/residents/redwood-city-events/city-events-calendar";
 
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
@@ -54,9 +57,19 @@ const sources = [
   },
   {
     key: "redwood-city-events",
-    url: "https://www.redwoodcity.org/Home/Components/RssFeeds/RssFeed/View?id=1",
+    url: REDWOOD_CITY_RSS_URL,
     accept: "application/rss+xml,application/xml,text/xml",
     parse: parseRedwoodCityEvents,
+  },
+  {
+    key: "redwood-city-library-calendar",
+    urls: (now) => redwoodCityCalendarMonthUrls(REDWOOD_CITY_LIBRARY_CALENDAR_URL, now),
+    parseMany: (documents, now) => parseRedwoodCityCalendarDocuments(documents, now, "library"),
+  },
+  {
+    key: "redwood-city-family-calendar",
+    urls: (now) => redwoodCityCalendarMonthUrls(REDWOOD_CITY_FAMILY_CALENDAR_URL, now),
+    parseMany: (documents, now) => parseRedwoodCityCalendarDocuments(documents, now, "city"),
   },
 ];
 
@@ -698,6 +711,17 @@ function redwoodCityDateTime(value) {
   return { dateKey, time, iso: clock ? pacificIso(dateKey, clock) : null };
 }
 
+function redwoodCityCalendarMonthUrls(baseUrl, now = new Date()) {
+  const today = pacificDateKey(now);
+  const year = Number(today.slice(0, 4));
+  const month = Number(today.slice(5, 7));
+  const nextMonth = new Date(Date.UTC(year, month, 1));
+  return [
+    `${baseUrl}/-curm-${month}/-cury-${year}`,
+    `${baseUrl}/-curm-${nextMonth.getUTCMonth() + 1}/-cury-${nextMonth.getUTCFullYear()}`,
+  ];
+}
+
 function redwoodCityLocation(name, description) {
   const context = `${name} ${description}`;
   const locations = [
@@ -711,7 +735,7 @@ function redwoodCityLocation(name, description) {
       stroller: "도서관 출입구와 프로그램 공간까지 유모차로 이동할 수 있어요.",
     },
     {
-      match: /Redwood Shores/i,
+      match: /Redwood Shores|@ Shores/i,
       label: "Redwood Shores Branch Library",
       latitude: 37.5311,
       longitude: -122.2587,
@@ -720,7 +744,7 @@ function redwoodCityLocation(name, description) {
       stroller: "도서관 출입구와 프로그램 공간까지 유모차로 이동할 수 있어요.",
     },
     {
-      match: /Magical Bridge/i,
+      match: /Magical Bridge|Red Morton|Parcade/i,
       label: "Magical Bridge Playground at Red Morton Park",
       latitude: 37.4869,
       longitude: -122.2470,
@@ -736,6 +760,15 @@ function redwoodCityLocation(name, description) {
       parking: "Stafford Park 주변 노상 주차 상황을 확인하세요.",
       bathroom: "공원 화장실 운영 여부를 방문 전에 확인하세요.",
       stroller: "공원 잔디와 포장 동선을 고려해 유모차를 준비하세요.",
+    },
+    {
+      match: /Courthouse Square|on the Square/i,
+      label: "Courthouse Square",
+      latitude: 37.4864,
+      longitude: -122.2290,
+      parking: "Courthouse Square 주변 공영 주차장과 행사일 도로 통제를 확인하세요.",
+      bathroom: "행사장 임시 화장실 또는 인근 공공시설 운영 여부를 확인하세요.",
+      stroller: "광장과 인도는 유모차로 이동할 수 있지만 행사 혼잡도를 고려하세요.",
     },
     {
       match: /Downtown|Cuentos y Cantos|Música con Val|Music with Val/i,
@@ -764,8 +797,102 @@ function redwoodCityLocation(name, description) {
 function redwoodCityAge(name) {
   if (/Tiny Tales/i.test(name)) return "0-24개월";
   if (/Toddler\/Preschool|JAMaROO/i.test(name)) return "2-5세";
+  if (/Kid Makers|LEGO|Coding|Creative Studio|Art Salon/i.test(name)) return "4-12세";
+  if (/Puppet|Theater|Music|Bubbles|Seaside|Marine|Fun Fridays/i.test(name)) return "2-8세·가족";
   if (/Cuentos|Storytime|Stories|Pajama|Story Hour/i.test(name)) return "가족·전 연령";
   return "1-6세·가족";
+}
+
+function officialRedwoodCityUrl(value, fallback) {
+  try {
+    const url = new URL(decodeHtml(value || fallback), "https://www.redwoodcity.org");
+    return url.hostname === "www.redwoodcity.org" && url.protocol === "https:" ? url.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function itemPropText(block, property) {
+  const match = block.match(new RegExp(`itemprop=["']${property}["'][^>]*>([\\s\\S]*?)<\\/[^>]+>`, "i"));
+  return match ? stripHtml(match[1]) : "";
+}
+
+function itemPropValue(block, property) {
+  const content = block.match(new RegExp(`itemprop=["']${property}["'][^>]*content=["']([^"']+)["']`, "i"))?.[1];
+  if (content) return decodeHtml(content).trim();
+  return itemPropText(block, property);
+}
+
+function redwoodCityCalendarRelevant(name, description, calendarKind) {
+  const context = `${name} ${description}`;
+  if (/cancelled|canceled|closed|^no\s/i.test(name)) return false;
+  if (calendarKind === "library") {
+    if (/teen|tween|adult|job seeker|book club/i.test(context)) return false;
+    return /baby|toddler|preschool|tiny tales|story|cuentos|family|children|kid|music|movement|puppet|theater|bubbles|play|art|craft|maker|lego|science|animal|seaside|marine|fun friday|lunch at the library/i.test(context);
+  }
+  if (/meeting|commission|committee|adult|senior|teen|basketball|pickleball|volleyball|mahjong|dominos|bridge|card games/i.test(context)) return false;
+  return /family|kid|child|toddler|preschool|baby|parcade|magical bridge|playground|movie|music|concert|festival|fair|circus|puppet|story|art|farmers market|soccer on the square|fourth|halloween|lunar new year|día del niño|dia del niño/i.test(context);
+}
+
+function parseRedwoodCityCalendarPage(html, now = new Date(), calendarKind = "library", sourceUrl = REDWOOD_CITY_LIBRARY_CALENDAR_URL) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const events = [];
+  const eventPattern = /<div[^>]*itemscope[^>]*itemtype=["']https?:\/\/schema\.org\/Event["'][^>]*>([\s\S]*?)<\/div>\s*<p/gi;
+  let match;
+
+  while ((match = eventPattern.exec(html))) {
+    const block = match[1];
+    const name = itemPropText(block, "name");
+    const description = itemPropText(block, "description");
+    if (!name || !redwoodCityCalendarRelevant(name, description, calendarKind)) continue;
+
+    const localStart = itemPropValue(block, "startDate");
+    const localEnd = itemPropValue(block, "endDate");
+    const dateKey = localStart.slice(0, 10);
+    const localTime = localStart.slice(11, 16);
+    if (!dateKey || !localTime || dateKey < today || dateKey > lastDate) continue;
+
+    const locationName = itemPropText(block, "location") || "Redwood City";
+    const location = redwoodCityLocation(name, `${description} ${locationName}`);
+    const storytime = /story|tales|cuentos/i.test(name);
+    const outdoor = calendarKind === "city" || /park|playground|square|outdoor/i.test(`${name} ${description} ${locationName}`);
+    const link = block.match(/href=["']([^"']*\/Home\/Components\/Calendar\/Event\/[^"']+)["']/i)?.[1];
+    const event = makeEvent({
+      sourceKey: calendarKind === "library" ? "redwood-city-library-calendar" : "redwood-city-family-calendar",
+      sourceUrl: officialRedwoodCityUrl(link, sourceUrl),
+      sourceName: calendarKind === "library" ? "Redwood City Public Library" : "City of Redwood City",
+      name,
+      dateKey,
+      time: displayClockFrom24(localTime),
+      location,
+      setting: outdoor ? "outdoor" : "indoor",
+      type: storytime ? "storytime" : calendarKind === "library" && !outdoor ? "indoor" : "seasonal",
+      age: calendarKind === "library" ? redwoodCityAge(name) : "가족·전 연령",
+      price: /ticket|admission\s*\$|fee/i.test(description) ? "paid" : "free",
+      reservation: calendarKind === "library" ? "예약 불필요 · 정원은 현장 상황에 따라 달라요" : "공식 행사 안내 확인",
+      why: calendarKind === "library"
+        ? "Redwood City Public Library 어린이 캘린더에서 확인한 가족 프로그램이에요."
+        : "Redwood City 공식 행사 캘린더에서 확인한 가족 친화 프로그램이에요.",
+      durationMinutes: calendarKind === "city" ? 180 : DEFAULT_EVENT_DURATION_MINUTES,
+    });
+    if (event) {
+      if (localEnd) {
+        const endDateKey = localEnd.slice(0, 10);
+        const endTime = localEnd.slice(11, 16);
+        const endClock = endDateKey && endTime ? pacificIso(endDateKey, endTime) : null;
+        if (endClock && new Date(endClock) > new Date(event.startAt)) event.endAt = endClock;
+      }
+      events.push(event);
+    }
+  }
+
+  return events;
+}
+
+function parseRedwoodCityCalendarDocuments(documents, now = new Date(), calendarKind = "library") {
+  const events = documents.flatMap(({ text, url }) => parseRedwoodCityCalendarPage(text, now, calendarKind, url));
+  return [...new Map(events.map((event) => [event.id, event])).values()];
 }
 
 function parseRedwoodCityEvents(xml, now = new Date()) {
@@ -939,16 +1066,24 @@ async function syncSource(db, source, now) {
         status = 'syncing',
         last_attempt_at = excluded.last_attempt_at,
         message = NULL`).bind(source.key, attemptedAt).run();
-    const sourceUrl = typeof source.url === "function" ? source.url(now) : source.url;
-    const response = await fetch(sourceUrl, {
-      headers: {
-        Accept: source.accept || "text/html,application/xhtml+xml",
-        "User-Agent": "LittleWeekendsBayArea/1.0 (+https://little-weekends-bay-area.cashmire2.chatgpt.site)",
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) throw new Error(`공식 페이지 응답 ${response.status}`);
-    const events = source.parse(await response.text(), now);
+    const sourceUrls = source.urls
+      ? source.urls(now)
+      : [typeof source.url === "function" ? source.url(now) : source.url];
+    const documents = await Promise.all(sourceUrls.map(async (sourceUrl) => {
+      const response = await fetch(sourceUrl, {
+        headers: {
+          Accept: source.accept || "text/html,application/xhtml+xml",
+          "User-Agent": "LittleWeekendsBayArea/1.0 (+https://little-weekends-bay-area.cashmire2.chatgpt.site)",
+        },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) throw new Error(`공식 페이지 응답 ${response.status}`);
+      return { url: sourceUrl, text: await response.text() };
+    }));
+    const parsedEvents = source.parseMany
+      ? source.parseMany(documents, now)
+      : source.parse(documents[0].text, now);
+    const events = [...new Map(parsedEvents.map((event) => [event.id, event])).values()];
     if (!events.length) throw new Error("일정 형식이 바뀌어 이벤트를 읽지 못했어요");
 
     await db.batch([
@@ -1161,6 +1296,8 @@ export {
   getOutingsResponse,
   parseBayAreaDiscoveryMuseumEvents,
   parseCuriOdysseyDailyEvents,
+  parseRedwoodCityCalendarDocuments,
+  parseRedwoodCityCalendarPage,
   parseRedwoodCityEvents,
   parseSanMateoCityEvents,
   parseSanMateoCountyLibraryEvents,

@@ -484,5 +484,86 @@ window.LITTLE_WEEKENDS_EVERGREEN = [
       stroller: "작은 실내 공간이라 접이식 유모차가 편해요."
     },
     location: { lat: 37.9211, lng: -122.0751 }
+  },
+  {
+    id: "redwood-shores-library",
+    name: "Redwood Shores Branch Library",
+    type: "indoor",
+    setting: "indoor",
+    dateBucket: "anytime",
+    timeLabel: "월-목·주말 운영",
+    city: "Redwood City",
+    age: "0-8세·가족",
+    minAgeMonths: 0,
+    maxAgeMonths: 107,
+    price: "free",
+    reservation: "예약 불필요",
+    source: "https://www.redwoodcity.org/departments/library/locations-and-hours",
+    sourceName: "Redwood City Public Library",
+    updated: "7월 13일 공식 확인",
+    lastReviewedAt: "2026-07-13",
+    confidenceStatus: "human_verified",
+    address: "399 Marine Parkway, Redwood City, CA 94065",
+    why: "어린이 공간과 유아용 터치스크린 기기가 있고 무료 주차장을 이용할 수 있어 짧은 실내 나들이로 좋아요.",
+    notes: {
+      parking: "도서관 전용 무료 주차장을 이용할 수 있어요.",
+      bathroom: "도서관 내 화장실을 이용할 수 있어요.",
+      stroller: "도서관 출입구와 어린이 공간까지 유모차로 이동할 수 있어요."
+    },
+    location: { lat: 37.5311, lng: -122.2587 }
+  },
+  {
+    id: "redwood-city-downtown-library",
+    name: "Redwood City Downtown Library Family Place",
+    type: "indoor",
+    setting: "indoor",
+    dateBucket: "anytime",
+    timeLabel: "매일 운영",
+    city: "Redwood City",
+    age: "0-8세·가족",
+    minAgeMonths: 0,
+    maxAgeMonths: 107,
+    price: "free",
+    reservation: "예약 불필요",
+    source: "https://www.redwoodcity.org/departments/library/locations-and-hours",
+    sourceName: "Redwood City Public Library",
+    updated: "7월 13일 공식 확인",
+    lastReviewedAt: "2026-07-13",
+    confidenceStatus: "human_verified",
+    address: "1044 Middlefield Road, Redwood City, CA 94063",
+    why: "어린이용 Family Place와 그림책 공간이 있어 행사 시간이 아니어도 아이와 편하게 머물기 좋아요.",
+    notes: {
+      parking: "도서관 주차장은 유료이며 Jefferson Garage는 평일 1시간 30분 무료예요.",
+      bathroom: "도서관 내 화장실을 이용할 수 있어요.",
+      stroller: "넓은 출입구와 실내 동선으로 유모차 이동이 가능해요."
+    },
+    location: { lat: 37.4844, lng: -122.2286 }
+  },
+  {
+    id: "redwood-city-magical-bridge",
+    name: "Magical Bridge Playground at Red Morton Park",
+    type: "park",
+    setting: "outdoor",
+    dateBucket: "anytime",
+    timeLabel: "매일 운영",
+    city: "Redwood City",
+    age: "1-8세·가족",
+    minAgeMonths: 12,
+    maxAgeMonths: 107,
+    price: "free",
+    reservation: "예약 불필요",
+    source: "https://www.redwoodcity.org/Home/Components/FacilityDirectory/FacilityDirectory/51/",
+    sourceName: "City of Redwood City",
+    updated: "7월 13일 공식 확인",
+    lastReviewedAt: "2026-07-13",
+    confidenceStatus: "human_verified",
+    address: "1120 Roosevelt Avenue, Redwood City, CA 94061",
+    why: "전 연령·전 능력을 위한 놀이터와 유아 구역, 감각 물놀이 공간이 있어 형제자매와 함께 가기 좋아요.",
+    notes: {
+      parking: "Red Morton Park 주변 주차장을 이용할 수 있어요.",
+      bathroom: "공원 내 화장실이 있어요.",
+      stroller: "포장 동선으로 놀이터까지 유모차 접근이 가능해요."
+    },
+    location: { lat: 37.4869, lng: -122.2470 }
   }
 ];

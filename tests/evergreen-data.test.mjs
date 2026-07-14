@@ -11,10 +11,10 @@ test("curated evergreen catalog brings the launch baseline above twenty places",
   vm.runInNewContext(script, context);
   const catalog = context.window.LITTLE_WEEKENDS_EVERGREEN;
 
-  assert.equal(catalog.length, 18);
+  assert.ok(catalog.length >= 21);
   assert.equal(new Set(catalog.map((item) => item.id)).size, catalog.length);
   assert.ok(catalog.every((item) => item.confidenceStatus === "human_verified"));
-  assert.ok(catalog.every((item) => item.lastReviewedAt === "2026-07-12"));
+  assert.ok(catalog.every((item) => item.lastReviewedAt >= "2026-07-12" && item.lastReviewedAt <= "2026-07-13"));
   assert.ok(catalog.every((item) => new URL(item.source).protocol === "https:"));
   assert.ok(new Set(catalog.map((item) => item.city)).size >= 8);
 });
