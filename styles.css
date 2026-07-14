@@ -43,6 +43,7 @@
   --font-ui: "Lee Seoyun LW", "Avenir Next", Avenir, Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
   --font-display: "Yeon Sung LW", "Avenir Next", Avenir, Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
   font-family: var(--font-ui);
+  font-size: 115%;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -75,8 +76,11 @@ html { scroll-behavior: smooth; scroll-padding-top: 76px; }
 body {
   background: var(--bg);
   color: var(--ink);
+  line-break: strict;
   margin: 0;
   overflow-x: clip;
+  overflow-wrap: break-word;
+  word-break: keep-all;
 }
 button, input, select { color: inherit; font: inherit; }
 button { cursor: pointer; touch-action: manipulation; }
@@ -87,6 +91,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 img { display: block; max-width: 100%; }
 h1, h2, h3, p, figure { margin-top: 0; }
+h1, h2, h3, p, button, label, strong, small, span {
+  hyphens: none;
+  text-wrap: pretty;
+}
+h1, h2 { text-wrap: balance; }
 
 .skip-link {
   background: var(--ink);
@@ -782,7 +791,7 @@ h1, h2, h3, p, figure { margin-top: 0; }
     right: calc(50% - 24px);
     top: 4px;
   }
-  .toast { bottom: calc(82px + env(safe-area-inset-bottom)); max-width: calc(100% - 28px); text-align: center; white-space: nowrap; }
+  .toast { bottom: calc(82px + env(safe-area-inset-bottom)); max-width: calc(100% - 28px); text-align: center; white-space: normal; }
 }
 
 @media (max-width: 420px) {

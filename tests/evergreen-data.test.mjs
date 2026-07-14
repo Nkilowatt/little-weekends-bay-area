@@ -5,18 +5,21 @@ import vm from "node:vm";
 
 const root = new URL("../", import.meta.url);
 
-test("curated evergreen catalog brings the launch baseline above twenty places", async () => {
+test("curated evergreen catalog covers the core peninsula library baseline", async () => {
   const script = await readFile(new URL("evergreen-outings.js", root), "utf8");
   const context = { window: {} };
   vm.runInNewContext(script, context);
   const catalog = context.window.LITTLE_WEEKENDS_EVERGREEN;
 
-  assert.ok(catalog.length >= 21);
+  assert.ok(catalog.length >= 26);
   assert.equal(new Set(catalog.map((item) => item.id)).size, catalog.length);
   assert.ok(catalog.every((item) => item.confidenceStatus === "human_verified"));
   assert.ok(catalog.every((item) => item.lastReviewedAt >= "2026-07-12" && item.lastReviewedAt <= "2026-07-13"));
   assert.ok(catalog.every((item) => new URL(item.source).protocol === "https:"));
   assert.ok(new Set(catalog.map((item) => item.city)).size >= 8);
+  ["Belmont", "Foster City", "San Carlos", "Millbrae", "Burlingame"].forEach((city) => {
+    assert.ok(catalog.some((item) => item.city === city));
+  });
 });
 
 test("client rendering has output escaping and an official-source allowlist", async () => {

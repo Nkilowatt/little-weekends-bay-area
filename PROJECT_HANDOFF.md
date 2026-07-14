@@ -22,7 +22,7 @@ The core experience is:
 - Primary runtime: OpenAI Sites Worker
 - Event API: `/api/outings`
 - Database: D1 binding `DB`
-- Refresh schedule: seven official sources every six hours
+- Refresh schedule: 12 official sources every six hours
 
 The user interface is lightweight HTML, CSS, and JavaScript, but the primary service now includes a Worker backend and D1 database for automatic official-event updates.
 
@@ -48,18 +48,25 @@ The current basemap is intentionally lightweight:
 - Distances, distance filtering, map origin, and nearest sorting recalculate from the selected location.
 - Recommended sorting scores age specificity, distance, time, source confidence, cost, and reservation burden while pushing repeated series below unique options.
 - Trust is structured as `human_verified`, `source_confirmed`, `recheck`, or `stale`; automatic source parsing is not presented as human verification.
-- The evergreen catalog contains 21 human-reviewed places across five Bay Area regions.
+- The evergreen catalog contains 26 human-reviewed places across five Bay Area regions.
 - Automatic events include `endAt`; ended programs do not remain in today's results on a six-hour grace window.
 - Source status is current only when that source has a recent successful sync and active future events. Partial coverage is shown as `partial`, and stale-source events become `recheck`.
-- On-demand recovery has a five-minute cooldown and records `syncing` before network fetches to limit repeated external calls and abuse.
-- On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all seven sources.
+- On-demand recovery has a 30-second cooldown and records `syncing` before network fetches to limit repeated external calls and abuse.
+- On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all 12 sources.
 
 ## Redwood City Coverage
 
-- The official City of Redwood City calendar RSS feed is the seventh automatic source.
+- The official City of Redwood City calendar RSS feed is one of 12 automatic sources.
 - The parser keeps toddler storytimes, Tiny Tales, bilingual storytimes, music and movement, puppet shows, and selected family programs while excluding cancellations and unrelated city events.
 - Schaberg, Redwood Shores, Downtown Library, Magical Bridge, and Stafford Park receive location-specific coordinates and parent logistics when the event title identifies the venue.
-- The city RSS feed is capped to the next 50 citywide events, so Redwood City coverage is intentionally near-term rather than a complete 45-day calendar. The six-hour refresh keeps that rolling window current.
+- The city RSS feed is capped to the next 50 citywide events. Verified weekly library series are extended through the 45-day window, while the six-hour refresh keeps one-off programs current.
+
+## Central Peninsula Coverage
+
+- Belmont, Foster City, San Carlos, and Millbrae use branch-specific official San Mateo County Libraries feeds so citywide feed limits cannot hide their programs.
+- Stable weekly storytimes from those feeds extend through the 45-day window; one-off maker, performance, and seasonal programs remain tied to their official event records.
+- Burlingame uses the official city library calendar for the current and following month, including Main Library and Easton Branch family programs.
+- All five libraries are also available as human-reviewed anytime places.
 
 ## Current P1 Discovery Baseline
 

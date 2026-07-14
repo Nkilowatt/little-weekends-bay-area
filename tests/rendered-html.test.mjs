@@ -21,11 +21,11 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="reservationFilter"/);
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
-  assert.match(html, /evergreen-outings\.js\?v=2/);
-  assert.match(html, /styles\.css\?v=16/);
+  assert.match(html, /evergreen-outings\.js\?v=3/);
+  assert.match(html, /styles\.css\?v=17/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
-  assert.match(html, /app\.js\?v=16/);
+  assert.match(html, /app\.js\?v=17/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
 });
 
@@ -88,4 +88,14 @@ test("Sites build serves both Korean webfonts", async () => {
     assert.equal(response.headers.get("content-type"), "font/woff2");
     assert.ok((await response.arrayBuffer()).byteLength > 100_000);
   }
+});
+
+test("typography scale and Korean wrapping remain intentionally readable", async () => {
+  const css = await readFile(new URL("styles.css", root), "utf8");
+
+  assert.match(css, /font-size:\s*115%/);
+  assert.match(css, /line-break:\s*strict/);
+  assert.match(css, /word-break:\s*keep-all/);
+  assert.match(css, /overflow-wrap:\s*break-word/);
+  assert.match(css, /\.toast \{[^}]*white-space:\s*normal/);
 });

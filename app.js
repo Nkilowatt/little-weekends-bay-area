@@ -409,6 +409,7 @@ function ageRangeFromLabel(label) {
 const officialSourceHosts = new Set([
   "bayareadiscoverymuseum.org",
   "bibliocommons.com",
+  "burlingame.org",
   "cdm.org",
   "cityofsanmateo.org",
   "creativity.org",
@@ -433,6 +434,7 @@ const officialSourceHosts = new Set([
   "sfrecpark.org",
   "sfzoo.org",
   "smcgov.org",
+  "smcl.org",
   "ssfca.gov",
   "traintown.com",
   "visithalfmoonbay.org"
@@ -451,7 +453,7 @@ const regionLabels = {
 
 function regionForCity(city) {
   const normalizedCity = String(city || "").toLowerCase();
-  if (["san mateo", "south san francisco", "san carlos", "palo alto", "half moon bay", "redwood city", "burlingame", "belmont", "foster city"].some((name) => normalizedCity.includes(name))) return "peninsula";
+  if (["san mateo", "south san francisco", "san carlos", "palo alto", "half moon bay", "redwood city", "burlingame", "belmont", "foster city", "millbrae"].some((name) => normalizedCity.includes(name))) return "peninsula";
   if (normalizedCity.includes("san francisco")) return "sf";
   if (["san jose", "cupertino", "santa clara", "sunnyvale", "mountain view", "los gatos", "milpitas"].some((name) => normalizedCity.includes(name))) return "south-bay";
   if (["oakland", "berkeley", "walnut creek", "fremont", "hayward", "alameda", "concord", "pleasanton", "richmond"].some((name) => normalizedCity.includes(name))) return "east-bay";

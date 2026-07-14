@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   parseBayAreaDiscoveryMuseumEvents,
+  parseBurlingameLibraryEvents,
   parseCuriOdysseyDailyEvents,
   parseRedwoodCityEvents,
   parseSanMateoCityEvents,
@@ -53,9 +54,16 @@ const fixtures = {
       <eventEndDate>7/13/2026 11:00:00 AM</eventEndDate>
     </item></channel></rss>
   `,
+  burlingame: `
+    <div class="calendars"><ol><li>
+      <h3><span>Baby Storytime for Ages 0 - 2 Years</span></h3>
+      <div class="subHeader"><div class="date">July&nbsp;13,&nbsp;2026,&nbsp;10:30 AM&thinsp;-&thinsp;11:00 AM</div><div class="eventLocation"><div class="name">Lane Community Room, Burlingame Public Library, Main</div></div></div>
+      <p class="icalDescription">Stories and songs for babies and their families.</p>
+    </li></ol></div>
+  `,
 };
 
-test("all seven official-source parsers retain their expected fixture contract", () => {
+test("all official-source parser families retain their expected fixture contract", () => {
   const parsed = [
     parseSanMateoStorytimes(fixtures.sanMateo, now),
     parseSouthSanFranciscoStorytimes(fixtures.southSanFrancisco, now),
@@ -64,6 +72,7 @@ test("all seven official-source parsers retain their expected fixture contract",
     parseCuriOdysseyDailyEvents(fixtures.curiodyssey, now),
     parseBayAreaDiscoveryMuseumEvents(fixtures.discoveryMuseum, now),
     parseRedwoodCityEvents(fixtures.redwoodCity, now),
+    parseBurlingameLibraryEvents(fixtures.burlingame, now),
   ];
 
   parsed.forEach((events) => assert.ok(events.length > 0));
@@ -74,10 +83,15 @@ test("all seven official-source parsers retain their expected fixture contract",
     assert.ok(Number.isFinite(event.maxAgeMonths));
   });
 
-  const redwoodEvent = parsed.at(-1)[0];
+  const redwoodEvent = parsed.at(-2)[0];
   assert.equal(redwoodEvent.city, "Redwood City");
   assert.equal(redwoodEvent.age, "2-5세");
   assert.equal(new Date(redwoodEvent.endAt) - new Date(redwoodEvent.startAt), 30 * 60000);
+
+  const burlingameEvent = parsed.at(-1)[0];
+  assert.equal(burlingameEvent.city, "Burlingame");
+  assert.equal(burlingameEvent.age, "0-2세");
+  assert.equal(new Date(burlingameEvent.endAt) - new Date(burlingameEvent.startAt), 30 * 60000);
 });
 
 test("source health requires success, freshness, and active future events", () => {
@@ -99,6 +113,13 @@ test("Redwood City recurring library programs extend beyond the short RSS window
   assert.ok(events.every((event) => event.city === "Redwood City"));
   assert.equal(events[0].age, "2-5세");
   assert.equal(new Date(events[1].startAt) - new Date(events[0].startAt), 7 * 86400000);
+  assert.ok(new Date(events.at(-1).startAt) - new Date(events[0].startAt) >= 35 * 86400000);
+});
+
+test("county branch storytimes extend beyond each short branch RSS window", () => {
+  const events = parseSanMateoCountyLibraryEvents(fixtures.countyLibrary, now, "smcl-belmont-family-events");
+  assert.ok(events.length >= 6);
+  assert.ok(events.every((event) => event.sourceKey === "smcl-belmont-family-events"));
   assert.ok(new Date(events.at(-1).startAt) - new Date(events[0].startAt) >= 35 * 86400000);
 });
 

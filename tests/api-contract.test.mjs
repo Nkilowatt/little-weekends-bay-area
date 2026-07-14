@@ -50,6 +50,11 @@ const sourceKeys = [
   "curiodyssey-daily",
   "bay-area-discovery-museum",
   "redwood-city-family-events",
+  "smcl-belmont-family-events",
+  "smcl-foster-city-family-events",
+  "smcl-san-carlos-family-events",
+  "smcl-millbrae-family-events",
+  "burlingame-library-family-events",
 ];
 
 function seededDatabase() {
@@ -120,9 +125,9 @@ test("API reports full coverage only when every source is current", async () => 
   const payload = await response.json();
 
   assert.equal(payload.status, "ok");
-  assert.equal(payload.currentSourceCount, 7);
-  assert.equal(payload.sourceCount, 7);
-  assert.equal(payload.events.length, 7);
+  assert.equal(payload.currentSourceCount, 12);
+  assert.equal(payload.sourceCount, 12);
+  assert.equal(payload.events.length, 12);
   assert.ok(payload.events.every((event) => event.endDate));
 });
 
@@ -136,7 +141,7 @@ test("API marks stale-source events for recheck without retry amplification", as
   const staleSourceEvent = payload.events.find((event) => event.sourceKey === sourceKeys[0]);
 
   assert.equal(payload.status, "partial");
-  assert.equal(payload.currentSourceCount, 6);
+  assert.equal(payload.currentSourceCount, 11);
   assert.equal(staleSourceEvent.confidenceStatus, "recheck");
   assert.match(staleSourceEvent.updated, /재확인 필요/);
 });

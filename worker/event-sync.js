@@ -62,6 +62,35 @@ const sources = [
     accept: "application/rss+xml,application/xml,text/xml",
     parse: parseRedwoodCityEvents,
   },
+  {
+    key: "smcl-belmont-family-events",
+    url: "https://gateway.bibliocommons.com/v2/libraries/smcl/rss/events?locations=1B",
+    accept: "application/rss+xml,application/xml,text/xml",
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "smcl-belmont-family-events"),
+  },
+  {
+    key: "smcl-foster-city-family-events",
+    url: "https://gateway.bibliocommons.com/v2/libraries/smcl/rss/events?locations=1F",
+    accept: "application/rss+xml,application/xml,text/xml",
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "smcl-foster-city-family-events"),
+  },
+  {
+    key: "smcl-san-carlos-family-events",
+    url: "https://gateway.bibliocommons.com/v2/libraries/smcl/rss/events?locations=1S",
+    accept: "application/rss+xml,application/xml,text/xml",
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "smcl-san-carlos-family-events"),
+  },
+  {
+    key: "smcl-millbrae-family-events",
+    url: "https://gateway.bibliocommons.com/v2/libraries/smcl/rss/events?locations=1M",
+    accept: "application/rss+xml,application/xml,text/xml",
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "smcl-millbrae-family-events"),
+  },
+  {
+    key: "burlingame-library-family-events",
+    urls: burlingameCalendarUrls,
+    parse: parseBurlingameLibraryEvents,
+  },
 ];
 
 let schemaReady;
@@ -83,6 +112,7 @@ function decodeHtml(value) {
     raquo: "»",
     rdquo: "”",
     rsquo: "’",
+    thinsp: " ",
   };
 
   return String(value || "")
@@ -472,7 +502,44 @@ function eventWhy(name, categories) {
   return "공식 일정에서 확인한 아이와 가족이 함께 참여할 수 있는 프로그램이에요.";
 }
 
-function parseSanMateoCountyLibraryEvents(xml, now = new Date()) {
+function expandSanMateoCountyRecurringEvents(events, now = new Date()) {
+  const stableRecurringProgram = /^(?:Baby Bounce(?: Storytime)?(?: (?:With|with) Stay (?:and|&) Play!?)?|Toddler Storytime(?: (?:With|with) Stay (?:and|&) Play!?)?|Family Storytime(?: (?:With|with) Stay (?:and|&) Play!?)?|Bilingual .*Storytime.*|.* Bilingual Storytime.*|中英雙語故事時間.*)$/i;
+  const lastDate = addDays(pacificDateKey(now), FUTURE_WINDOW_DAYS);
+  const expanded = new Map();
+  const recurringSeries = new Set();
+  const eventKey = (event) => `${event.name.toLowerCase()}|${event.startAt}|${event.latitude}|${event.longitude}`;
+
+  events.forEach((event) => expanded.set(eventKey(event), event));
+  events
+    .filter((event) => stableRecurringProgram.test(event.name))
+    .toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt))
+    .forEach((event) => {
+      const startParts = dateParts(new Date(event.startAt));
+      const startDateKey = `${startParts.year}-${startParts.month}-${startParts.day}`;
+      const clock = `${startParts.hour}:${startParts.minute}`;
+      const weekday = utcDateFromKey(startDateKey).getUTCDay();
+      const seriesKey = `${event.sourceKey}|${event.name.toLowerCase()}|${weekday}|${clock}|${event.latitude}|${event.longitude}`;
+      if (recurringSeries.has(seriesKey)) return;
+      recurringSeries.add(seriesKey);
+
+      const duration = Math.max(DEFAULT_EVENT_DURATION_MINUTES * 60000, new Date(event.endAt) - new Date(event.startAt));
+      for (let dateKey = addDays(startDateKey, 7); dateKey <= lastDate; dateKey = addDays(dateKey, 7)) {
+        const startAt = pacificIso(dateKey, clock);
+        const recurrence = {
+          ...event,
+          id: `${event.sourceKey}-${dateKey}-${clock.replace(":", "")}-${slugify(event.name)}-${slugify(event.city)}-weekly`,
+          startAt,
+          endAt: new Date(new Date(startAt).getTime() + duration).toISOString(),
+        };
+        const key = eventKey(recurrence);
+        if (!expanded.has(key)) expanded.set(key, recurrence);
+      }
+    });
+
+  return [...expanded.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
+}
+
+function parseSanMateoCountyLibraryEvents(xml, now = new Date(), sourceKey = sources[2].key) {
   const today = pacificDateKey(now);
   const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
   const events = [];
@@ -520,7 +587,7 @@ function parseSanMateoCountyLibraryEvents(xml, now = new Date()) {
     };
     const localTime = localStart.slice(11, 16);
     const event = makeEvent({
-      sourceKey: sources[2].key,
+      sourceKey,
       sourceUrl: xmlValue(block, "link"),
       sourceName: "San Mateo County Libraries",
       name,
@@ -540,12 +607,113 @@ function parseSanMateoCountyLibraryEvents(xml, now = new Date()) {
     }
   }
 
-  return events;
+  return expandSanMateoCountyRecurringEvents(events, now);
 }
 
 function sanMateoCityCalendarUrl(now = new Date()) {
   const parts = dateParts(now);
   return `https://www.cityofsanmateo.org/calendar.aspx?CID=0&month=${Number(parts.month)}&view=list&year=${parts.year}`;
+}
+
+function burlingameCalendarUrls(now = new Date()) {
+  const parts = dateParts(now);
+  const currentYear = Number(parts.year);
+  const currentMonth = Number(parts.month);
+  const nextMonthDate = new Date(Date.UTC(currentYear, currentMonth, 1));
+  const nextYear = nextMonthDate.getUTCFullYear();
+  const nextMonth = nextMonthDate.getUTCMonth() + 1;
+  const calendarUrl = (year, month) => `https://www.burlingame.org/calendar.aspx?CID=24,26&month=${month}&view=list&year=${year}`;
+  return [calendarUrl(currentYear, currentMonth), calendarUrl(nextYear, nextMonth)];
+}
+
+function burlingameCalendarUrlForDate(dateKey) {
+  const [year, month] = dateKey.split("-");
+  return `https://www.burlingame.org/calendar.aspx?CID=24,26&month=${Number(month)}&view=list&year=${year}`;
+}
+
+function parseBurlingameLibraryEvents(html, now = new Date()) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const events = new Map();
+  const itemPattern = /<li>\s*(<h3(?:(?!<\/li>)[\s\S])*?<div class="date">(?:(?!<\/li>)[\s\S])*?)<\/li>/gi;
+  const relevantEvent = /storytime|story time|family fun|baby|toddler|preschool|children|kids|all ages|puppet|magic|circus|chess|scavenger|craft|music|mini golf|book club fun/i;
+  const excludedEvent = /adult|teen|trustee|board meeting|computer help|citizenship|business|medicare/i;
+  let item;
+
+  while ((item = itemPattern.exec(html))) {
+    const block = item[1];
+    const name = stripHtml(block.match(/<h3[^>]*>[\s\S]*?<span>([\s\S]*?)<\/span>/i)?.[1] || "");
+    const description = stripHtml(block.match(/<p class="icalDescription">([\s\S]*?)<\/p>/i)?.[1] || "");
+    const locationName = stripHtml(block.match(/<div class="eventLocation[^"]*"[^>]*>[\s\S]*?<div class="name">([\s\S]*?)<\/div>/i)?.[1] || "Burlingame Public Library");
+    const dateText = stripHtml(block.match(/<div class="date">([\s\S]*?)<\/div>/i)?.[1] || "");
+    const context = `${name} ${description} ${locationName}`;
+    if (!name || !relevantEvent.test(context) || excludedEvent.test(name)) continue;
+
+    const dateMatch = dateText.match(new RegExp(`^(${monthNames.join("|")})\\s+(\\d{1,2}),\\s+(20\\d{2}),\\s+(\\d{1,2}:\\d{2}\\s*[AP]M)\\s*-\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)`, "i"));
+    if (!dateMatch) continue;
+    const monthIndex = monthNames.findIndex((month) => month.toLowerCase() === dateMatch[1].toLowerCase());
+    const dateKey = `${dateMatch[3]}-${String(monthIndex + 1).padStart(2, "0")}-${String(dateMatch[2]).padStart(2, "0")}`;
+    if (dateKey < today || dateKey > lastDate) continue;
+
+    const easton = /Easton/i.test(locationName);
+    const outdoors = /lawn|city hall|outdoor/i.test(context);
+    const location = easton
+      ? {
+        label: "Burlingame Public Library, Easton Branch",
+        city: "Burlingame",
+        latitude: 37.5844,
+        longitude: -122.3660,
+        parking: "Easton Branch 주변 노상 주차 안내를 확인하세요.",
+        bathroom: "도서관 내 화장실을 이용할 수 있어요.",
+        stroller: "단층 도서관 출입구와 어린이 공간까지 유모차로 이동할 수 있어요.",
+      }
+      : {
+        label: outdoors ? "Burlingame City Hall Lawn" : "Burlingame Public Library, Main",
+        city: "Burlingame",
+        latitude: 37.5777,
+        longitude: -122.3482,
+        parking: "Burlingame Main Library 주변 공영·노상 주차 안내를 확인하세요.",
+        bathroom: outdoors ? "행사장 또는 인접 도서관 화장실 운영 여부를 확인하세요." : "도서관 내 화장실을 이용할 수 있어요.",
+        stroller: outdoors ? "잔디 행사장이므로 큰 바퀴 유모차가 편해요." : "도서관 출입구와 어린이 공간까지 유모차로 이동할 수 있어요.",
+      };
+    location.distance = distanceFromSanMateo(location.latitude, location.longitude);
+
+    const storytime = /storytime|story time/i.test(name);
+    const age = /0\s*-\s*2/i.test(name)
+      ? "0-2세"
+      : /2\s*-\s*5/i.test(name)
+        ? "2-5세"
+        : /2\s*-\s*7/i.test(name)
+          ? "2-7세"
+          : /kids|children|chess|book club/i.test(context)
+            ? "4-12세"
+            : "가족·전 연령";
+    const event = makeEvent({
+      sourceKey: "burlingame-library-family-events",
+      sourceUrl: burlingameCalendarUrlForDate(dateKey),
+      sourceName: "Burlingame Public Library",
+      name,
+      dateKey,
+      time: dateMatch[4],
+      location,
+      setting: outdoors ? "outdoor" : "indoor",
+      type: storytime ? "storytime" : outdoors ? "seasonal" : "indoor",
+      age,
+      reservation: /register|registration/i.test(description) ? "공식 페이지에서 예약 확인" : "예약 불필요",
+      why: storytime
+        ? "Burlingame 공식 도서관 일정에서 확인한 책·노래 중심의 어린이 프로그램이에요."
+        : "Burlingame 공식 도서관 일정에서 확인한 어린이와 가족 대상 프로그램이에요.",
+    });
+    if (!event) continue;
+    const endClock = parseClock(dateMatch[5]);
+    if (endClock) {
+      const endAt = pacificIso(dateKey, endClock);
+      if (new Date(endAt) > new Date(event.startAt)) event.endAt = endAt;
+    }
+    events.set(`${name.toLowerCase()}|${event.startAt}|${location.label}`, event);
+  }
+
+  return [...events.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
 }
 
 function parseSanMateoCityEvents(html, now = new Date()) {
@@ -997,16 +1165,21 @@ async function syncSource(db, source, now) {
         status = 'syncing',
         last_attempt_at = excluded.last_attempt_at,
         message = NULL`).bind(source.key, attemptedAt).run();
-    const sourceUrl = typeof source.url === "function" ? source.url(now) : source.url;
-    const response = await fetch(sourceUrl, {
-      headers: {
-        Accept: source.accept || "text/html,application/xhtml+xml",
-        "User-Agent": "LittleWeekendsBayArea/1.0 (+https://little-weekends-bay-area.cashmire2.chatgpt.site)",
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) throw new Error(`공식 페이지 응답 ${response.status}`);
-    const parsedEvents = source.parse(await response.text(), now);
+    const sourceUrls = source.urls
+      ? source.urls(now)
+      : [typeof source.url === "function" ? source.url(now) : source.url];
+    const sourceTexts = await Promise.all(sourceUrls.map(async (sourceUrl) => {
+      const response = await fetch(sourceUrl, {
+        headers: {
+          Accept: source.accept || "text/html,application/xhtml+xml",
+          "User-Agent": "LittleWeekendsBayArea/1.0 (+https://little-weekends-bay-area.cashmire2.chatgpt.site)",
+        },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) throw new Error(`공식 페이지 응답 ${response.status}`);
+      return response.text();
+    }));
+    const parsedEvents = source.parse(sourceTexts.join("\n"), now);
     const events = [...new Map(parsedEvents.map((event) => [event.id, event])).values()];
     if (!events.length) throw new Error("일정 형식이 바뀌어 이벤트를 읽지 못했어요");
 
@@ -1133,7 +1306,16 @@ async function queryOutings(db, now) {
       AND ((end_at IS NOT NULL AND end_at >= ?) OR (end_at IS NULL AND start_at >= ?))
       AND start_at <= ?
     ORDER BY start_at ASC`).bind(nowIso, legacyStart, end).all();
-  return (result.results || []).map((row) => rowToOuting(row, now));
+  const outings = (result.results || []).map((row) => rowToOuting(row, now));
+  const deduplicated = new Map();
+  outings.forEach((outing) => {
+    const key = `${outing.source}|${outing.startDate}|${outing.name.toLowerCase()}`;
+    const existing = deduplicated.get(key);
+    if (!existing || (existing.sourceKey === "san-mateo-county-libraries" && outing.sourceKey !== existing.sourceKey)) {
+      deduplicated.set(key, outing);
+    }
+  });
+  return [...deduplicated.values()];
 }
 
 function sourceIsCurrent(row, now) {
@@ -1219,6 +1401,7 @@ export {
   dateBucket,
   getOutingsResponse,
   parseBayAreaDiscoveryMuseumEvents,
+  parseBurlingameLibraryEvents,
   parseCuriOdysseyDailyEvents,
   parseRedwoodCityEvents,
   parseSanMateoCityEvents,
