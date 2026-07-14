@@ -49,7 +49,7 @@ const sourceKeys = [
   "san-mateo-city-events",
   "curiodyssey-daily",
   "bay-area-discovery-museum",
-  "redwood-city-events",
+  "redwood-city-family-events",
 ];
 
 function seededDatabase() {

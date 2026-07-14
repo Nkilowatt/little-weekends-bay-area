@@ -54,7 +54,7 @@ const sources = [
     parse: parseBayAreaDiscoveryMuseumEvents,
   },
   {
-    key: "redwood-city-events",
+    key: "redwood-city-family-events",
     url: REDWOOD_CITY_RSS_URL,
     accept: "application/rss+xml,application/xml,text/xml",
     parse: parseRedwoodCityEvents,
@@ -922,6 +922,12 @@ async function ensureSchema(db) {
     }
   })();
   await schemaReady;
+  const activeSourceKeys = sources.map((source) => source.key);
+  const sourcePlaceholders = activeSourceKeys.map(() => "?").join(", ");
+  await db.batch([
+    db.prepare(`DELETE FROM sync_state WHERE source_key NOT IN (${sourcePlaceholders})`).bind(...activeSourceKeys),
+    db.prepare(`UPDATE events SET active = 0 WHERE source_key NOT IN (${sourcePlaceholders})`).bind(...activeSourceKeys),
+  ]);
 }
 
 function upsertStatement(db, event, verifiedAt) {
