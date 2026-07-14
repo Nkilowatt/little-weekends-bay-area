@@ -3,7 +3,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("./assets/fonts/yeon-sung-korean-400.woff2") format("woff2");
+  src: url("./assets/fonts/yeon-sung-korean-400.woff2?v=1") format("woff2");
   unicode-range: U+1100-11ff, U+3130-318f, U+a960-a97f, U+ac00-d7a3, U+d7b0-d7ff;
 }
 
@@ -12,7 +12,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("./assets/fonts/lee-seoyun-korean-400.woff2") format("woff2");
+  src: url("./assets/fonts/lee-seoyun-korean-400.woff2?v=1") format("woff2");
   unicode-range: U+1100-11ff, U+3130-318f, U+a960-a97f, U+ac00-d7a3, U+d7b0-d7ff;
 }
 

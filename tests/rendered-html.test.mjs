@@ -22,9 +22,9 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /evergreen-outings\.js\?v=1/);
-  assert.match(html, /styles\.css\?v=14/);
-  assert.match(html, /yeon-sung-korean-400\.woff2/);
-  assert.match(html, /lee-seoyun-korean-400\.woff2/);
+  assert.match(html, /styles\.css\?v=15/);
+  assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
+  assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /app\.js\?v=16/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
 });
@@ -73,4 +73,19 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(eventSync, /REFRESH_ATTEMPT_COOLDOWN_MS/);
   assert.match(eventSync, /targetSources = force \? sources/);
   assert.match(eventSync, /events\.length \? "public, max-age=300/);
+});
+
+test("Sites build serves both Korean webfonts", async () => {
+  const { default: worker } = await import(new URL("../dist/server/index.js", import.meta.url));
+  const fontRoutes = [
+    "/assets/fonts/yeon-sung-korean-400.woff2",
+    "/assets/fonts/lee-seoyun-korean-400.woff2",
+  ];
+
+  for (const route of fontRoutes) {
+    const response = await worker.fetch(new Request(`https://little-weekends.test${route}`), {}, {});
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("content-type"), "font/woff2");
+    assert.ok((await response.arrayBuffer()).byteLength > 100_000);
+  }
 });

@@ -25,6 +25,16 @@ const files = {
     path: "styles.css",
     contentType: "text/css; charset=utf-8",
   },
+  "/assets/fonts/yeon-sung-korean-400.woff2": {
+    path: "assets/fonts/yeon-sung-korean-400.woff2",
+    contentType: "font/woff2",
+    binary: true,
+  },
+  "/assets/fonts/lee-seoyun-korean-400.woff2": {
+    path: "assets/fonts/lee-seoyun-korean-400.woff2",
+    contentType: "font/woff2",
+    binary: true,
+  },
   "/assets/bay-area-location-map.svg": {
     path: "assets/bay-area-location-map.svg",
     contentType: "image/svg+xml; charset=utf-8",

@@ -43,14 +43,14 @@ export default function RootLayout({
           rel="preload"
           as="font"
           type="font/woff2"
-          href="/assets/fonts/yeon-sung-korean-400.woff2"
+          href="/assets/fonts/yeon-sung-korean-400.woff2?v=1"
           crossOrigin="anonymous"
         />
         <link
           rel="preload"
           as="font"
           type="font/woff2"
-          href="/assets/fonts/lee-seoyun-korean-400.woff2"
+          href="/assets/fonts/lee-seoyun-korean-400.woff2?v=1"
           crossOrigin="anonymous"
         />
       </head>
