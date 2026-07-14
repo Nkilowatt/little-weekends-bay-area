@@ -38,6 +38,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <link
+          rel="preload"
+          as="font"
+          type="font/woff2"
+          href="/assets/fonts/gowun-batang-korean-700.woff2"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

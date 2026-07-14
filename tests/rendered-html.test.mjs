@@ -22,7 +22,8 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /evergreen-outings\.js\?v=1/);
-  assert.match(html, /styles\.css\?v=12/);
+  assert.match(html, /styles\.css\?v=13/);
+  assert.match(html, /gowun-batang-korean-700\.woff2/);
   assert.match(html, /app\.js\?v=16/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
 });
