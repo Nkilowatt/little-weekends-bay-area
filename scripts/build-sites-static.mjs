@@ -17,6 +17,10 @@ const files = {
     path: "app.js",
     contentType: "application/javascript; charset=utf-8",
   },
+  "/planning.js": {
+    path: "planning.js",
+    contentType: "application/javascript; charset=utf-8",
+  },
   "/evergreen-outings.js": {
     path: "evergreen-outings.js",
     contentType: "application/javascript; charset=utf-8",

@@ -607,6 +607,26 @@ const state = {
   locationKey: storedLocationKey
 };
 
+const {
+  buildCalendarFile,
+  clearDeepLinkUrl,
+  deepLinkUrl,
+  detectPlanIssues,
+  groupSavedItems
+} = window.LITTLE_WEEKENDS_PLANNING;
+
+const defaultNapWindow = { enabled: true, start: "13:00", end: "15:00" };
+let napWindow = { ...defaultNapWindow };
+try {
+  const storedNapWindow = JSON.parse(localStorage.getItem("little-weekends-nap-window") || "null");
+  if (storedNapWindow && typeof storedNapWindow === "object") napWindow = { ...defaultNapWindow, ...storedNapWindow };
+} catch {
+  napWindow = { ...defaultNapWindow };
+}
+
+const requestedOutingId = new URLSearchParams(window.location.search).get("outing");
+let pendingOutingId = /^[a-z0-9-]{1,220}$/i.test(requestedOutingId || "") ? requestedOutingId : null;
+
 try {
   state.saved = new Set(JSON.parse(localStorage.getItem("little-weekends-saved") || "[]"));
 } catch {
@@ -626,6 +646,10 @@ const locationDialog = document.querySelector("#locationDialog");
 
 function persistSaved() {
   localStorage.setItem("little-weekends-saved", JSON.stringify([...state.saved]));
+}
+
+function persistNapWindow() {
+  localStorage.setItem("little-weekends-nap-window", JSON.stringify(napWindow));
 }
 
 function trustStatus(item) {
@@ -1052,13 +1076,23 @@ function priceLabel(value) {
 }
 
 function filteredOutings() {
+  if (state.savedOnly) {
+    return outings
+      .filter((item) => state.saved.has(item.id))
+      .toSorted((left, right) => {
+        if (left.startDate && right.startDate) return new Date(left.startDate) - new Date(right.startDate);
+        if (left.startDate) return -1;
+        if (right.startDate) return 1;
+        return String(left.name).localeCompare(String(right.name), "ko");
+      });
+  }
+
   let result = outings.map((item) => ({
     item,
     searchScore: searchScore(item, state.search),
     recommendationScore: recommendationScore(item)
   })).filter(({ item, searchScore: itemSearchScore }) => {
     const searchMatch = !state.search || itemSearchScore >= 0;
-    const savedMatch = !state.savedOnly || state.saved.has(item.id);
     const distanceMatch = distanceFor(item) <= Number(state.distance);
     const regionMatch = state.region === "all" || item.region === state.region;
     const ageMatch = ageMatches(item);
@@ -1068,7 +1102,7 @@ function filteredOutings() {
     const reservationMatch = state.reservation === "all" || item.reservationLevel === state.reservation;
     const bathroomMatch = !state.bathroomKnown || item.bathroomKnown;
     const strollerMatch = !state.strollerKnown || item.strollerKnown;
-    return searchMatch && savedMatch && matchesDate(item) && matchesTime(item) && distanceMatch && regionMatch && ageMatch && typeMatch && settingMatch && priceMatch && reservationMatch && bathroomMatch && strollerMatch;
+    return searchMatch && matchesDate(item) && matchesTime(item) && distanceMatch && regionMatch && ageMatch && typeMatch && settingMatch && priceMatch && reservationMatch && bathroomMatch && strollerMatch;
   });
 
   if (state.sort === "recommended") {
@@ -1094,10 +1128,99 @@ function filteredOutings() {
   return result.map(({ item }) => item);
 }
 
+function createOutingCard(item, planIssues = []) {
+    const trust = trustStatus(item);
+    const distance = distanceFor(item);
+    const reasons = recommendationReasons(item);
+    const reasonMarkup = reasons.length
+      ? `<span class="recommendation-cues" aria-label="추천 이유">${reasons.map((reason) => `<span>${escapeHtml(reason)}</span>`).join("")}</span>`
+      : "";
+    const issueMarkup = planIssues.length
+      ? `<span class="plan-alert" aria-label="일정 확인 필요">${planIssues.map((issue) => `<span>${escapeHtml(issue)}</span>`).join("")}</span>`
+      : "";
+    const card = document.createElement("article");
+    card.className = `outing-card${state.selectedId === item.id ? " is-selected" : ""}`;
+    card.innerHTML = `
+      <button class="card-open" type="button" aria-label="${escapeHtml(item.name)} 상세 보기"></button>
+      <span class="card-image" aria-hidden="true"><img src="${itemImage(item)}" alt="" loading="lazy" /></span>
+      <span class="card-content">
+        <span class="time-row"><span class="schedule-label"><span class="outing-kind">${escapeHtml(outingKindLabel(item))}</span><span class="card-time">${escapeHtml(item.timeLabel)}</span></span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
+        <h3>${escapeHtml(item.name)}</h3>
+        <span class="card-place"><span>${escapeHtml(item.city)}</span><span>${distance.toFixed(1)} mi</span><span>${escapeHtml(typeLabel(item.type))}</span></span>
+        <span class="essentials"><span class="essential"><small>연령</small>${escapeHtml(item.age)}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${priceLabel(item.price)}</span><span class="essential"><small>예약</small>${escapeHtml(cardReservationLabel(item.reservation))}</span></span>
+        ${reasonMarkup}
+        ${issueMarkup}
+        <p class="why">${escapeHtml(item.why)}</p>
+        <span class="trust ${trust.key}">${escapeHtml(trust.short)}</span>
+      </span>
+    `;
+    card.querySelector(".card-open").addEventListener("click", () => {
+      state.selectedId = item.id;
+      openDetail(item.id);
+      render();
+    });
+    const saveControl = card.querySelector("[data-save-card]");
+    const saveFromCard = (event) => { event.preventDefault(); toggleSaved(item.id); };
+    saveControl.addEventListener("click", saveFromCard);
+    return card;
+}
+
+function renderPlanControls(items, issues) {
+  const issueCount = Object.values(issues).filter((messages) => messages.length).length;
+  const overview = document.createElement("section");
+  overview.className = "plan-overview";
+  overview.setAttribute("aria-label", "주말 계획 설정");
+  overview.innerHTML = `
+    <div class="plan-overview-copy">
+      <strong>${items.length}개 일정을 날짜별로 모았어요.</strong>
+      <span>${issueCount ? `${issueCount}개 일정의 시간을 한 번 더 확인해 주세요.` : "겹치는 일정이 생기면 여기에서 바로 알려드려요."}</span>
+    </div>
+    <div class="nap-controls">
+      <label class="nap-toggle"><input id="napEnabled" type="checkbox" ${napWindow.enabled ? "checked" : ""} /><span>낮잠 충돌 표시</span></label>
+      <span class="nap-time-range" aria-label="낮잠 시간">
+        <label><span>시작</span><input id="napStart" type="time" value="${escapeHtml(napWindow.start)}" ${napWindow.enabled ? "" : "disabled"} /></label>
+        <span aria-hidden="true">부터</span>
+        <label><span>끝</span><input id="napEnd" type="time" value="${escapeHtml(napWindow.end)}" ${napWindow.enabled ? "" : "disabled"} /></label>
+      </span>
+    </div>
+  `;
+  cardsEl.append(overview);
+
+  overview.querySelector("#napEnabled").addEventListener("change", (event) => {
+    napWindow.enabled = event.target.checked;
+    persistNapWindow();
+    render();
+  });
+  overview.querySelectorAll("input[type='time']").forEach((input) => {
+    input.addEventListener("change", () => {
+      const start = overview.querySelector("#napStart").value;
+      const end = overview.querySelector("#napEnd").value;
+      if (!start || !end || start >= end) {
+        showToast("낮잠 종료 시간을 시작 시간보다 늦게 설정해 주세요.");
+        render();
+        return;
+      }
+      napWindow = { ...napWindow, start, end };
+      persistNapWindow();
+      render();
+    });
+  });
+}
+
 function renderCards(items) {
   cardsEl.innerHTML = "";
 
   if (!items.length) {
+    if (state.savedOnly) {
+      cardsEl.innerHTML = '<div class="empty-state plan-empty"><strong>아직 저장한 일정이 없어요.</strong><p>마음에 드는 행사나 장소를 저장하면 날짜별로 정리해 드려요.</p><div class="empty-actions"><button class="primary-action" type="button" id="emptyBrowse">추천 둘러보기</button></div></div>';
+      cardsEl.querySelector("#emptyBrowse").addEventListener("click", () => {
+        state.savedOnly = false;
+        state.mobileSection = "home";
+        render();
+        document.querySelector("#discover").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      return;
+    }
     const expandDistanceAction = state.distance !== "25" ? '<button class="primary-action" type="button" id="emptyExpandDistance">25 mi로 넓히기</button>' : "";
     const includeAnytimeAction = state.date !== "anytime" ? '<button class="secondary-action" type="button" id="emptyIncludeAnytime">상시 장소 함께 보기</button>' : "";
     cardsEl.innerHTML = `<div class="empty-state"><strong>이 조건에 맞는 후보가 아직 없어요.</strong><p>중요한 조건은 남기고 탐색 범위만 넓혀 보세요.</p><div class="empty-actions">${expandDistanceAction}${includeAnytimeAction}<button class="secondary-action" type="button" id="emptyReset">조건 초기화</button></div></div>`;
@@ -1115,38 +1238,20 @@ function renderCards(items) {
     return;
   }
 
-  items.forEach((item) => {
-    const trust = trustStatus(item);
-    const distance = distanceFor(item);
-    const reasons = recommendationReasons(item);
-    const reasonMarkup = reasons.length
-      ? `<span class="recommendation-cues" aria-label="추천 이유">${reasons.map((reason) => `<span>${escapeHtml(reason)}</span>`).join("")}</span>`
-      : "";
-    const card = document.createElement("article");
-    card.className = `outing-card${state.selectedId === item.id ? " is-selected" : ""}`;
-    card.innerHTML = `
-      <button class="card-open" type="button" aria-label="${escapeHtml(item.name)} 상세 보기"></button>
-      <span class="card-image" aria-hidden="true"><img src="${itemImage(item)}" alt="" loading="lazy" /></span>
-      <span class="card-content">
-        <span class="time-row"><span class="schedule-label"><span class="outing-kind">${escapeHtml(outingKindLabel(item))}</span><span class="card-time">${escapeHtml(item.timeLabel)}</span></span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
-        <h3>${escapeHtml(item.name)}</h3>
-        <span class="card-place"><span>${escapeHtml(item.city)}</span><span>${distance.toFixed(1)} mi</span><span>${escapeHtml(typeLabel(item.type))}</span></span>
-        <span class="essentials"><span class="essential"><small>연령</small>${escapeHtml(item.age)}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${priceLabel(item.price)}</span><span class="essential"><small>예약</small>${escapeHtml(cardReservationLabel(item.reservation))}</span></span>
-        ${reasonMarkup}
-        <p class="why">${escapeHtml(item.why)}</p>
-        <span class="trust ${trust.key}">${escapeHtml(trust.short)}</span>
-      </span>
-    `;
-    card.querySelector(".card-open").addEventListener("click", () => {
-      state.selectedId = item.id;
-      openDetail(item.id);
-      render();
+  if (state.savedOnly) {
+    const issues = detectPlanIssues(items, napWindow);
+    renderPlanControls(items, issues);
+    groupSavedItems(items, pacificDateKey()).forEach((group) => {
+      const heading = document.createElement("div");
+      heading.className = "plan-group-heading";
+      heading.innerHTML = `<h3>${escapeHtml(group.label)}</h3><span>${group.items.length}개</span>`;
+      cardsEl.append(heading);
+      group.items.forEach((item) => cardsEl.append(createOutingCard(item, issues[item.id])));
     });
-    const saveControl = card.querySelector("[data-save-card]");
-    const saveFromCard = (event) => { event.preventDefault(); toggleSaved(item.id); };
-    saveControl.addEventListener("click", saveFromCard);
-    cardsEl.append(card);
-  });
+    return;
+  }
+
+  items.forEach((item) => cardsEl.append(createOutingCard(item)));
 }
 
 function renderMap(items) {
@@ -1203,10 +1308,14 @@ function render() {
     nextweek: [nextWeekRangeLabel(), "다음 주에 열리는 유아 친화 행사"],
     anytime: ["전체 추천", "날짜에 구애받지 않고 가볼 만한 곳"]
   };
-  const [eyebrow, title] = summaries[state.date];
+  const [eyebrow, title] = state.savedOnly
+    ? ["저장한 일정", "우리 가족 주말 계획"]
+    : summaries[state.date];
   summaryEyebrowEl.textContent = eyebrow;
   summaryTitleEl.textContent = title;
-  summaryEl.textContent = `${items.length}개 후보를 찾았어요.`;
+  summaryEl.textContent = state.savedOnly
+    ? `${items.length}개 일정을 날짜별로 정리했어요.`
+    : `${items.length}개 후보를 찾았어요.`;
   document.querySelector("#filterResultCount").textContent = items.length;
   const filterCount = activeFilterCount();
   const filterCountEl = document.querySelector("#filterCount");
@@ -1227,9 +1336,14 @@ function render() {
   });
   document.querySelector("#saveToggle").classList.toggle("is-active", state.savedOnly);
   document.querySelector("#saveToggle").setAttribute("aria-pressed", state.savedOnly);
-  contentGrid.className = `content-grid is-${state.view}`;
+  const visibleView = state.savedOnly ? "list" : state.view;
+  document.querySelector(".toolbar").hidden = state.savedOnly;
+  document.querySelector("#filterPanel").hidden = true;
+  document.querySelector("#filterButton").setAttribute("aria-expanded", "false");
+  document.querySelector(".section-heading").hidden = state.savedOnly;
+  contentGrid.className = `content-grid is-${visibleView}${state.savedOnly ? " is-plan" : ""}`;
   document.querySelectorAll("[data-view]").forEach((button) => {
-    const active = button.dataset.view === state.view;
+    const active = button.dataset.view === visibleView;
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", String(active));
   });
@@ -1253,10 +1367,17 @@ async function loadAutomaticOutings() {
     outings = [...evergreenOutings, ...payload.events.map(normalizeOuting)];
     const activeSources = Number(payload.currentSourceCount || 0);
     const sourceCount = Number(payload.sourceCount || (Array.isArray(payload.sources) ? payload.sources.length : 0));
+    if (payload.status === "ok") {
+      const validIds = new Set(outings.map((item) => item.id));
+      const currentSavedIds = [...state.saved];
+      state.saved = new Set(currentSavedIds.filter((id) => validIds.has(id)));
+      if (state.saved.size !== currentSavedIds.length) persistSaved();
+    }
     syncStatusEl.textContent = payload.status === "ok"
       ? `${syncTimeLabel(payload.lastSyncedAt)} · 공식 수집처 ${activeSources}곳`
       : `일부 출처 갱신 지연 · 현재 ${activeSources}/${sourceCount}곳 반영`;
     render();
+    openPendingOuting();
   } catch {
     outings = [...staticOutings, ...catalogEvergreenOutings];
     syncStatusEl.textContent = "자동 확인 지연 · 기존 확인 목록 표시 중";
@@ -1296,7 +1417,7 @@ function nearbyAlternatives(item) {
 }
 
 async function shareOuting(item) {
-  const shareUrl = `${window.location.origin}${window.location.pathname}`;
+  const shareUrl = deepLinkUrl(window.location.href, item.id);
   const shareData = {
     title: item.name,
     text: `${item.name}\n${item.timeLabel}\n${item.city}`,
@@ -1314,9 +1435,43 @@ async function shareOuting(item) {
   }
 }
 
+function downloadCalendar(item) {
+  const detailUrl = deepLinkUrl(window.location.href, item.id);
+  const file = buildCalendarFile(item, detailUrl);
+  if (!file) {
+    showToast("시간이 정해진 행사만 캘린더에 추가할 수 있어요.");
+    return;
+  }
+  const objectUrl = URL.createObjectURL(new Blob([file.content], { type: "text/calendar;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = file.filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  showToast("캘린더 파일을 준비했어요.");
+}
+
+function openPendingOuting() {
+  if (!pendingOutingId || !outings.some((item) => item.id === pendingOutingId)) return;
+  const id = pendingOutingId;
+  pendingOutingId = null;
+  state.selectedId = id;
+  openDetail(id);
+}
+
+function clearDetailUrl() {
+  const cleanUrl = clearDeepLinkUrl(window.location.href);
+  window.history.replaceState(null, "", cleanUrl);
+  state.selectedId = null;
+}
+
 function openDetail(id) {
   const item = outings.find((outing) => outing.id === id);
   if (!item) return;
+
+  window.history.replaceState(null, "", deepLinkUrl(window.location.href, id));
 
   const isSaved = state.saved.has(id);
   const trust = trustStatus(item);
@@ -1324,6 +1479,9 @@ function openDetail(id) {
   const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address || `${item.name}, ${item.city}, CA`)}`;
   const sourceAction = item.source
     ? `<a class="primary-action" href="${escapeHtml(item.source)}" target="_blank" rel="noopener noreferrer">${trust.key === "verified" || trust.key === "source-confirmed" ? "공식 정보 보기" : "공식 일정 확인"}</a>`
+    : "";
+  const calendarAction = item.startDate
+    ? '<button class="secondary-action" type="button" id="calendarDetail">캘린더에 추가</button>'
     : "";
   const alternatives = nearbyAlternatives(item);
   const alternativesMarkup = alternatives.map((alternative) => {
@@ -1343,13 +1501,14 @@ function openDetail(id) {
       </div>
       <section class="nearby-alternatives" aria-labelledby="nearbyTitle"><h3 id="nearbyTitle">가까운 대안</h3><div class="alternative-list">${alternativesMarkup}</div></section>
       <div class="detail-actions">
-        ${sourceAction}<a class="secondary-action" href="${escapeHtml(directions)}" target="_blank" rel="noopener noreferrer">길찾기</a><button class="secondary-action" type="button" id="shareDetail">공유</button><button class="secondary-action" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
+        ${sourceAction}<a class="secondary-action" href="${escapeHtml(directions)}" target="_blank" rel="noopener noreferrer">길찾기</a>${calendarAction}<button class="secondary-action" type="button" id="shareDetail">공유</button><button class="secondary-action" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
       </div>
     </article>
   `;
 
   detailBody.querySelector("#saveDetail").addEventListener("click", () => { toggleSaved(id); openDetail(id); });
   detailBody.querySelector("#shareDetail").addEventListener("click", () => shareOuting(item));
+  detailBody.querySelector("#calendarDetail")?.addEventListener("click", () => downloadCalendar(item));
   detailBody.querySelectorAll("[data-alternative-id]").forEach((button) => {
     button.addEventListener("click", () => {
       state.selectedId = button.dataset.alternativeId;
@@ -1514,6 +1673,7 @@ document.querySelector("#searchInput").addEventListener("input", (event) => {
 
 document.querySelector("#saveToggle").addEventListener("click", () => {
   state.savedOnly = !state.savedOnly;
+  if (state.savedOnly) state.view = "list";
   state.mobileSection = state.savedOnly ? "saved" : "home";
   render();
 });
@@ -1582,6 +1742,8 @@ document.querySelector("#closeDialog").addEventListener("click", () => {
 });
 
 detailDialog.addEventListener("click", (event) => { if (event.target === detailDialog) detailDialog.close(); });
+detailDialog.addEventListener("close", clearDetailUrl);
 
 render();
+openPendingOuting();
 loadAutomaticOutings();
