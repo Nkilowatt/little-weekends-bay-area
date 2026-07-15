@@ -22,10 +22,10 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /evergreen-outings\.js\?v=3/);
-  assert.match(html, /styles\.css\?v=17/);
+  assert.match(html, /styles\.css\?v=18/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
-  assert.match(html, /app\.js\?v=17/);
+  assert.match(html, /app\.js\?v=18/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
 });
 
@@ -35,6 +35,8 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /function distanceFor\(item\)/);
   assert.match(script, /function recommendationScore\(item\)/);
   assert.match(script, /confidenceStatus === "source_confirmed"/);
+  assert.match(script, /confidenceStatus === "recurring_estimate"/);
+  assert.match(script, /confidenceStatus === "date_confirmed"/);
   assert.match(script, /little-weekends-location/);
   assert.match(script, /"redwoodcity\.org"/);
   assert.match(script, /function regionForCity\(city\)/);

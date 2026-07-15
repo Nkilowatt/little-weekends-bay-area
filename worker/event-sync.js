@@ -8,6 +8,7 @@ const LEGACY_EVENT_GRACE_MINUTES = 90;
 // cannot leave a newly added source empty for several minutes.
 const REFRESH_ATTEMPT_COOLDOWN_MS = 30 * 1000;
 const REDWOOD_CITY_RSS_URL = "https://www.redwoodcity.org/Home/Components/RssFeeds/RssFeed/View?id=1";
+const PALO_ALTO_EVENTS_URL = "https://www.paloalto.gov/Events-Directory";
 
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
@@ -91,6 +92,16 @@ const sources = [
     urls: burlingameCalendarUrls,
     parse: parseBurlingameLibraryEvents,
   },
+  {
+    key: "palo-alto-family-events",
+    url: PALO_ALTO_EVENTS_URL,
+    parse: parsePaloAltoFamilyEvents,
+  },
+  {
+    key: "sf-rec-park-family-events",
+    urls: sanFranciscoRecParkCalendarUrls,
+    parse: parseSanFranciscoRecParkEvents,
+  },
 ];
 
 let schemaReady;
@@ -128,6 +139,10 @@ function stripHtml(value) {
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function eventIsCancelled(...values) {
+  return /\b(?:cancelled|canceled|postponed|closed)\b|취소|取消/i.test(values.filter(Boolean).join(" "));
 }
 
 function slugify(value) {
@@ -262,7 +277,9 @@ function makeEvent({
   reservation = "예약 불필요 · 정원은 현장 상황에 따라 달라요",
   why,
   durationMinutes = DEFAULT_EVENT_DURATION_MINUTES,
+  confidenceStatus = "source_confirmed",
 }) {
+  if (eventIsCancelled(name)) return null;
   const clock = parseClock(time);
   if (!clock) return null;
   const startAt = pacificIso(dateKey, clock);
@@ -298,7 +315,7 @@ function makeEvent({
     },
     latitude: location.latitude,
     longitude: location.longitude,
-    confidenceStatus: "source_confirmed",
+    confidenceStatus,
   };
 }
 
@@ -530,6 +547,7 @@ function expandSanMateoCountyRecurringEvents(events, now = new Date()) {
           id: `${event.sourceKey}-${dateKey}-${clock.replace(":", "")}-${slugify(event.name)}-${slugify(event.city)}-weekly`,
           startAt,
           endAt: new Date(new Date(startAt).getTime() + duration).toISOString(),
+          confidenceStatus: "recurring_estimate",
         };
         const key = eventKey(recurrence);
         if (!expanded.has(key)) expanded.set(key, recurrence);
@@ -631,6 +649,22 @@ function burlingameCalendarUrlForDate(dateKey) {
   return `https://www.burlingame.org/calendar.aspx?CID=24,26&month=${Number(month)}&view=list&year=${year}`;
 }
 
+function sanFranciscoRecParkCalendarUrls(now = new Date()) {
+  const parts = dateParts(now);
+  const currentYear = Number(parts.year);
+  const currentMonth = Number(parts.month);
+  const nextMonthDate = new Date(Date.UTC(currentYear, currentMonth, 1));
+  const nextYear = nextMonthDate.getUTCFullYear();
+  const nextMonth = nextMonthDate.getUTCMonth() + 1;
+  const calendarUrl = (year, month) => `https://sfrecpark.org/Calendar.aspx?CID=14&month=${month}&view=list&year=${year}`;
+  return [calendarUrl(currentYear, currentMonth), calendarUrl(nextYear, nextMonth)];
+}
+
+function sanFranciscoRecParkUrlForDate(dateKey) {
+  const [year, month] = dateKey.split("-");
+  return `https://sfrecpark.org/Calendar.aspx?CID=14&month=${Number(month)}&view=list&year=${year}`;
+}
+
 function parseBurlingameLibraryEvents(html, now = new Date()) {
   const today = pacificDateKey(now);
   const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
@@ -647,7 +681,7 @@ function parseBurlingameLibraryEvents(html, now = new Date()) {
     const locationName = stripHtml(block.match(/<div class="eventLocation[^"]*"[^>]*>[\s\S]*?<div class="name">([\s\S]*?)<\/div>/i)?.[1] || "Burlingame Public Library");
     const dateText = stripHtml(block.match(/<div class="date">([\s\S]*?)<\/div>/i)?.[1] || "");
     const context = `${name} ${description} ${locationName}`;
-    if (!name || !relevantEvent.test(context) || excludedEvent.test(name)) continue;
+    if (!name || !relevantEvent.test(context) || excludedEvent.test(name) || eventIsCancelled(context)) continue;
 
     const dateMatch = dateText.match(new RegExp(`^(${monthNames.join("|")})\\s+(\\d{1,2}),\\s+(20\\d{2}),\\s+(\\d{1,2}:\\d{2}\\s*[AP]M)\\s*-\\s*(\\d{1,2}:\\d{2}\\s*[AP]M)`, "i"));
     if (!dateMatch) continue;
@@ -716,6 +750,157 @@ function parseBurlingameLibraryEvents(html, now = new Date()) {
   return [...events.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
 }
 
+function paloAltoLocation(context, address) {
+  const locations = [
+    { match: /Mitchell Park|600 East Meadow/i, label: "Mitchell Park", latitude: 37.4217, longitude: -122.1136 },
+    { match: /Junior Museum|paloaltozoo|JMZ|1451 Middlefield/i, label: "Palo Alto Junior Museum & Zoo", latitude: 37.4446, longitude: -122.1442 },
+    { match: /Children'?s Theatre|1305 Middlefield/i, label: "Palo Alto Children's Theatre", latitude: 37.4462, longitude: -122.1450 },
+    { match: /Art Center|1313 Newell/i, label: "Palo Alto Art Center", latitude: 37.4449, longitude: -122.1399 },
+  ];
+  const selected = locations.find((location) => location.match.test(`${context} ${address}`)) || {
+    label: "City of Palo Alto",
+    latitude: 37.4419,
+    longitude: -122.1430,
+  };
+  return {
+    ...selected,
+    city: "Palo Alto",
+    distance: distanceFromSanMateo(selected.latitude, selected.longitude),
+    parking: `${selected.label} 주변 주차 정보를 공식 행사 페이지에서 확인하세요.`,
+    bathroom: "행사장 화장실과 기저귀 교환 시설 여부를 공식 안내에서 확인하세요.",
+    stroller: "행사장 출입구와 유모차 이동 동선을 공식 안내에서 확인하세요.",
+  };
+}
+
+function parsePaloAltoFamilyEvents(html, now = new Date()) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const events = new Map();
+  const itemPattern = /<div class="list-item-container[^>]*>[\s\S]*?<article>([\s\S]*?)<\/article>\s*<\/div>/gi;
+  const relevantEvent = /family|kid|child|toddler|preschool|zoo|snake|animal|puppet|theatre|theater|musical|movie|festival|workshop|hands-on|art|music|play/i;
+  const excludedEvent = /commission|board|meeting|planning|permit|hazardous waste|adult|senior|business|council/i;
+  let item;
+
+  while ((item = itemPattern.exec(html))) {
+    const block = item[1];
+    const name = stripHtml(block.match(/<h2 class="list-item-title">([\s\S]*?)<\/h2>/i)?.[1] || "");
+    const description = stripHtml(block.match(/<span class="list-item-block-desc">([\s\S]*?)<\/span>/i)?.[1] || "");
+    const address = stripHtml(block.match(/<p class="list-item-address">([\s\S]*?)<\/p>/i)?.[1] || "");
+    const tags = stripHtml(block.match(/<p class="tagged-as-list">([\s\S]*?)<\/p>/i)?.[1] || "");
+    const href = decodeHtml(block.match(/<a href="([^"]+)"/i)?.[1] || "");
+    const day = block.match(/<span class="part-date">(\d{1,2})<\/span>/i)?.[1];
+    const monthName = block.match(/<span class="part-month">([A-Za-z]+)<\/span>/i)?.[1];
+    const year = block.match(/<span class="part-year">(20\d{2})<\/span>/i)?.[1];
+    const context = `${name} ${description} ${tags} ${address}`;
+    if (!name || !day || !monthName || !year || !relevantEvent.test(context) || excludedEvent.test(context) || eventIsCancelled(block, context)) continue;
+
+    const monthIndex = monthNames.findIndex((month) => month.toLowerCase().startsWith(monthName.toLowerCase()));
+    if (monthIndex < 0) continue;
+    const dateKey = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    if (dateKey < today || dateKey > lastDate) continue;
+
+    const location = paloAltoLocation(context, address);
+    const outdoor = /park|field|outdoor|movie night/i.test(context);
+    const museum = /zoo|snake|animal/i.test(context);
+    const age = /toddler|wheels on the bus/i.test(context)
+      ? "1-6세"
+      : /workshop|art/i.test(context)
+        ? "3-12세·가족"
+        : "가족·전 연령";
+    const sourceUrl = href ? new URL(href, "https://www.paloalto.gov").href : PALO_ALTO_EVENTS_URL;
+    const event = makeEvent({
+      sourceKey: "palo-alto-family-events",
+      sourceUrl,
+      sourceName: /paloaltozoo\.org/i.test(sourceUrl) ? "Palo Alto Junior Museum & Zoo" : "City of Palo Alto",
+      name,
+      dateKey,
+      time: "12:00 PM",
+      location,
+      setting: outdoor ? "outdoor" : "indoor",
+      type: museum ? "museum" : outdoor ? "seasonal" : "indoor",
+      age,
+      price: /\bfree\b|family movie night/i.test(context) ? "free" : "check",
+      reservation: "시간과 예약 여부는 공식 페이지 확인",
+      why: museum
+        ? "Palo Alto 공식 행사 목록에서 확인한 동물 관찰과 체험 중심의 가족 프로그램이에요."
+        : "Palo Alto 시 공식 행사 목록에서 확인한 어린이와 가족 대상 프로그램이에요.",
+      durationMinutes: 180,
+      confidenceStatus: "date_confirmed",
+    });
+    if (event) events.set(event.id, event);
+  }
+
+  return [...events.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
+}
+
+function sanFranciscoLocation(locationName, address) {
+  const context = `${locationName} ${address}`;
+  const selected = /Union Square|Post and Stockton/i.test(context)
+    ? { label: "Union Square", latitude: 37.7879, longitude: -122.4075 }
+    : /Bandshell|Music Concourse/i.test(context)
+      ? { label: "Golden Gate Bandshell", latitude: 37.7690, longitude: -122.4833 }
+      : /Golden Gate Park/i.test(context)
+        ? { label: locationName || "Golden Gate Park", latitude: 37.7694, longitude: -122.4862 }
+        : { label: locationName || "San Francisco Recreation & Parks", latitude: 37.7749, longitude: -122.4194 };
+  return {
+    ...selected,
+    city: "San Francisco",
+    distance: distanceFromSanMateo(selected.latitude, selected.longitude),
+    parking: `${selected.label} 주변 주차와 대중교통 정보를 공식 행사 페이지에서 확인하세요.`,
+    bathroom: "공원 또는 행사장 화장실의 위치와 운영 시간을 공식 안내에서 확인하세요.",
+    stroller: "공원 포장 동선으로 접근할 수 있지만 행사 혼잡도를 고려하세요.",
+  };
+}
+
+function parseSanFranciscoRecParkEvents(html, now = new Date()) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const events = new Map();
+  const eventPattern = /<div class="hidden" itemscope itemtype="http:\/\/schema\.org\/Event">([\s\S]*?)<\/div><p>/gi;
+  const relevantEvent = /toddler|imagination|fun days?|crafternoon|juggling|family|kid|child|mobile rec|concert|bandshell|puppet|movie|festival|nature|art|soccer skills/i;
+  const excludedEvent = /cancelled|canceled|postponed|meeting|commission|committee|adult|senior|tai chi|cardio|fitness|happy hour|lunchbreak music|mahjong|league|pickleball|golf/i;
+  let match;
+
+  while ((match = eventPattern.exec(html))) {
+    const block = match[1];
+    const name = stripHtml(block.match(/itemprop="name"[^>]*>([\s\S]*?)<\/span>/i)?.[1] || "");
+    const localStart = block.match(/itemprop="startDate"[^>]*>([^<]+)</i)?.[1] || "";
+    const description = stripHtml(block.match(/itemprop="description"[^>]*>([\s\S]*?)<\/p>/i)?.[1] || "");
+    const locationName = stripHtml(block.match(/itemprop="location"[\s\S]*?itemprop="name"[^>]*>([^<]+)</i)?.[1] || "San Francisco Recreation & Parks");
+    const street = stripHtml(block.match(/itemprop="streetAddress"[^>]*>([^<]+)</i)?.[1] || "");
+    const context = `${name} ${description} ${locationName}`;
+    const dateKey = localStart.slice(0, 10);
+    const localTime = localStart.slice(11, 16);
+    if (!name || !dateKey || dateKey < today || dateKey > lastDate || !relevantEvent.test(context) || excludedEvent.test(context) || eventIsCancelled(context)) continue;
+
+    const location = sanFranciscoLocation(locationName, street);
+    const toddlerFocused = /toddler|imagination|fun days?/i.test(context);
+    const preschoolAndUp = /crafternoon/i.test(context);
+    const olderKids = /juggling|chess|soccer skills/i.test(context);
+    const event = makeEvent({
+      sourceKey: "sf-rec-park-family-events",
+      sourceUrl: sanFranciscoRecParkUrlForDate(dateKey),
+      sourceName: "San Francisco Recreation & Parks",
+      name,
+      dateKey,
+      time: displayClockFrom24(localTime),
+      location,
+      setting: "outdoor",
+      type: "seasonal",
+      age: toddlerFocused ? "1-6세·가족" : preschoolAndUp ? "3-12세" : olderKids ? "4-12세" : "가족·전 연령",
+      price: /\bfree\b/i.test(description) ? "free" : "check",
+      reservation: "공식 행사 안내 확인",
+      why: toddlerFocused
+        ? "San Francisco 공원국 공식 일정에서 확인한 어린이 참여형 야외 프로그램이에요."
+        : "San Francisco 공원국 공식 일정에서 확인한 가족 친화 공연과 야외 활동이에요.",
+      durationMinutes: toddlerFocused ? 90 : 180,
+    });
+    if (event) events.set(event.id, event);
+  }
+
+  return [...events.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
+}
+
 function parseSanMateoCityEvents(html, now = new Date()) {
   const today = pacificDateKey(now);
   const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
@@ -735,7 +920,7 @@ function parseSanMateoCityEvents(html, now = new Date()) {
     const context = `${name} ${description} ${locationName}`;
     if (!dateKey || dateKey < today || dateKey > lastDate) continue;
     if (!/family|kid|child|music|concert|movie|festival|park|play/i.test(context)) continue;
-    if (/cancelled|commission|meeting|senior|planning/i.test(context)) continue;
+    if (eventIsCancelled(context) || /commission|meeting|senior|planning/i.test(context)) continue;
     const centralPark = /Central Park/i.test(locationName);
     const latitude = centralPark ? 37.5624 : 37.563;
     const longitude = centralPark ? -122.3252 : -122.3255;
@@ -979,6 +1164,7 @@ function expandRedwoodCityRecurringEvents(events, now = new Date()) {
           id: `${event.sourceKey}-${dateKey}-${clock.replace(":", "")}-${slugify(event.name)}-weekly`,
           startAt,
           endAt: new Date(new Date(startAt).getTime() + duration).toISOString(),
+          confidenceStatus: "recurring_estimate",
         };
         expanded.set(`${recurrence.name.toLowerCase()}|${recurrence.startAt}`, recurrence);
       }
@@ -1156,8 +1342,23 @@ function upsertStatement(db, event, verifiedAt) {
     );
 }
 
+class SourceCountAnomalyError extends Error {
+  constructor(previousCount, nextCount) {
+    super(`수집 일정 수가 ${previousCount}개에서 ${nextCount}개로 급감해 기존 목록을 보존했어요`);
+    this.name = "SourceCountAnomalyError";
+  }
+}
+
+function eventCountLooksAnomalous(previousCount, nextCount) {
+  const previous = Number(previousCount || 0);
+  const next = Number(nextCount || 0);
+  return previous >= 8 && next < Math.max(2, Math.ceil(previous * 0.25));
+}
+
 async function syncSource(db, source, now) {
   const attemptedAt = now.toISOString();
+  const previousState = await db.prepare("SELECT event_count FROM sync_state WHERE source_key = ?").bind(source.key).first();
+  const previousCount = Number(previousState?.event_count || 0);
   try {
     await db.prepare(`INSERT INTO sync_state (source_key, status, last_attempt_at, last_success_at, message, event_count)
       VALUES (?, 'syncing', ?, NULL, NULL, 0)
@@ -1182,6 +1383,9 @@ async function syncSource(db, source, now) {
     const parsedEvents = source.parse(sourceTexts.join("\n"), now);
     const events = [...new Map(parsedEvents.map((event) => [event.id, event])).values()];
     if (!events.length) throw new Error("일정 형식이 바뀌어 이벤트를 읽지 못했어요");
+    if (eventCountLooksAnomalous(previousCount, events.length)) {
+      throw new SourceCountAnomalyError(previousCount, events.length);
+    }
 
     await db.batch([
       db.prepare("UPDATE events SET active = 0 WHERE source_key = ?").bind(source.key),
@@ -1198,13 +1402,14 @@ async function syncSource(db, source, now) {
     return { source: source.key, status: "ok", count: events.length };
   } catch (error) {
     const message = error instanceof Error ? error.message.slice(0, 240) : "알 수 없는 수집 오류";
+    const status = error instanceof SourceCountAnomalyError ? "warning" : "failed";
     await db.prepare(`INSERT INTO sync_state (source_key, status, last_attempt_at, last_success_at, message, event_count)
-      VALUES (?, 'failed', ?, NULL, ?, 0)
+      VALUES (?, ?, ?, NULL, ?, 0)
       ON CONFLICT(source_key) DO UPDATE SET
-        status = 'failed',
+        status = excluded.status,
         last_attempt_at = excluded.last_attempt_at,
-        message = excluded.message`).bind(source.key, attemptedAt, message).run();
-    return { source: source.key, status: "failed", count: 0, message };
+        message = excluded.message`).bind(source.key, status, attemptedAt, message).run();
+    return { source: source.key, status, count: 0, message };
   }
 }
 
@@ -1270,6 +1475,7 @@ function verifiedLabel(verifiedAt) {
 }
 
 function rowToOuting(row, now) {
+  const confidenceStatus = row.confidence_status || "source_confirmed";
   return {
     id: row.id,
     sourceKey: row.source_key,
@@ -1279,7 +1485,7 @@ function rowToOuting(row, now) {
     dateBucket: dateBucket(row.start_at, now),
     startDate: row.start_at,
     endDate: row.end_at,
-    timeLabel: koreanTimeLabel(row.start_at),
+    timeLabel: confidenceStatus === "date_confirmed" ? "시간은 공식 페이지 확인" : koreanTimeLabel(row.start_at),
     city: row.city,
     distance: row.distance,
     age: row.age,
@@ -1293,7 +1499,7 @@ function rowToOuting(row, now) {
     why: row.why,
     notes: JSON.parse(row.notes_json),
     location: { lat: row.latitude, lng: row.longitude },
-    confidenceStatus: row.confidence_status || "source_confirmed",
+    confidenceStatus,
   };
 }
 
@@ -1399,11 +1605,14 @@ async function getOutingsResponse(request, env, context) {
 export {
   ageRangeFromLabel,
   dateBucket,
+  eventCountLooksAnomalous,
   getOutingsResponse,
   parseBayAreaDiscoveryMuseumEvents,
   parseBurlingameLibraryEvents,
   parseCuriOdysseyDailyEvents,
+  parsePaloAltoFamilyEvents,
   parseRedwoodCityEvents,
+  parseSanFranciscoRecParkEvents,
   parseSanMateoCityEvents,
   parseSanMateoCountyLibraryEvents,
   parseSanMateoStorytimes,

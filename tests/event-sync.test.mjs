@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  eventCountLooksAnomalous,
   parseBayAreaDiscoveryMuseumEvents,
   parseBurlingameLibraryEvents,
   parseCuriOdysseyDailyEvents,
+  parsePaloAltoFamilyEvents,
   parseRedwoodCityEvents,
+  parseSanFranciscoRecParkEvents,
   parseSanMateoCityEvents,
   parseSanMateoCountyLibraryEvents,
   parseSanMateoStorytimes,
@@ -61,6 +64,23 @@ const fixtures = {
       <p class="icalDescription">Stories and songs for babies and their families.</p>
     </li></ol></div>
   `,
+  paloAlto: `
+    <div class="list-item-container homepage-show"><article>
+      <a href="https://www.paloalto.gov/Events-Directory/Community-Services/Family-Movie-Night-Series-2026">
+        <h2 class="list-item-title">Family Movie Night Series 2026</h2>
+        <p class="clearfix"><span class="list-item-block-date"><span class="part-date">17</span><span class="part-month">Jul</span><span class="part-year">2026</span></span>
+        <span class="list-item-block-desc">Join the Community Services Department for Family Movie Night.</span></p>
+        <p class="list-item-address">Mitchell Park Athletic Field, 600 East Meadow Drive, Palo Alto, CA 94303</p>
+        <p class="tagged-as-list">Community Events</p>
+      </a>
+    </article></div>
+  `,
+  sanFranciscoRecPark: `
+    <li><h3><a id="eventTitle_10044"><span>Union Square Daily Programming: Toddler Tuesdays</span></a></h3>
+      <div class="hidden" itemscope itemtype="http://schema.org/Event"><span itemprop="name">Union Square Daily Programming: Toddler Tuesdays</span><span itemprop="startDate">2026-07-14T10:00:00</span><p itemprop="description">Come out for Toddler Tuesdays from 10 am to 11:30 am.</p>
+      <span itemprop="location"><span itemprop="name">Union Square</span><span itemprop="address"><span itemprop="streetAddress">Post and Stockton</span></span></span></div><p>Toddler Tuesdays</p>
+    </li>
+  `,
 };
 
 test("all official-source parser families retain their expected fixture contract", () => {
@@ -73,6 +93,8 @@ test("all official-source parser families retain their expected fixture contract
     parseBayAreaDiscoveryMuseumEvents(fixtures.discoveryMuseum, now),
     parseRedwoodCityEvents(fixtures.redwoodCity, now),
     parseBurlingameLibraryEvents(fixtures.burlingame, now),
+    parsePaloAltoFamilyEvents(fixtures.paloAlto, now),
+    parseSanFranciscoRecParkEvents(fixtures.sanFranciscoRecPark, now),
   ];
 
   parsed.forEach((events) => assert.ok(events.length > 0));
@@ -83,15 +105,23 @@ test("all official-source parser families retain their expected fixture contract
     assert.ok(Number.isFinite(event.maxAgeMonths));
   });
 
-  const redwoodEvent = parsed.at(-2)[0];
+  const redwoodEvent = parsed.at(-4)[0];
   assert.equal(redwoodEvent.city, "Redwood City");
   assert.equal(redwoodEvent.age, "2-5세");
   assert.equal(new Date(redwoodEvent.endAt) - new Date(redwoodEvent.startAt), 30 * 60000);
 
-  const burlingameEvent = parsed.at(-1)[0];
+  const burlingameEvent = parsed.at(-3)[0];
   assert.equal(burlingameEvent.city, "Burlingame");
   assert.equal(burlingameEvent.age, "0-2세");
   assert.equal(new Date(burlingameEvent.endAt) - new Date(burlingameEvent.startAt), 30 * 60000);
+
+  const paloAltoEvent = parsed.at(-2)[0];
+  assert.equal(paloAltoEvent.city, "Palo Alto");
+  assert.equal(paloAltoEvent.confidenceStatus, "date_confirmed");
+
+  const sanFranciscoEvent = parsed.at(-1)[0];
+  assert.equal(sanFranciscoEvent.city, "San Francisco");
+  assert.equal(sanFranciscoEvent.age, "1-6세·가족");
 });
 
 test("source health requires success, freshness, and active future events", () => {
@@ -114,6 +144,8 @@ test("Redwood City recurring library programs extend beyond the short RSS window
   assert.equal(events[0].age, "2-5세");
   assert.equal(new Date(events[1].startAt) - new Date(events[0].startAt), 7 * 86400000);
   assert.ok(new Date(events.at(-1).startAt) - new Date(events[0].startAt) >= 35 * 86400000);
+  assert.equal(events[0].confidenceStatus, "source_confirmed");
+  assert.ok(events.slice(1).every((event) => event.confidenceStatus === "recurring_estimate"));
 });
 
 test("county branch storytimes extend beyond each short branch RSS window", () => {
@@ -121,6 +153,13 @@ test("county branch storytimes extend beyond each short branch RSS window", () =
   assert.ok(events.length >= 6);
   assert.ok(events.every((event) => event.sourceKey === "smcl-belmont-family-events"));
   assert.ok(new Date(events.at(-1).startAt) - new Date(events[0].startAt) >= 35 * 86400000);
+  assert.ok(events.slice(1).every((event) => event.confidenceStatus === "recurring_estimate"));
+});
+
+test("source count anomaly guard catches parser collapses without flagging normal drift", () => {
+  assert.equal(eventCountLooksAnomalous(40, 6), true);
+  assert.equal(eventCountLooksAnomalous(40, 12), false);
+  assert.equal(eventCountLooksAnomalous(7, 1), false);
 });
 
 test("museum-wide programs carry an end time instead of a six-hour grace window", () => {

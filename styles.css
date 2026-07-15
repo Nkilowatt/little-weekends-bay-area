@@ -447,7 +447,7 @@ h1, h2 { text-wrap: balance; }
 .recommendation-cues span + span { border-left: 1px solid var(--line); padding-left: 8px; }
 .why { color: var(--muted); font-size: 0.86rem; line-height: 1.52; margin-bottom: 12px; }
 .trust { color: var(--accent-strong); font-size: 0.8rem; font-weight: 850; line-height: 1.4; margin-top: auto; }
-.trust.recheck, .trust.stale { color: var(--warning); }
+.trust.date-confirmed, .trust.recurring-estimate, .trust.recheck, .trust.stale { color: var(--warning); }
 .trust-icon { display: none; }
 
 .map-panel { min-width: 0; position: relative; }
@@ -586,7 +586,7 @@ h1, h2 { text-wrap: balance; }
 .decision-item small { color: var(--muted); display: block; font-size: 0.75rem; font-weight: 750; margin-bottom: 4px; }
 .decision-item strong { font-size: 0.91rem; }
 .trust-panel { background: var(--accent-soft); border-radius: var(--radius-control); margin: 16px 0; padding: 14px; }
-.trust-panel.recheck, .trust-panel.stale { background: var(--warning-soft); }
+.trust-panel.date-confirmed, .trust-panel.recurring-estimate, .trust-panel.recheck, .trust-panel.stale { background: var(--warning-soft); }
 .trust-panel strong { display: block; font-size: 0.94rem; margin-bottom: 3px; }
 .trust-panel span { color: var(--muted); font-size: 0.84rem; }
 .detail-notes { border-top: 1px solid var(--line); display: grid; gap: 14px; padding-top: 18px; }

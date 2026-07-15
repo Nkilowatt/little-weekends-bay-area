@@ -441,8 +441,8 @@ const officialSourceHosts = new Set([
 ]);
 const outingTypes = new Set(["storytime", "park", "indoor", "museum", "seasonal"]);
 const outingSettings = new Set(["indoor", "outdoor"]);
-const outingPrices = new Set(["free", "paid"]);
-const confidenceStatuses = new Set(["human_verified", "source_confirmed", "recheck", "stale"]);
+const outingPrices = new Set(["free", "paid", "check"]);
+const confidenceStatuses = new Set(["human_verified", "source_confirmed", "date_confirmed", "recurring_estimate", "recheck", "stale"]);
 const regionLabels = {
   sf: "San Francisco",
   peninsula: "Peninsula",
@@ -635,6 +635,12 @@ function trustStatus(item) {
   if (item.confidenceStatus === "source_confirmed") {
     return { key: "source-confirmed", icon: "✓", short: item.updated, detail: `${item.sourceName}의 공식 출처에서 자동으로 확인했어요. 일정 변경 가능성은 공식 페이지에서 최종 확인해 주세요.` };
   }
+  if (item.confidenceStatus === "date_confirmed") {
+    return { key: "date-confirmed", icon: "◷", short: "날짜 확인 · 시간은 공식 페이지 확인", detail: `${item.sourceName}의 공식 목록에서 행사 날짜를 확인했어요. 정확한 시작 시간은 공식 상세 페이지에서 확인해 주세요.` };
+  }
+  if (item.confidenceStatus === "recurring_estimate") {
+    return { key: "recurring-estimate", icon: "↻", short: "반복 일정 예상 · 방문 전 확인", detail: `${item.sourceName}의 최근 공식 회차를 바탕으로 반복 일정을 예상했어요. 휴관과 일정 변경 가능성이 있어 방문 전 공식 페이지 확인이 필요해요.` };
+  }
   if (item.confidenceStatus === "stale") {
     return { key: "stale", icon: "!", short: "정보가 오래되었어요", detail: "현재 정보가 충분히 확인되지 않았어요. 방문 전 공식 페이지를 확인해 주세요." };
   }
@@ -680,7 +686,7 @@ function recommendationScore(item) {
   let score = Math.max(0, 30 - distanceFor(item) * 1.25);
 
   score += fullyToddlerFocused ? 28 : ageWidth <= 36 ? 20 : ageWidth <= 72 ? 10 : 3;
-  score += { human_verified: 18, source_confirmed: 12, recheck: 0, stale: -18 }[item.confidenceStatus] || 0;
+  score += { human_verified: 18, source_confirmed: 12, date_confirmed: 5, recurring_estimate: 2, recheck: 0, stale: -18 }[item.confidenceStatus] || 0;
   if (item.price === "free") score += 4;
   if (String(item.reservation).includes("불필요")) score += 4;
 
@@ -878,7 +884,7 @@ function searchFields(item) {
     item.setting,
     item.setting === "indoor" ? "실내" : "야외",
     item.price,
-    item.price === "free" ? "무료" : "유료",
+    priceLabel(item.price),
     item.age
   ].join(" ");
   const detailText = [
@@ -1007,6 +1013,7 @@ function matchesDate(item) {
 
 function matchesTime(item) {
   if (state.time === "all" || !item.startDate) return true;
+  if (item.confidenceStatus === "date_confirmed") return false;
   const hour = Number(new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Los_Angeles",
     hour: "2-digit",
@@ -1038,6 +1045,10 @@ function recommendationReasons(item) {
 
 function cardReservationLabel(value) {
   return String(value || "확인 필요").replace(/^예약\s+/, "");
+}
+
+function priceLabel(value) {
+  return value === "free" ? "무료" : value === "paid" ? "유료" : "비용 확인";
 }
 
 function filteredOutings() {
@@ -1120,7 +1131,7 @@ function renderCards(items) {
         <span class="time-row"><span class="schedule-label"><span class="outing-kind">${escapeHtml(outingKindLabel(item))}</span><span class="card-time">${escapeHtml(item.timeLabel)}</span></span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
         <h3>${escapeHtml(item.name)}</h3>
         <span class="card-place"><span>${escapeHtml(item.city)}</span><span>${distance.toFixed(1)} mi</span><span>${escapeHtml(typeLabel(item.type))}</span></span>
-        <span class="essentials"><span class="essential"><small>연령</small>${escapeHtml(item.age)}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${item.price === "free" ? "무료" : "유료"}</span><span class="essential"><small>예약</small>${escapeHtml(cardReservationLabel(item.reservation))}</span></span>
+        <span class="essentials"><span class="essential"><small>연령</small>${escapeHtml(item.age)}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${priceLabel(item.price)}</span><span class="essential"><small>예약</small>${escapeHtml(cardReservationLabel(item.reservation))}</span></span>
         ${reasonMarkup}
         <p class="why">${escapeHtml(item.why)}</p>
         <span class="trust ${trust.key}">${escapeHtml(trust.short)}</span>
@@ -1324,7 +1335,7 @@ function openDetail(id) {
     <article class="detail-body">
       <div class="detail-title"><p class="detail-category">${escapeHtml(typeLabel(item.type))}, ${escapeHtml(item.city)}</p><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.why)}</p></div>
       <div class="decision-grid">
-        <div class="decision-item"><small>언제</small><strong>${escapeHtml(item.timeLabel)}</strong></div><div class="decision-item"><small>거리</small><strong>${distance.toFixed(1)} mi</strong></div><div class="decision-item"><small>연령</small><strong>${escapeHtml(item.age)}</strong></div><div class="decision-item"><small>환경</small><strong>${item.setting === "indoor" ? "실내" : "야외"}</strong></div><div class="decision-item"><small>비용</small><strong>${item.price === "free" ? "무료" : "유료"}</strong></div><div class="decision-item"><small>예약</small><strong>${escapeHtml(item.reservation)}</strong></div>
+        <div class="decision-item"><small>언제</small><strong>${escapeHtml(item.timeLabel)}</strong></div><div class="decision-item"><small>거리</small><strong>${distance.toFixed(1)} mi</strong></div><div class="decision-item"><small>연령</small><strong>${escapeHtml(item.age)}</strong></div><div class="decision-item"><small>환경</small><strong>${item.setting === "indoor" ? "실내" : "야외"}</strong></div><div class="decision-item"><small>비용</small><strong>${priceLabel(item.price)}</strong></div><div class="decision-item"><small>예약</small><strong>${escapeHtml(item.reservation)}</strong></div>
       </div>
       <div class="trust-panel ${trust.key}"><strong>${escapeHtml(trust.short)}</strong><span>${escapeHtml(trust.detail)}</span></div>
       <div class="detail-notes">
