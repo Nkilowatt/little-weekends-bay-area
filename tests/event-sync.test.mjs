@@ -129,11 +129,13 @@ test("source health requires success, freshness, and active future events", () =
     status: "ok",
     last_success_at: "2026-07-12T15:00:00.000Z",
     active_event_count: 4,
+    data_revision: 2,
   };
 
   assert.equal(sourceIsCurrent(healthy, now), true);
   assert.equal(sourceIsCurrent({ ...healthy, status: "failed" }, now), false);
   assert.equal(sourceIsCurrent({ ...healthy, active_event_count: 0 }, now), false);
+  assert.equal(sourceIsCurrent({ ...healthy, data_revision: 1 }, now), false);
   assert.equal(sourceIsCurrent({ ...healthy, last_success_at: "2026-07-12T08:00:00.000Z" }, now), false);
 });
 

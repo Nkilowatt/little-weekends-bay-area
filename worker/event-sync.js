@@ -1,5 +1,6 @@
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
 const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const SOURCE_DATA_REVISION = 2;
 const FUTURE_WINDOW_DAYS = 45;
 const DEFAULT_EVENT_DURATION_MINUTES = 60;
 const LEGACY_EVENT_GRACE_MINUTES = 90;
@@ -1258,7 +1259,8 @@ function createSchemaStatements(db) {
       last_attempt_at TEXT NOT NULL,
       last_success_at TEXT,
       message TEXT,
-      event_count INTEGER NOT NULL DEFAULT 0
+      event_count INTEGER NOT NULL DEFAULT 0,
+      data_revision INTEGER NOT NULL DEFAULT 1
     )`),
   ];
 }
@@ -1276,6 +1278,11 @@ async function ensureSchema(db) {
     if (migrations.length) {
       await db.batch(migrations);
       await db.prepare("UPDATE events SET active = 0").run();
+    }
+    const syncStateInfo = await db.prepare("PRAGMA table_info(sync_state)").all();
+    const syncStateColumns = new Set((syncStateInfo.results || []).map((column) => column.name));
+    if (!syncStateColumns.has("data_revision")) {
+      await db.prepare("ALTER TABLE sync_state ADD COLUMN data_revision INTEGER NOT NULL DEFAULT 1").run();
     }
   })();
   await schemaReady;
@@ -1390,14 +1397,15 @@ async function syncSource(db, source, now) {
     await db.batch([
       db.prepare("UPDATE events SET active = 0 WHERE source_key = ?").bind(source.key),
       ...events.map((event) => upsertStatement(db, event, attemptedAt)),
-      db.prepare(`INSERT INTO sync_state (source_key, status, last_attempt_at, last_success_at, message, event_count)
-        VALUES (?, 'ok', ?, ?, NULL, ?)
+      db.prepare(`INSERT INTO sync_state (source_key, status, last_attempt_at, last_success_at, message, event_count, data_revision)
+        VALUES (?, 'ok', ?, ?, NULL, ?, ?)
         ON CONFLICT(source_key) DO UPDATE SET
           status = 'ok',
           last_attempt_at = excluded.last_attempt_at,
           last_success_at = excluded.last_success_at,
           message = NULL,
-          event_count = excluded.event_count`).bind(source.key, attemptedAt, attemptedAt, events.length),
+          event_count = excluded.event_count,
+          data_revision = excluded.data_revision`).bind(source.key, attemptedAt, attemptedAt, events.length, SOURCE_DATA_REVISION),
     ]);
     return { source: source.key, status: "ok", count: events.length };
   } catch (error) {
@@ -1527,6 +1535,7 @@ async function queryOutings(db, now) {
 function sourceIsCurrent(row, now) {
   const lastSuccess = row.last_success_at ? new Date(row.last_success_at).getTime() : 0;
   return row.status === "ok"
+    && Number(row.data_revision || 0) >= SOURCE_DATA_REVISION
     && Number(row.active_event_count || 0) > 0
     && now.getTime() - lastSuccess < REFRESH_INTERVAL_MS;
 }
@@ -1541,6 +1550,7 @@ async function syncMetadata(db, now = new Date()) {
       sync_state.last_success_at,
       sync_state.message,
       sync_state.event_count,
+      sync_state.data_revision,
       COUNT(CASE WHEN events.active = 1
         AND ((events.end_at IS NOT NULL AND events.end_at >= ?)
           OR (events.end_at IS NULL AND events.start_at >= ?))

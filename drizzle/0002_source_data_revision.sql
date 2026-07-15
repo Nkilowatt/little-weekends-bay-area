@@ -1,0 +1,1 @@
+ALTER TABLE sync_state ADD COLUMN data_revision INTEGER NOT NULL DEFAULT 1;

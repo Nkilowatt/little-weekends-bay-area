@@ -94,7 +94,8 @@ function seededDatabase() {
       last_attempt_at TEXT NOT NULL,
       last_success_at TEXT,
       message TEXT,
-      event_count INTEGER NOT NULL DEFAULT 0
+      event_count INTEGER NOT NULL DEFAULT 0,
+      data_revision INTEGER NOT NULL DEFAULT 1
     );
   `);
 
@@ -110,8 +111,8 @@ function seededDatabase() {
     'Fixture event', '{"parking":"","bathroom":"","stroller":""}', 37.56, -122.32,
     'source_confirmed', 1, ?)`);
   const syncInsert = database.prepare(`INSERT INTO sync_state
-    (source_key, status, last_attempt_at, last_success_at, message, event_count)
-    VALUES (?, 'ok', ?, ?, NULL, 1)`);
+    (source_key, status, last_attempt_at, last_success_at, message, event_count, data_revision)
+    VALUES (?, 'ok', ?, ?, NULL, 1, 2)`);
 
   sourceKeys.forEach((sourceKey, index) => {
     eventInsert.run(`event-${index}`, sourceKey, `Event ${index}`, startAt, endAt, now.toISOString(), now.toISOString());
