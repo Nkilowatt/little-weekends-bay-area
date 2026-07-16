@@ -34,8 +34,19 @@ function safeDate(value) {
   return Number.isFinite(date.getTime()) ? date.toISOString() : null;
 }
 
+function safeAmenity(value, fallbackText = "") {
+  const fallback = safeText(fallbackText, 300);
+  const fallbackKnown = Boolean(fallback) && !/확인|문의|정보 없음|알 수|준비 중/.test(fallback);
+  const status = value?.status === "confirmed" ? "confirmed" : value?.status === "unknown" ? "unknown" : fallbackKnown ? "confirmed" : "unknown";
+  return {
+    status,
+    text: status === "confirmed" ? safeText(value?.text, 300, fallback || "확인됨") : "확인되지 않음",
+  };
+}
+
 function sanitizeSnapshot(item) {
   const notes = item?.notes || {};
+  const amenities = item?.amenities || {};
   const latitude = safeNumber(item?.location?.lat);
   const longitude = safeNumber(item?.location?.lng);
   return {
@@ -64,7 +75,23 @@ function sanitizeSnapshot(item) {
       parking: safeText(notes.parking, 300, "공식 페이지에서 주차 정보를 확인하세요."),
       bathroom: safeText(notes.bathroom, 300, "공식 페이지에서 화장실 정보를 확인하세요."),
       stroller: safeText(notes.stroller, 300, "공식 페이지에서 유모차 동선을 확인하세요."),
+      changingTable: safeText(notes.changingTable, 300, "확인되지 않음"),
     },
+    amenities: {
+      parking: safeAmenity(amenities.parking, notes.parking),
+      bathroom: safeAmenity(amenities.bathroom, notes.bathroom),
+      stroller: safeAmenity(amenities.stroller, notes.stroller),
+      changingTable: safeAmenity(amenities.changingTable, notes.changingTable),
+    },
+    image: /^assets\/photos\/[a-z0-9-]+\.webp$/i.test(String(item?.image?.src || ""))
+      ? {
+        src: item.image.src,
+        kind: item.image.kind === "actual" ? "actual" : "context",
+        alt: safeText(item.image.alt, 180),
+        credit: safeText(item.image.credit, 180),
+        sourceUrl: safeText(item.image.sourceUrl, 500),
+      }
+      : null,
     location: latitude === null || longitude === null ? null : { lat: latitude, lng: longitude },
   };
 }

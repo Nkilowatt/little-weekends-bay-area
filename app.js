@@ -51,7 +51,7 @@ let outings = [
     type: "park",
     setting: "outdoor",
     dateBucket: "anytime",
-    timeLabel: "상시 방문",
+    timeLabel: "운영시간 확인",
     city: "San Mateo",
     distance: 4.4,
     age: "1-5세",
@@ -63,7 +63,7 @@ let outings = [
     lastReviewedAt: "2026-07-12",
     confidenceStatus: "human_verified",
     address: "1701 Coyote Point Drive, San Mateo, CA 94401",
-    why: "2-5세 구역이 따로 있는 성과 용 테마 놀이터라 어린아이와 움직이기 좋아요.",
+    why: "2-5세 구역이 따로 있는 성과 용을 본뜬 테마 놀이터라 어린아이와 움직이기 좋아요.",
     notes: {
       parking: "카운티 공원 주차/입장 요금을 확인하세요.",
       bathroom: "공원 화장실 위치를 지도에서 먼저 확인하세요.",
@@ -78,7 +78,7 @@ let outings = [
     type: "museum",
     setting: "indoor",
     dateBucket: "anytime",
-    timeLabel: "상시 방문",
+    timeLabel: "운영시간 확인",
     city: "San Mateo",
     distance: 4.6,
     age: "2-6세",
@@ -473,6 +473,16 @@ function practicalNoteKnown(value) {
   return Boolean(note) && !/확인|문의|정보 없음|알 수|준비 중/.test(note);
 }
 
+function normalizedAmenity(value, legacyText) {
+  const suppliedStatus = value?.status === "confirmed" ? "confirmed" : value?.status === "unknown" ? "unknown" : null;
+  const legacyKnown = practicalNoteKnown(legacyText);
+  const status = suppliedStatus || (legacyKnown ? "confirmed" : "unknown");
+  const text = status === "confirmed"
+    ? safeText(value?.text, safeText(legacyText, "확인됨", 300), 300)
+    : "확인되지 않음";
+  return { status, text };
+}
+
 function safeText(value, fallback = "", maxLength = 500) {
   const text = String(value ?? fallback).replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
   return (text || fallback).slice(0, maxLength);
@@ -515,6 +525,15 @@ function normalizeOuting(item) {
   const confidenceStatus = inferredConfidenceStatus(item);
   const city = safeText(item.city, "Bay Area", 100);
   const reservation = safeText(item.reservation, "공식 페이지 확인", 180);
+  const rawAmenities = item.amenities || {};
+  const amenities = {
+    parking: normalizedAmenity(rawAmenities.parking, notes.parking),
+    bathroom: normalizedAmenity(rawAmenities.bathroom, notes.bathroom),
+    stroller: normalizedAmenity(rawAmenities.stroller, notes.stroller),
+    changingTable: normalizedAmenity(rawAmenities.changingTable, notes.changingTable)
+  };
+  const suppliedImage = item.image || {};
+  const imageSrc = /^assets\/photos\/[a-z0-9-]+\.webp$/i.test(String(suppliedImage.src || "")) ? suppliedImage.src : "";
   return {
     ...item,
     id: safeText(item.id, "unknown", 180),
@@ -537,12 +556,21 @@ function normalizeOuting(item) {
     why: safeText(item.why, "공식 페이지에서 세부 정보를 확인해 주세요.", 500),
     address: safeText(item.address, "", 220),
     notes: {
-      parking: safeText(notes.parking, "공식 페이지에서 주차 정보를 확인하세요.", 300),
-      bathroom: safeText(notes.bathroom, "공식 페이지에서 화장실 정보를 확인하세요.", 300),
-      stroller: safeText(notes.stroller, "공식 페이지에서 유모차 동선을 확인하세요.", 300)
+      parking: amenities.parking.text,
+      bathroom: amenities.bathroom.text,
+      stroller: amenities.stroller.text,
+      changingTable: amenities.changingTable.text
     },
-    bathroomKnown: practicalNoteKnown(notes.bathroom),
-    strollerKnown: practicalNoteKnown(notes.stroller),
+    amenities,
+    image: imageSrc ? {
+      src: imageSrc,
+      kind: suppliedImage.kind === "actual" ? "actual" : "context",
+      alt: safeText(suppliedImage.alt, "", 180),
+      credit: safeText(suppliedImage.credit, "", 180),
+      sourceUrl: safeSourceUrl(suppliedImage.sourceUrl)
+    } : null,
+    bathroomKnown: amenities.bathroom.status === "confirmed",
+    strollerKnown: amenities.stroller.status === "confirmed",
     location: Number.isFinite(latitude) && Number.isFinite(longitude) ? { lat: latitude, lng: longitude } : null,
     confidenceStatus: confidenceStatuses.has(confidenceStatus) ? confidenceStatus : "recheck"
   };
@@ -607,7 +635,8 @@ const state = {
   sharedPlanError: "",
   search: "",
   selectedId: null,
-  locationKey: storedLocationKey
+  locationKey: storedLocationKey,
+  expandedGroups: new Set()
 };
 
 const {
@@ -615,7 +644,9 @@ const {
   clearDeepLinkUrl,
   deepLinkUrl,
   detectPlanIssues,
-  groupSavedItems
+  groupSavedItems,
+  isOutingCurrent,
+  outingTimeStatus
 } = window.LITTLE_WEEKENDS_PLANNING;
 
 const defaultNapWindow = { enabled: true, start: "13:00", end: "15:00" };
@@ -677,6 +708,7 @@ const detailBody = document.querySelector("#detailBody");
 const locationDialog = document.querySelector("#locationDialog");
 const sharePlanDialog = document.querySelector("#sharePlanDialog");
 const sharePlanBody = document.querySelector("#sharePlanBody");
+const mobileSearchMedia = window.matchMedia("(max-width: 768px)");
 
 function persistSaved() {
   localStorage.setItem("little-weekends-saved", JSON.stringify([...state.saved]));
@@ -774,6 +806,7 @@ function recommendationScore(item) {
     if (hoursUntilStart >= -1 && hoursUntilStart <= 6) score += 20;
     else if (hoursUntilStart > 6 && hoursUntilStart <= 24) score += 12;
     else if (hoursUntilStart < -1) score -= 20;
+    if (state.date === "today" || state.date === "weekend") score += 24;
   } else {
     score += 6;
   }
@@ -847,12 +880,32 @@ function activeFilterCount() {
 }
 
 let toastTimer;
-function showToast(message) {
+function showToast(message, action = null) {
   const toast = document.querySelector("#toast");
-  toast.textContent = message;
+  toast.innerHTML = `<span>${escapeHtml(message)}</span>${action ? `<button type="button">${escapeHtml(action.label)}</button>` : ""}`;
+  toast.querySelector("button")?.addEventListener("click", () => {
+    action.run();
+    toast.classList.remove("is-visible");
+  });
   toast.classList.add("is-visible");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 2200);
+}
+
+function syncResponsiveSearch() {
+  const panel = document.querySelector("#searchPanel");
+  const toggle = document.querySelector("#searchToggle");
+  if (mobileSearchMedia.matches) {
+    panel.hidden = false;
+    toggle.hidden = true;
+    toggle.setAttribute("aria-expanded", "true");
+    return;
+  }
+  toggle.hidden = false;
+  if (!state.search && state.mobileSection !== "search") {
+    panel.hidden = true;
+    toggle.setAttribute("aria-expanded", "false");
+  }
 }
 
 function typeLabel(type) {
@@ -876,6 +929,7 @@ function typeInitial(type) {
 }
 
 function itemImage(item) {
+  if (item.image?.src) return item.image.src;
   const imageContext = `${item.name || ""} ${item.why || ""} ${item.sourceName || ""} ${item.source || ""}`.toLowerCase();
 
   if (/bubble|버블|discovery museum/.test(imageContext)) return "assets/photos/bubble-play.webp";
@@ -893,6 +947,14 @@ function itemImage(item) {
   if (item.type === "museum") return "assets/photos/bubble-play.webp";
   if (item.type === "indoor") return "assets/photos/maker-activity.webp";
   return "assets/photos/bay-family-hero.webp";
+}
+
+function itemImageKind(item) {
+  return item.image?.kind === "actual" ? "actual" : "context";
+}
+
+function itemImageCaption(item) {
+  return itemImageKind(item) === "actual" ? "실제 장소" : "활동 예시";
 }
 
 const searchAliasGroups = [
@@ -1105,7 +1167,9 @@ function matchesTime(item) {
 }
 
 function outingKindLabel(item) {
-  if (!item.startDate) return "상시 장소";
+  const timeStatus = outingTimeStatus(item);
+  if (timeStatus.key === "place") return "방문 가능 장소";
+  if (["ongoing", "soon", "time_unknown"].includes(timeStatus.key)) return timeStatus.label;
   const itemDate = pacificDateKey(item.startDate);
   const today = pacificDateKey();
   if (itemDate === today) return "오늘 일정";
@@ -1113,12 +1177,19 @@ function outingKindLabel(item) {
   return "시간 지정 일정";
 }
 
+function displayTimeLabel(item) {
+  if (!item.startDate && item.timeLabel === "운영시간 확인") return "운영시간 확인";
+  return item.timeLabel;
+}
+
 function recommendationReasons(item) {
   const reasons = [];
   const ageWidth = Math.max(0, item.maxAgeMonths - item.minAgeMonths);
-  if (ageWidth <= 36 && item.minAgeMonths <= 36 && item.maxAgeMonths >= 23) reasons.push("유아 연령 집중");
+  const selectedAgeLabel = { age1: "1세", age2: "2세", age3: "3세", toddler: "1-3세" }[state.age];
+  if (selectedAgeLabel && ageWidth <= 72 && ageMatches(item)) reasons.push(`${selectedAgeLabel}에 잘 맞음`);
+  if (item.reservationLevel === "none") reasons.push("예약 없이");
   if (distanceFor(item) <= 5) reasons.push("5 mi 안쪽");
-  if (item.confidenceStatus === "human_verified") reasons.push("사람이 확인");
+  if (["human_verified", "source_confirmed"].includes(item.confidenceStatus)) reasons.push("공식 출처 확인");
   return reasons.slice(0, 2);
 }
 
@@ -1163,6 +1234,7 @@ function filteredOutings() {
     searchScore: searchScore(item, state.search),
     recommendationScore: recommendationScore(item)
   })).filter(({ item, searchScore: itemSearchScore }) => {
+    const currentMatch = isOutingCurrent(item);
     const searchMatch = !state.search || itemSearchScore >= 0;
     const distanceMatch = distanceFor(item) <= Number(state.distance);
     const regionMatch = state.region === "all" || item.region === state.region;
@@ -1173,13 +1245,17 @@ function filteredOutings() {
     const reservationMatch = state.reservation === "all" || item.reservationLevel === state.reservation;
     const bathroomMatch = !state.bathroomKnown || item.bathroomKnown;
     const strollerMatch = !state.strollerKnown || item.strollerKnown;
-    return searchMatch && matchesDate(item) && matchesTime(item) && distanceMatch && regionMatch && ageMatch && typeMatch && settingMatch && priceMatch && reservationMatch && bathroomMatch && strollerMatch;
+    return currentMatch && searchMatch && matchesDate(item) && matchesTime(item) && distanceMatch && regionMatch && ageMatch && typeMatch && settingMatch && priceMatch && reservationMatch && bathroomMatch && strollerMatch;
   });
 
   if (state.sort === "recommended") {
     result = result.toSorted((a, b) => {
       const searchDifference = state.search ? b.searchScore - a.searchScore : 0;
-      return searchDifference || b.recommendationScore - a.recommendationScore || distanceFor(a.item) - distanceFor(b.item);
+      const recommendationDifference = b.recommendationScore - a.recommendationScore;
+      const startDifference = a.item.startDate && b.item.startDate
+        ? new Date(a.item.startDate) - new Date(b.item.startDate)
+        : 0;
+      return searchDifference || recommendationDifference || startDifference || distanceFor(a.item) - distanceFor(b.item);
     });
     result = diversifyRecommended(result);
   }
@@ -1213,9 +1289,9 @@ function createOutingCard(item, planIssues = []) {
     card.className = `outing-card${state.selectedId === item.id ? " is-selected" : ""}`;
     card.innerHTML = `
       <button class="card-open" type="button" aria-label="${escapeHtml(item.name)} 상세 보기"></button>
-      <span class="card-image" aria-hidden="true"><img src="${itemImage(item)}" alt="" loading="lazy" /></span>
+      <span class="card-media"><span class="card-image"><img src="${itemImage(item)}" alt="${escapeHtml(itemImageKind(item) === "actual" ? item.image?.alt || item.name : "")}" loading="lazy" /></span><small>${itemImageCaption(item)}</small></span>
       <span class="card-content">
-        <span class="time-row"><span class="schedule-label"><span class="outing-kind">${escapeHtml(outingKindLabel(item))}</span><span class="card-time">${escapeHtml(item.timeLabel)}</span></span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
+        <span class="time-row"><span class="schedule-label"><span class="outing-kind">${escapeHtml(outingKindLabel(item))}</span><span class="card-time">${escapeHtml(displayTimeLabel(item))}</span></span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
         <h3>${escapeHtml(item.name)}</h3>
         <span class="card-place"><span>${escapeHtml(item.city)}</span><span>${distance.toFixed(1)} mi</span><span>${escapeHtml(typeLabel(item.type))}</span></span>
         <span class="essentials"><span class="essential"><small>연령</small>${escapeHtml(item.age)}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${priceLabel(item.price)}</span><span class="essential"><small>예약</small>${escapeHtml(cardReservationLabel(item.reservation))}</span></span>
@@ -1244,7 +1320,8 @@ function renderPlanControls(items, issues) {
   overview.innerHTML = `
     <div class="plan-overview-copy">
       <strong>${items.length}개 일정을 날짜별로 모았어요.</strong>
-      <span>${issueCount ? `${issueCount}개 일정의 시간을 한 번 더 확인해 주세요.` : "겹치는 일정이 생기면 여기에서 바로 알려드려요."}</span>
+      <span>날짜별 정리, 낮잠·일정 충돌 확인, 캘린더 추가, 가족 공유를 한곳에서 할 수 있어요.</span>
+      ${issueCount ? `<span class="plan-overview-warning">${issueCount}개 일정의 시간을 한 번 더 확인해 주세요.</span>` : ""}
     </div>
     <div class="plan-overview-actions">
       <div class="nap-controls">
@@ -1630,6 +1707,42 @@ function renderSharedPlan(items) {
   });
 }
 
+function hasDetailedDiscoveryFilters() {
+  return Boolean(state.search)
+    || state.distance !== "10"
+    || state.region !== "all"
+    || state.age !== "toddler"
+    || state.type !== "all"
+    || state.setting !== "all"
+    || state.price !== "all"
+    || state.time !== "all"
+    || state.reservation !== "all"
+    || state.bathroomKnown
+    || state.strollerKnown;
+}
+
+function appendDiscoveryGroup(title, items, key) {
+  if (!items.length) return;
+  const expanded = state.expandedGroups.has(key);
+  const visibleItems = expanded ? items : items.slice(0, 5);
+  const heading = document.createElement("div");
+  heading.className = "discovery-group-heading";
+  heading.innerHTML = `<h3>${escapeHtml(title)}</h3><span>${items.length}개</span>`;
+  cardsEl.append(heading);
+  visibleItems.forEach((item) => cardsEl.append(createOutingCard(item)));
+  if (!expanded && items.length > visibleItems.length) {
+    const more = document.createElement("button");
+    more.className = "discovery-more secondary-action";
+    more.type = "button";
+    more.textContent = `${items.length - visibleItems.length}개 더 보기`;
+    more.addEventListener("click", () => {
+      state.expandedGroups.add(key);
+      render();
+    });
+    cardsEl.append(more);
+  }
+}
+
 function leaveSharedPlan(openSaved = false) {
   const url = new URL(publicPageUrl());
   if (openSaved) url.searchParams.set("saved", "1");
@@ -1691,6 +1804,17 @@ function renderCards(items) {
       cardsEl.append(heading);
       group.items.forEach((item) => cardsEl.append(createOutingCard(item, issues[item.id])));
     });
+    return;
+  }
+
+  const groupedDiscovery = ["today", "weekend"].includes(state.date)
+    && state.sort === "recommended"
+    && !hasDetailedDiscoveryFilters();
+  if (groupedDiscovery) {
+    const scheduled = items.filter((item) => item.startDate);
+    const anytime = items.filter((item) => !item.startDate);
+    appendDiscoveryGroup(state.date === "today" ? "오늘 열리는 일정" : "이번 주말에만 열리는 일정", scheduled, `${state.date}-scheduled`);
+    appendDiscoveryGroup("언제든 갈 수 있는 가까운 곳", anytime, `${state.date}-anytime`);
     return;
   }
 
@@ -1847,12 +1971,22 @@ async function loadAutomaticOutings() {
 function toggleSaved(id) {
   const item = findOutingById(id);
   if (!item) return;
+  const firstSave = !state.saved.has(id) && state.saved.size === 0;
   if (state.saved.has(id)) {
     state.saved.delete(id);
     showToast(`${item.name} 저장을 해제했어요.`);
   } else {
     state.saved.add(id);
-    showToast(`${item.name}을 저장했어요.`);
+    showToast(`${item.name}을 저장했어요.`, firstSave ? {
+      label: "계획 보기",
+      run: () => {
+        state.savedOnly = true;
+        state.view = "list";
+        state.mobileSection = "saved";
+        render();
+        document.querySelector("#cards").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    } : null);
   }
   persistSaved();
   render();
@@ -1928,6 +2062,11 @@ function clearDetailUrl() {
   state.selectedId = null;
 }
 
+function amenityRow(label, amenity) {
+  const status = amenity?.status === "confirmed" ? "confirmed" : "unknown";
+  return `<div class="note-row ${status}"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(amenity?.text || "확인되지 않음")}</span></div>`;
+}
+
 function openDetail(id) {
   const item = findOutingById(id);
   if (!item) return;
@@ -1939,30 +2078,33 @@ function openDetail(id) {
   const distance = distanceFor(item);
   const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address || `${item.name}, ${item.city}, CA`)}`;
   const sourceAction = item.source
-    ? `<a class="primary-action" href="${escapeHtml(item.source)}" target="_blank" rel="noopener noreferrer">${trust.key === "verified" || trust.key === "source-confirmed" ? "공식 정보 보기" : "공식 일정 확인"}</a>`
+    ? `<a class="secondary-action decision-source" href="${escapeHtml(item.source)}" target="_blank" rel="noopener noreferrer">${trust.key === "verified" || trust.key === "source-confirmed" ? "공식 정보 보기" : "공식 일정 확인"}</a>`
     : "";
   const calendarAction = item.startDate
-    ? '<button class="secondary-action" type="button" id="calendarDetail">캘린더에 추가</button>'
+    ? '<button class="secondary-action decision-calendar" type="button" id="calendarDetail">캘린더에 추가</button>'
     : "";
   const alternatives = nearbyAlternatives(item);
   const alternativesMarkup = alternatives.map((alternative) => {
     const nearbyDistance = alternative.location && item.location ? distanceBetweenMiles(item.location, alternative.location) : distanceFor(alternative);
     return `<button class="alternative-button" data-alternative-id="${escapeHtml(alternative.id)}" type="button"><span><strong>${escapeHtml(alternative.name)}</strong><small>${escapeHtml(alternative.city)} · ${nearbyDistance.toFixed(1)} mi</small></span><b>보기</b></button>`;
   }).join("");
+  const imageCaption = itemImageKind(item) === "actual"
+    ? `실제 장소 사진${item.image?.credit ? ` · ${escapeHtml(item.image.credit)}` : ""}`
+    : "활동 유형을 보여주는 예시 이미지입니다.";
   detailBody.innerHTML = `
-    <figure class="detail-visual"><img src="${itemImage(item)}" alt="" /><figcaption>장소 이해를 돕는 분위기 참고 이미지입니다.</figcaption></figure>
+    <figure class="detail-visual"><img src="${itemImage(item)}" alt="${escapeHtml(itemImageKind(item) === "actual" ? item.image?.alt || item.name : "")}" /><figcaption>${imageCaption}</figcaption></figure>
     <article class="detail-body">
       <div class="detail-title"><p class="detail-category">${escapeHtml(typeLabel(item.type))}, ${escapeHtml(item.city)}</p><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.why)}</p></div>
       <div class="decision-grid">
-        <div class="decision-item"><small>언제</small><strong>${escapeHtml(item.timeLabel)}</strong></div><div class="decision-item"><small>거리</small><strong>${distance.toFixed(1)} mi</strong></div><div class="decision-item"><small>연령</small><strong>${escapeHtml(item.age)}</strong></div><div class="decision-item"><small>환경</small><strong>${item.setting === "indoor" ? "실내" : "야외"}</strong></div><div class="decision-item"><small>비용</small><strong>${priceLabel(item.price)}</strong></div><div class="decision-item"><small>예약</small><strong>${escapeHtml(item.reservation)}</strong></div>
+        <div class="decision-item"><small>언제</small><strong>${escapeHtml(displayTimeLabel(item))}</strong></div><div class="decision-item"><small>거리</small><strong>${distance.toFixed(1)} mi</strong></div><div class="decision-item"><small>연령</small><strong>${escapeHtml(item.age)}</strong></div><div class="decision-item"><small>환경</small><strong>${item.setting === "indoor" ? "실내" : "야외"}</strong></div><div class="decision-item"><small>비용</small><strong>${priceLabel(item.price)}</strong></div><div class="decision-item"><small>예약</small><strong>${escapeHtml(item.reservation)}</strong></div>
       </div>
       <div class="trust-panel ${trust.key}"><strong>${escapeHtml(trust.short)}</strong><span>${escapeHtml(trust.detail)}</span></div>
       <div class="detail-notes">
-        <div class="note-row"><strong>주차</strong><span>${escapeHtml(item.notes.parking)}</span></div><div class="note-row"><strong>화장실</strong><span>${escapeHtml(item.notes.bathroom)}</span></div><div class="note-row"><strong>유모차</strong><span>${escapeHtml(item.notes.stroller)}</span></div><div class="note-row"><strong>예상 체류</strong><span>${item.type === "storytime" ? "30-60분" : "60-90분"} 정도를 추천해요.</span></div><div class="note-row"><strong>날씨 대응</strong><span>${item.setting === "indoor" ? "실내 활동이라 비 오는 날에도 좋아요." : "출발 전 기온과 공원 운영 상태를 확인하세요."}</span></div>
+        ${amenityRow("주차", item.amenities?.parking)}${amenityRow("화장실", item.amenities?.bathroom)}${amenityRow("기저귀 교환대", item.amenities?.changingTable)}${amenityRow("유모차", item.amenities?.stroller)}<div class="note-row"><strong>예상 체류</strong><span>${item.type === "storytime" ? "30-60분" : "60-90분"} 정도를 추천해요.</span></div><div class="note-row"><strong>날씨 대응</strong><span>${item.setting === "indoor" ? "실내 활동이라 비 오는 날에도 좋아요." : "출발 전 기온과 공원 운영 상태를 확인하세요."}</span></div>
       </div>
       <section class="nearby-alternatives" aria-labelledby="nearbyTitle"><h3 id="nearbyTitle">가까운 대안</h3><div class="alternative-list">${alternativesMarkup}</div></section>
       <div class="detail-actions">
-        ${sourceAction}<a class="secondary-action" href="${escapeHtml(directions)}" target="_blank" rel="noopener noreferrer">길찾기</a>${calendarAction}<button class="secondary-action" type="button" id="shareDetail">공유</button><button class="secondary-action" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
+        <a class="primary-action decision-directions" href="${escapeHtml(directions)}" target="_blank" rel="noopener noreferrer">길찾기</a>${sourceAction}${calendarAction}<button class="secondary-action decision-share" type="button" id="shareDetail">공유</button><button class="secondary-action decision-save" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
       </div>
     </article>
   `;
@@ -2213,9 +2355,17 @@ detailDialog.addEventListener("click", (event) => { if (event.target === detailD
 detailDialog.addEventListener("close", clearDetailUrl);
 
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && state.sharedPlan) loadSharedPlan(true);
+  if (document.visibilityState !== "visible") return;
+  if (state.sharedPlan) loadSharedPlan(true);
+  else render();
 });
 
+mobileSearchMedia.addEventListener("change", syncResponsiveSearch);
+window.setInterval(() => {
+  if (document.visibilityState === "visible" && !state.savedOnly && !state.sharedPlan) render();
+}, 60000);
+
+syncResponsiveSearch();
 render();
 openPendingOuting();
 loadAutomaticOutings();

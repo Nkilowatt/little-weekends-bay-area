@@ -112,7 +112,7 @@ function seededDatabase() {
     'source_confirmed', 1, ?)`);
   const syncInsert = database.prepare(`INSERT INTO sync_state
     (source_key, status, last_attempt_at, last_success_at, message, event_count, data_revision)
-    VALUES (?, 'ok', ?, ?, NULL, 1, 2)`);
+    VALUES (?, 'ok', ?, ?, NULL, 1, 3)`);
 
   sourceKeys.forEach((sourceKey, index) => {
     eventInsert.run(`event-${index}`, sourceKey, `Event ${index}`, startAt, endAt, now.toISOString(), now.toISOString());
@@ -147,4 +147,21 @@ test("API marks stale-source events for recheck without retry amplification", as
   assert.equal(payload.currentSourceCount, 13);
   assert.equal(staleSourceEvent.confidenceStatus, "recheck");
   assert.match(staleSourceEvent.updated, /재확인 필요/);
+});
+
+test("API omits events whose structured end time has passed", async () => {
+  const { database, d1 } = seededDatabase();
+  const now = new Date();
+  database.prepare(`INSERT INTO events (
+    id, source_key, name, type, setting, start_at, end_at, city, distance, age,
+    min_age_months, max_age_months, price, reservation, source_url, source_name,
+    verified_at, why, notes_json, latitude, longitude, confidence_status, active, last_seen_at
+  ) VALUES ('expired-event', ?, 'Expired event', 'storytime', 'indoor', ?, ?, 'San Mateo', 1, '1-3세', 12, 47,
+    'free', '예약 불필요', 'https://www.cityofsanmateo.org/', 'Official source', ?,
+    'Expired fixture', '{}', 37.56, -122.32, 'source_confirmed', 1, ?)`)
+    .run(sourceKeys[0], new Date(now.getTime() - 7200000).toISOString(), new Date(now.getTime() - 3600000).toISOString(), now.toISOString(), now.toISOString());
+
+  const response = await getOutingsResponse(new Request("https://example.test/api/outings"), { DB: d1 }, {});
+  const payload = await response.json();
+  assert.equal(payload.events.some((event) => event.id === "expired-event"), false);
 });

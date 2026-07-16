@@ -1,6 +1,6 @@
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
 const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
-const SOURCE_DATA_REVISION = 2;
+const SOURCE_DATA_REVISION = 3;
 const FUTURE_WINDOW_DAYS = 45;
 const DEFAULT_EVENT_DURATION_MINUTES = 60;
 const LEGACY_EVENT_GRACE_MINUTES = 90;
@@ -284,7 +284,9 @@ function makeEvent({
   const clock = parseClock(time);
   if (!clock) return null;
   const startAt = pacificIso(dateKey, clock);
-  const endAt = new Date(new Date(startAt).getTime() + durationMinutes * 60000).toISOString();
+  const endAt = confidenceStatus === "date_confirmed"
+    ? pacificIso(addDays(dateKey, 1), "00:00")
+    : new Date(new Date(startAt).getTime() + durationMinutes * 60000).toISOString();
   const eventType = type || (/storytime|cuentos|move and groove/i.test(name) ? "storytime" : "seasonal");
   const ageLabel = age || ageForProgram(name);
   const ageRange = ageRangeFromLabel(ageLabel);
@@ -1056,6 +1058,17 @@ function redwoodCityDateTime(value) {
   return { dateKey, time, iso: clock ? pacificIso(dateKey, clock) : null };
 }
 
+function redwoodCityEffectiveEnd(name, start, end) {
+  if (!start?.iso || !end?.iso || new Date(end.iso) <= new Date(start.iso)) return null;
+  const durationMinutes = (new Date(end.iso) - new Date(start.iso)) / 60000;
+  const endOfDayPlaceholder = /^11:59 PM$/i.test(end.time)
+    && /^(?:1[2-9]|2[0-3]):/.test(parseClock(start.time) || "")
+    && durationMinutes > 240;
+  if (!endOfDayPlaceholder) return end.iso;
+  const fallbackMinutes = /music|concert|movie|performance|puppet|theater|theatre/i.test(name) ? 120 : 90;
+  return new Date(new Date(start.iso).getTime() + fallbackMinutes * 60000).toISOString();
+}
+
 function redwoodCityLocation(name, description) {
   const context = `${name} ${description}`;
   const locations = [
@@ -1215,7 +1228,7 @@ function parseRedwoodCityEvents(xml, now = new Date()) {
         : "Redwood City 공식 일정에서 확인한 어린이와 가족 대상 참여형 프로그램이에요.",
     });
     if (event) {
-      if (end?.iso && new Date(end.iso) > new Date(start.iso)) event.endAt = end.iso;
+      event.endAt = redwoodCityEffectiveEnd(name, start, end) || event.endAt;
       events.push(event);
     }
   }
@@ -1482,8 +1495,15 @@ function verifiedLabel(verifiedAt) {
   }).format(new Date(verifiedAt));
 }
 
+function publicAmenity(value) {
+  const text = String(value || "").trim();
+  const confirmed = Boolean(text) && !/확인|문의|정보 없음|알 수|준비 중/.test(text);
+  return { status: confirmed ? "confirmed" : "unknown", text: confirmed ? text : "확인되지 않음" };
+}
+
 function rowToOuting(row, now) {
   const confidenceStatus = row.confidence_status || "source_confirmed";
+  const notes = JSON.parse(row.notes_json);
   return {
     id: row.id,
     sourceKey: row.source_key,
@@ -1505,7 +1525,14 @@ function rowToOuting(row, now) {
     sourceName: row.source_name,
     updated: `${verifiedLabel(row.verified_at)} 공식 확인 · 자동`,
     why: row.why,
-    notes: JSON.parse(row.notes_json),
+    notes: { ...notes, changingTable: notes.changingTable || "확인되지 않음" },
+    amenities: {
+      parking: publicAmenity(notes.parking),
+      bathroom: publicAmenity(notes.bathroom),
+      stroller: publicAmenity(notes.stroller),
+      changingTable: publicAmenity(notes.changingTable),
+    },
+    image: null,
     location: { lat: row.latitude, lng: row.longitude },
     confidenceStatus,
   };
@@ -1622,6 +1649,7 @@ export {
   parseCuriOdysseyDailyEvents,
   parsePaloAltoFamilyEvents,
   parseRedwoodCityEvents,
+  redwoodCityEffectiveEnd,
   parseSanFranciscoRecParkEvents,
   parseSanMateoCityEvents,
   parseSanMateoCountyLibraryEvents,

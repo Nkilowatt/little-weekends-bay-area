@@ -49,7 +49,8 @@ The current basemap is intentionally lightweight:
 - Recommended sorting scores age specificity, distance, time, source confidence, cost, and reservation burden while pushing repeated series below unique options.
 - Trust is structured as `human_verified`, `source_confirmed`, `recheck`, or `stale`; automatic source parsing is not presented as human verification.
 - The evergreen catalog contains 26 human-reviewed places across five Bay Area regions.
-- Automatic events include `endAt`; ended programs do not remain in today's results on a six-hour grace window.
+- Automatic events include `endAt`; API and client checks remove completed programs. Missing end times use 90 minutes, date-only events remain through the Pacific calendar day, and the visible list is re-evaluated on tab return and every 60 seconds.
+- Redwood City 11:59 PM placeholder endings are normalized to 120 minutes for music, performances, and movies or 90 minutes for other single programs. `SOURCE_DATA_REVISION` is 3 so existing D1 rows are refreshed.
 - Source status is current only when that source has a recent successful sync and active future events. Partial coverage is shown as `partial`, and stale-source events become `recheck`.
 - On-demand recovery has a 30-second cooldown and records `syncing` before network fetches to limit repeated external calls and abuse.
 - On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all 12 sources.
@@ -74,8 +75,12 @@ The current basemap is intentionally lightweight:
 - Region filtering covers San Francisco, Peninsula, South Bay, East Bay, and North Bay.
 - Event-time, reservation, bathroom-information, and stroller-information filters support practical parent decisions.
 - Result cards distinguish scheduled events from anytime places, show reservation status, and surface at most two concise recommendation reasons.
+- Today and weekend recommendations put scheduled events in their own first group and show flexible nearby places second, with five-item progressive disclosure per group.
 - Empty states can expand distance, include anytime places, or reset all conditions.
 - Detail panels provide native sharing with clipboard fallback and three deduplicated nearby alternatives.
+- Images support optional actual/context provenance, while fallback category art is labeled `활동 예시`. Parking, bathroom, changing-table, and stroller notes use the same confirmed/unknown status model.
+- At 768px and below the hero is compact, search is always visible, filter fields are grouped by decision stage, and the sticky detail action area leads with directions and official information without hiding save/share/calendar actions.
+- The first save exposes a `계획 보기` action, and the saved view explains date grouping, nap and schedule conflict checks, calendar export, and family sharing.
 
 ## Current Code Shape
 

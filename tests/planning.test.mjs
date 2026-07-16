@@ -80,3 +80,17 @@ test("calendar downloads use exact times when known and all-day dates otherwise"
   assert.match(dateOnly.content, /DTEND;VALUE=DATE:20260716/);
   assert.doesNotMatch(dateOnly.content, /DTSTART:20260715T/);
 });
+
+test("outing time status removes ended events and keeps date-only events for their Pacific day", async () => {
+  const { isOutingCurrent, outingTimeStatus } = await planningHelpers();
+  const now = new Date("2026-07-16T05:30:00.000Z");
+  const ended = { startDate: "2026-07-16T01:00:00.000Z", endDate: "2026-07-16T03:00:00.000Z", confidenceStatus: "source_confirmed" };
+  const ongoing = { startDate: "2026-07-16T05:00:00.000Z", endDate: "2026-07-16T06:00:00.000Z", confidenceStatus: "source_confirmed" };
+  const soon = { startDate: "2026-07-16T06:00:00.000Z", endDate: "2026-07-16T07:00:00.000Z", confidenceStatus: "source_confirmed" };
+  const dateOnly = { startDate: "2026-07-15T19:00:00.000Z", confidenceStatus: "date_confirmed" };
+
+  assert.equal(isOutingCurrent(ended, now), false);
+  assert.equal(outingTimeStatus(ongoing, now).key, "ongoing");
+  assert.equal(outingTimeStatus(soon, now).key, "soon");
+  assert.equal(outingTimeStatus(dateOnly, now).key, "time_unknown");
+});

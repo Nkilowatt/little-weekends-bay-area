@@ -1,12 +1,12 @@
 # Roadmap
 
-Last updated: 2026-07-12
+Last updated: 2026-07-15
 
 This roadmap is organized as small, handoff-friendly tasks for future chat sessions.
 
 ## Now
 
-OpenAI Sites is now the primary service. P0.5 stabilization and P1 discovery polish are complete; the next product gate is friend testing and release-discipline cleanup.
+OpenAI Sites is now the primary service. Time-trust recovery and mobile decision-speed work are complete locally; the next product gates are licensed actual-place photography, deployment verification, and parent testing.
 
 ### P0.5 Stabilization Completed
 
@@ -25,6 +25,16 @@ OpenAI Sites is now the primary service. P0.5 stabilization and P1 discovery pol
 - Reservation status is visible before opening a detail panel.
 - Empty results preserve selected constraints while offering distance expansion, anytime places, or a full reset.
 - Detail panels include share actions and three deduplicated nearby alternatives.
+- Today and weekend results separate scheduled events from flexible places and progressively reveal groups after five items.
+- Mobile search is always visible, the hero is compact through 768px, and detail actions prioritize directions and official information.
+- Activity-example imagery and confirmed/unknown amenity states prevent stock imagery or missing logistics from being mistaken for verified facts.
+
+### Time Trust Recovery Completed
+
+- Redwood City 11:59 PM placeholder endings are replaced with practical 90- or 120-minute durations while normal explicit and all-day endings are preserved.
+- API and client time guards remove ended events, retain date-only events through the Pacific day, and re-evaluate visible results on focus and every 60 seconds.
+- Source data revision 3 forces existing D1 events through the corrected parser.
+- The regression suite contains 27 passing Node tests covering parser normalization, API omission, client status, grouping, imagery, and amenity rendering.
 
 ### 0. Primary Deployment And Git Reconciliation
 
@@ -59,15 +69,15 @@ Done when:
 - At least 3-5 parents have tried it.
 - There is a short list of repeated feedback themes.
 
-### 2. Improve Mobile Usability
+### 2. Improve Mobile Usability (Completed)
 
 Goal: make the first-screen mobile experience faster and calmer.
 
 Tasks:
 
-- Review the app at mobile widths.
-- Tighten filter layout if it feels crowded.
-- Make cards easier to scan with one-handed scrolling.
+- Verified 390×844, 768px, and desktop layouts.
+- Grouped filters into `언제와 어디` and `아이와 준비`.
+- Kept the first result title within the initial 390×844 viewport and made chips visibly horizontally scrollable.
 - Confirm the map/list toggle is obvious.
 - Check that dialog content fits without awkward overflow.
 

@@ -13,6 +13,7 @@ import {
   parseSanMateoCountyLibraryEvents,
   parseSanMateoStorytimes,
   parseSouthSanFranciscoStorytimes,
+  redwoodCityEffectiveEnd,
   sourceIsCurrent,
 } from "../worker/event-sync.js";
 
@@ -129,7 +130,7 @@ test("source health requires success, freshness, and active future events", () =
     status: "ok",
     last_success_at: "2026-07-12T15:00:00.000Z",
     active_event_count: 4,
-    data_revision: 2,
+    data_revision: 3,
   };
 
   assert.equal(sourceIsCurrent(healthy, now), true);
@@ -148,6 +149,19 @@ test("Redwood City recurring library programs extend beyond the short RSS window
   assert.ok(new Date(events.at(-1).startAt) - new Date(events[0].startAt) >= 35 * 86400000);
   assert.equal(events[0].confidenceStatus, "source_confirmed");
   assert.ok(events.slice(1).every((event) => event.confidenceStatus === "recurring_estimate"));
+});
+
+test("Redwood City end-of-day placeholders use a practical program duration", () => {
+  const start = { time: "6:00 PM", iso: "2026-07-16T01:00:00.000Z" };
+  const placeholderEnd = { time: "11:59 PM", iso: "2026-07-16T06:59:00.000Z" };
+  const normalEnd = { time: "7:00 PM", iso: "2026-07-16T02:00:00.000Z" };
+
+  assert.equal(
+    redwoodCityEffectiveEnd("Library Music in the Park", start, placeholderEnd),
+    "2026-07-16T03:00:00.000Z",
+  );
+  assert.equal(redwoodCityEffectiveEnd("Family Storytime", start, placeholderEnd), "2026-07-16T02:30:00.000Z");
+  assert.equal(redwoodCityEffectiveEnd("Family Storytime", start, normalEnd), normalEnd.iso);
 });
 
 test("county branch storytimes extend beyond each short branch RSS window", () => {

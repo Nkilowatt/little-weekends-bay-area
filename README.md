@@ -11,7 +11,7 @@ Working alpha for a Bay Area toddler outings service. It helps parents of 1-3 ye
 
 The UI remains lightweight HTML, CSS, and JavaScript. OpenAI Sites serves those assets and the same-origin event API. A static fallback remains available when the API is delayed.
 
-The current P1 experience includes structured 1-3 age filtering, selectable Bay Area origin hubs including Redwood City, region/time/reservation/amenity filters, concise recommendation reasons, actionable empty states, nearby alternatives, sharing, and 26 human-reviewed evergreen places across the Bay Area.
+The current P1 experience includes structured 1-3 age filtering, selectable Bay Area origin hubs including Redwood City, event-first date groups, region/time/reservation/amenity filters, concise recommendation reasons, actionable empty states, nearby alternatives, sharing, and 26 human-reviewed evergreen places across the Bay Area. Mobile discovery keeps search visible, uses a compact hero, and prioritizes directions and official information in the detail action bar.
 
 The old Netlify URL is a legacy entry point. Once the current Git history is reconciled and pushed, Netlify will redirect visitors to the OpenAI Sites deployment.
 
@@ -49,4 +49,4 @@ Use the OpenAI Sites URL for all friend testing:
 
 ## Important Prototype Note
 
-The service combines automatically collected official events with 26 curated evergreen places. Automatic collection is not the same as human verification, so every event retains its official source and per-source freshness status. Ended events are removed using a structured end time, and stale source records are downgraded to recheck status.
+The service combines automatically collected official events with 26 curated evergreen places. Automatic collection is not the same as human verification, so every event retains its official source and per-source freshness status. Ended events are removed using a structured end time, Redwood City's 11:59 PM placeholder endings are normalized to practical program durations, and stale source records are downgraded to recheck status. Category imagery is labeled as an activity example unless a licensed actual-place photo is supplied.

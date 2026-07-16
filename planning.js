@@ -93,6 +93,36 @@
     return Number(values.hour) * 60 + Number(values.minute);
   }
 
+  function effectiveEndTime(item) {
+    if (!item?.startDate || item.confidenceStatus === "date_confirmed") return null;
+    const start = new Date(item.startDate);
+    if (!Number.isFinite(start.getTime())) return null;
+    const suppliedEnd = item.endDate ? new Date(item.endDate) : null;
+    if (suppliedEnd && Number.isFinite(suppliedEnd.getTime()) && suppliedEnd > start) return suppliedEnd;
+    return new Date(start.getTime() + 90 * 60000);
+  }
+
+  function outingTimeStatus(item, now = new Date()) {
+    if (!item?.startDate) return { key: "place", label: "방문 가능 장소" };
+    const start = new Date(item.startDate);
+    if (!Number.isFinite(start.getTime())) return { key: "unknown", label: "시간 확인 필요" };
+    if (item.confidenceStatus === "date_confirmed") {
+      return dateKey(start) < dateKey(now)
+        ? { key: "ended", label: "종료" }
+        : { key: "time_unknown", label: "시간 확인 필요" };
+    }
+    const end = effectiveEndTime(item);
+    if (end && now >= end) return { key: "ended", label: "종료" };
+    if (now >= start) return { key: "ongoing", label: "진행 중" };
+    const minutesUntilStart = (start - now) / 60000;
+    if (minutesUntilStart <= 120) return { key: "soon", label: "곧 시작" };
+    return { key: "scheduled", label: "시간 지정 일정" };
+  }
+
+  function isOutingCurrent(item, now = new Date()) {
+    return outingTimeStatus(item, now).key !== "ended";
+  }
+
   function parseClock(value) {
     const match = /^(\d{2}):(\d{2})$/.exec(String(value || ""));
     if (!match) return NaN;
@@ -211,6 +241,9 @@
     clearDeepLinkUrl,
     deepLinkUrl,
     detectPlanIssues,
-    groupSavedItems
+    effectiveEndTime,
+    groupSavedItems,
+    isOutingCurrent,
+    outingTimeStatus
   };
 })(typeof window === "object" ? window : globalThis);

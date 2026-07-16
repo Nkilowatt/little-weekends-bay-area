@@ -23,11 +23,11 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /id="sharePlanDialog"/);
   assert.match(html, /evergreen-outings\.js\?v=3/);
-  assert.match(html, /styles\.css\?v=20/);
+  assert.match(html, /styles\.css\?v=21/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
-  assert.match(html, /planning\.js\?v=1/);
-  assert.match(html, /app\.js\?v=20/);
+  assert.match(html, /planning\.js\?v=2/);
+  assert.match(html, /app\.js\?v=21/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
 });
 
@@ -55,6 +55,11 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /function updateSharedResponse\(itemId, response\)/);
   assert.match(script, /X-Plan-Edit-Token/);
   assert.match(script, /emptyExpandDistance/);
+  assert.match(script, /오늘 열리는 일정/);
+  assert.match(script, /이번 주말에만 열리는 일정/);
+  assert.match(script, /itemImageCaption\(item\)/);
+  assert.match(script, /amenityRow\("기저귀 교환대"/);
+  assert.match(script, /isOutingCurrent\(item\)/);
 });
 
 test("age labels normalize to month ranges", () => {
