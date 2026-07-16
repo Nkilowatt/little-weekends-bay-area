@@ -602,6 +602,9 @@ const state = {
   mobileSection: "home",
   savedOnly: false,
   saved: new Set(),
+  sharedPlan: null,
+  sharedPlanLoading: false,
+  sharedPlanError: "",
   search: "",
   selectedId: null,
   locationKey: storedLocationKey
@@ -626,11 +629,40 @@ try {
 
 const requestedOutingId = new URLSearchParams(window.location.search).get("outing");
 let pendingOutingId = /^[a-z0-9-]{1,220}$/i.test(requestedOutingId || "") ? requestedOutingId : null;
+const requestedPlanToken = new URLSearchParams(window.location.search).get("plan");
+const requestedEditToken = new URLSearchParams(window.location.search).get("edit");
+const sharedPlanToken = /^[A-Za-z0-9_-]{20,80}$/.test(requestedPlanToken || "") ? requestedPlanToken : null;
+const sharedEditToken = /^[A-Za-z0-9_-]{20,80}$/.test(requestedEditToken || "") ? requestedEditToken : null;
+state.sharedPlanLoading = Boolean(sharedPlanToken);
+if (requestedPlanToken && !sharedPlanToken) state.sharedPlanError = "공유 계획 주소가 올바르지 않아요.";
+
+let publishedPlan = null;
+let publishedPlanSync = Promise.resolve();
+let participantName = "";
+let participantId = "";
+try {
+  const storedPublishedPlan = JSON.parse(localStorage.getItem("little-weekends-shared-plan") || "null");
+  if (/^[A-Za-z0-9_-]{20,80}$/.test(storedPublishedPlan?.viewToken || "")
+    && /^[A-Za-z0-9_-]{20,80}$/.test(storedPublishedPlan?.editToken || "")) publishedPlan = storedPublishedPlan;
+  participantName = String(localStorage.getItem("little-weekends-participant-name") || "").slice(0, 30);
+  participantId = String(localStorage.getItem("little-weekends-participant-id") || "");
+  if (!/^[A-Za-z0-9_-]{12,80}$/.test(participantId)) {
+    participantId = createParticipantId();
+    localStorage.setItem("little-weekends-participant-id", participantId);
+  }
+} catch {
+  participantId = createParticipantId();
+}
 
 try {
   state.saved = new Set(JSON.parse(localStorage.getItem("little-weekends-saved") || "[]"));
 } catch {
   state.saved = new Set();
+}
+if (!sharedPlanToken && new URLSearchParams(window.location.search).get("saved") === "1") {
+  state.savedOnly = true;
+  state.view = "list";
+  state.mobileSection = "saved";
 }
 
 const cardsEl = document.querySelector("#cards");
@@ -643,6 +675,8 @@ const contentGrid = document.querySelector("#contentGrid");
 const detailDialog = document.querySelector("#detailDialog");
 const detailBody = document.querySelector("#detailBody");
 const locationDialog = document.querySelector("#locationDialog");
+const sharePlanDialog = document.querySelector("#sharePlanDialog");
+const sharePlanBody = document.querySelector("#sharePlanBody");
 
 function persistSaved() {
   localStorage.setItem("little-weekends-saved", JSON.stringify([...state.saved]));
@@ -650,6 +684,27 @@ function persistSaved() {
 
 function persistNapWindow() {
   localStorage.setItem("little-weekends-nap-window", JSON.stringify(napWindow));
+}
+
+function persistPublishedPlan() {
+  if (publishedPlan) localStorage.setItem("little-weekends-shared-plan", JSON.stringify(publishedPlan));
+  else localStorage.removeItem("little-weekends-shared-plan");
+}
+
+function createParticipantId() {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID().replace(/-/g, "");
+  return Array.from(crypto.getRandomValues(new Uint8Array(18)), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function planUpdatedLabel(value) {
+  if (!value) return "업데이트 시각 확인 중";
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "America/Los_Angeles",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(new Date(value));
 }
 
 function trustStatus(item) {
@@ -1075,7 +1130,23 @@ function priceLabel(value) {
   return value === "free" ? "무료" : value === "paid" ? "유료" : "비용 확인";
 }
 
+function findOutingById(id) {
+  return outings.find((item) => item.id === id)
+    || state.sharedPlan?.items.find((item) => item.id === id)
+    || null;
+}
+
+function publicPageUrl() {
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+function isSharedPlanMode() {
+  return Boolean(sharedPlanToken || state.sharedPlanError);
+}
+
 function filteredOutings() {
+  if (state.sharedPlan) return state.sharedPlan.items;
+  if (state.sharedPlanLoading || state.sharedPlanError) return [];
   if (state.savedOnly) {
     return outings
       .filter((item) => state.saved.has(item.id))
@@ -1175,13 +1246,16 @@ function renderPlanControls(items, issues) {
       <strong>${items.length}개 일정을 날짜별로 모았어요.</strong>
       <span>${issueCount ? `${issueCount}개 일정의 시간을 한 번 더 확인해 주세요.` : "겹치는 일정이 생기면 여기에서 바로 알려드려요."}</span>
     </div>
-    <div class="nap-controls">
-      <label class="nap-toggle"><input id="napEnabled" type="checkbox" ${napWindow.enabled ? "checked" : ""} /><span>낮잠 충돌 표시</span></label>
-      <span class="nap-time-range" aria-label="낮잠 시간">
-        <label><span>시작</span><input id="napStart" type="time" value="${escapeHtml(napWindow.start)}" ${napWindow.enabled ? "" : "disabled"} /></label>
-        <span aria-hidden="true">부터</span>
-        <label><span>끝</span><input id="napEnd" type="time" value="${escapeHtml(napWindow.end)}" ${napWindow.enabled ? "" : "disabled"} /></label>
-      </span>
+    <div class="plan-overview-actions">
+      <div class="nap-controls">
+        <label class="nap-toggle"><input id="napEnabled" type="checkbox" ${napWindow.enabled ? "checked" : ""} /><span>낮잠 충돌 표시</span></label>
+        <span class="nap-time-range" aria-label="낮잠 시간">
+          <label><span>시작</span><input id="napStart" type="time" value="${escapeHtml(napWindow.start)}" ${napWindow.enabled ? "" : "disabled"} /></label>
+          <span aria-hidden="true">부터</span>
+          <label><span>끝</span><input id="napEnd" type="time" value="${escapeHtml(napWindow.end)}" ${napWindow.enabled ? "" : "disabled"} /></label>
+        </span>
+      </div>
+      <button class="primary-action plan-share-action" id="shareSavedPlan" type="button">계획 공유</button>
     </div>
   `;
   cardsEl.append(overview);
@@ -1205,10 +1279,379 @@ function renderPlanControls(items, issues) {
       render();
     });
   });
+  overview.querySelector("#shareSavedPlan").addEventListener("click", async (event) => {
+    event.currentTarget.disabled = true;
+    event.currentTarget.textContent = "링크 준비 중";
+    await syncPublishedPlan(true);
+    event.currentTarget.disabled = false;
+    event.currentTarget.textContent = "계획 공유";
+  });
+}
+
+function planLinks(plan) {
+  const viewUrl = new URL(publicPageUrl());
+  viewUrl.searchParams.set("plan", plan.viewToken);
+  const editUrl = new URL(viewUrl);
+  if (plan.editToken) editUrl.searchParams.set("edit", plan.editToken);
+  return { view: viewUrl.toString(), edit: plan.editToken ? editUrl.toString() : "" };
+}
+
+async function copyText(value) {
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch {
+    const input = document.createElement("textarea");
+    input.value = value;
+    input.setAttribute("readonly", "");
+    input.style.position = "fixed";
+    input.style.opacity = "0";
+    document.body.append(input);
+    input.select();
+    document.execCommand("copy");
+    input.remove();
+  }
+}
+
+function showPlanShareDialog(plan) {
+  const links = planLinks(plan);
+  const editMarkup = links.edit
+    ? `<div class="share-link-row"><label for="editPlanLink"><strong>편집 링크</strong><span>제목과 일정을 함께 바꿀 수 있어요.</span></label><div><input id="editPlanLink" type="text" readonly value="${escapeHtml(links.edit)}" /><button class="secondary-action" type="button" data-copy-plan="edit">복사</button></div></div>`
+    : "";
+  sharePlanBody.innerHTML = `
+    <header class="share-plan-heading"><p>함께 정하는 주말</p><h2>가족에게 계획을 보내세요</h2><span>보기 링크에서는 일정 확인과 의견 남기기만 할 수 있어요.</span></header>
+    <div class="share-link-list">
+      <div class="share-link-row"><label for="viewPlanLink"><strong>보기 링크</strong><span>친구나 가족에게 보내기 좋은 안전한 링크예요.</span></label><div><input id="viewPlanLink" type="text" readonly value="${escapeHtml(links.view)}" /><button class="secondary-action" type="button" data-copy-plan="view">복사</button></div></div>
+      ${editMarkup}
+    </div>
+    <p class="share-privacy">링크를 아는 사람은 계획과 참여자 이름을 볼 수 있어요. 편집 링크는 일정을 바꿀 사람에게만 보내세요.</p>
+    <div class="share-plan-actions"><button class="primary-action" id="nativeSharePlan" type="button">보기 링크 보내기</button></div>
+  `;
+  sharePlanBody.querySelectorAll("[data-copy-plan]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const value = button.dataset.copyPlan === "edit" ? links.edit : links.view;
+      await copyText(value);
+      showToast(button.dataset.copyPlan === "edit" ? "편집 링크를 복사했어요." : "보기 링크를 복사했어요.");
+    });
+  });
+  sharePlanBody.querySelector("#nativeSharePlan").addEventListener("click", async () => {
+    try {
+      if (navigator.share) await navigator.share({ title: plan.title, text: "이번 주말 계획을 같이 골라봐요.", url: links.view });
+      else {
+        await copyText(links.view);
+        showToast("보기 링크를 복사했어요.");
+      }
+    } catch (error) {
+      if (error?.name !== "AbortError") showToast("공유하지 못했어요. 잠시 후 다시 시도해 주세요.");
+    }
+  });
+  if (!sharePlanDialog.open) sharePlanDialog.showModal();
+}
+
+async function planApi(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    headers: {
+      Accept: "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {})
+    }
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(payload.error || "공유 계획을 처리하지 못했어요.");
+    error.status = response.status;
+    throw error;
+  }
+  return payload;
+}
+
+function currentSavedItems() {
+  return outings.filter((item) => state.saved.has(item.id));
+}
+
+async function syncPublishedPlan(showDialog = false) {
+  const items = currentSavedItems();
+  await publishedPlanSync;
+  if (!items.length && !publishedPlan) {
+    showToast("공유할 일정을 먼저 저장해 주세요.");
+    return null;
+  }
+  const title = publishedPlan?.title || "우리 가족 주말 계획";
+  try {
+    if (publishedPlan) {
+      const payload = await planApi(`/api/plans/${publishedPlan.viewToken}`, {
+        method: "PATCH",
+        headers: { "X-Plan-Edit-Token": publishedPlan.editToken },
+        body: JSON.stringify({ title, items })
+      });
+      publishedPlan = { ...publishedPlan, title: payload.title };
+    } else {
+      if (!items.length) return null;
+      const payload = await planApi("/api/plans", {
+        method: "POST",
+        body: JSON.stringify({ title, items })
+      });
+      publishedPlan = {
+        viewToken: payload.viewToken,
+        editToken: payload.editToken,
+        title: payload.title
+      };
+    }
+    persistPublishedPlan();
+    if (showDialog) showPlanShareDialog(publishedPlan);
+    return publishedPlan;
+  } catch (error) {
+    if (publishedPlan && (error.status === 403 || error.status === 404)) {
+      publishedPlan = null;
+      persistPublishedPlan();
+      return syncPublishedPlan(showDialog);
+    }
+    if (showDialog) showToast(error.message);
+    return null;
+  }
+}
+
+function queuePublishedPlanItemChange(itemId, saved) {
+  if (!publishedPlan || isSharedPlanMode()) return;
+  const plan = { ...publishedPlan };
+  publishedPlanSync = publishedPlanSync.then(async () => {
+    if (publishedPlan?.viewToken !== plan.viewToken) return;
+    try {
+      const current = await planApi(`/api/plans/${plan.viewToken}`, {
+        headers: { "X-Plan-Edit-Token": plan.editToken }
+      });
+      const nextItems = current.items.filter((item) => item.id !== itemId);
+      if (saved) {
+        const item = findOutingById(itemId);
+        if (item) nextItems.push(item);
+      }
+      const updated = await planApi(`/api/plans/${plan.viewToken}`, {
+        method: "PATCH",
+        headers: { "X-Plan-Edit-Token": plan.editToken },
+        body: JSON.stringify({ title: current.title, items: nextItems })
+      });
+      publishedPlan = { ...publishedPlan, title: updated.title };
+      persistPublishedPlan();
+    } catch (error) {
+      if ((error.status === 403 || error.status === 404) && publishedPlan?.viewToken === plan.viewToken) {
+        publishedPlan = null;
+        persistPublishedPlan();
+      }
+    }
+  });
+}
+
+function applySharedPlan(payload, preserveEditor = false) {
+  const editorAccess = preserveEditor && state.sharedPlan?.canEdit ? true : Boolean(payload.canEdit);
+  state.sharedPlan = {
+    ...payload,
+    canEdit: editorAccess,
+    items: Array.isArray(payload.items) ? payload.items.map(normalizeOuting) : [],
+    responses: Array.isArray(payload.responses) ? payload.responses : []
+  };
+  state.sharedPlanLoading = false;
+  state.sharedPlanError = "";
+}
+
+async function loadSharedPlan(silent = false) {
+  if (!sharedPlanToken) return;
+  if (!silent) {
+    state.sharedPlanLoading = true;
+    state.sharedPlanError = "";
+    render();
+  }
+  try {
+    const payload = await planApi(`/api/plans/${sharedPlanToken}`, {
+      headers: sharedEditToken ? { "X-Plan-Edit-Token": sharedEditToken } : {}
+    });
+    applySharedPlan(payload);
+    render();
+    openPendingOuting();
+  } catch (error) {
+    if (silent) return;
+    state.sharedPlanLoading = false;
+    state.sharedPlanError = error.message;
+    render();
+  }
+}
+
+async function patchSharedPlan(changes, successMessage) {
+  if (!sharedPlanToken || !sharedEditToken || !state.sharedPlan?.canEdit) return null;
+  try {
+    const payload = await planApi(`/api/plans/${sharedPlanToken}`, {
+      method: "PATCH",
+      headers: { "X-Plan-Edit-Token": sharedEditToken },
+      body: JSON.stringify(changes)
+    });
+    applySharedPlan(payload);
+    if (publishedPlan?.viewToken === sharedPlanToken) {
+      publishedPlan = { ...publishedPlan, title: payload.title };
+      persistPublishedPlan();
+    }
+    render();
+    if (successMessage) showToast(successMessage);
+    return payload;
+  } catch (error) {
+    showToast(error.message);
+    return null;
+  }
+}
+
+async function updateSharedResponse(itemId, response) {
+  const name = participantName.replace(/\s+/g, " ").trim().slice(0, 30);
+  if (!name) {
+    showToast("의견에 표시할 이름을 먼저 적어 주세요.");
+    const input = document.querySelector("#participantName");
+    input?.focus();
+    return;
+  }
+  try {
+    const payload = await planApi(`/api/plans/${sharedPlanToken}/responses`, {
+      method: "PUT",
+      body: JSON.stringify({ participantId, name, itemId, response })
+    });
+    applySharedPlan(payload, true);
+    render();
+    showToast(response === "clear" ? "의견을 지웠어요." : "의견을 남겼어요.");
+  } catch (error) {
+    showToast(error.message);
+  }
+}
+
+function renderSharedPlanControls(items) {
+  const overview = document.createElement("section");
+  overview.className = "shared-plan-overview";
+  overview.setAttribute("aria-label", "공유 계획 참여");
+  const titleMarkup = state.sharedPlan.canEdit
+    ? `<div class="shared-title-edit"><label for="sharedPlanTitle">계획 이름</label><div><input id="sharedPlanTitle" type="text" maxlength="80" value="${escapeHtml(state.sharedPlan.title)}" /><button class="secondary-action" id="saveSharedTitle" type="button">이름 저장</button></div></div>`
+    : `<div class="shared-plan-copy"><strong>${items.length}개 일정을 함께 보고 있어요.</strong><span>${planUpdatedLabel(state.sharedPlan.updatedAt)} 업데이트</span></div>`;
+  const localAdditions = currentSavedItems().filter((item) => !items.some((sharedItem) => sharedItem.id === item.id));
+  overview.innerHTML = `
+    ${titleMarkup}
+    <div class="shared-participant">
+      <label for="participantName"><span>내 이름</span><input id="participantName" type="text" maxlength="30" autocomplete="nickname" placeholder="예: 민지" value="${escapeHtml(participantName)}" /></label>
+      <span>이름을 적고 각 일정에 의견을 남겨 보세요.</span>
+    </div>
+    <div class="shared-plan-tools">
+      <button class="primary-action" id="manageSharedLinks" type="button">보기 링크 공유</button>
+      ${state.sharedPlan.canEdit && localAdditions.length ? `<button class="secondary-action" id="addSavedToShared" type="button">내 저장 ${localAdditions.length}개 추가</button>` : ""}
+      ${state.sharedPlan.canEdit ? '<span class="editor-note">편집 링크로 열었어요.</span>' : ""}
+    </div>
+  `;
+  cardsEl.append(overview);
+
+  const nameInput = overview.querySelector("#participantName");
+  nameInput.addEventListener("input", () => {
+    participantName = nameInput.value.slice(0, 30);
+  });
+  nameInput.addEventListener("change", () => {
+    participantName = nameInput.value.replace(/\s+/g, " ").trim().slice(0, 30);
+    try { localStorage.setItem("little-weekends-participant-name", participantName); } catch { /* Current session still keeps the name. */ }
+  });
+  overview.querySelector("#manageSharedLinks").addEventListener("click", () => {
+    showPlanShareDialog({
+      viewToken: sharedPlanToken,
+      editToken: state.sharedPlan.canEdit ? sharedEditToken : "",
+      title: state.sharedPlan.title
+    });
+  });
+  overview.querySelector("#saveSharedTitle")?.addEventListener("click", async () => {
+    const title = overview.querySelector("#sharedPlanTitle").value.trim();
+    await patchSharedPlan({ title }, "계획 이름을 바꿨어요.");
+  });
+  overview.querySelector("#sharedPlanTitle")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") overview.querySelector("#saveSharedTitle").click();
+  });
+  overview.querySelector("#addSavedToShared")?.addEventListener("click", async () => {
+    const combined = [...items, ...localAdditions].slice(0, 30);
+    await patchSharedPlan({ items: combined }, "내 저장 일정을 계획에 추가했어요.");
+  });
+}
+
+function enhanceSharedPlanCard(card, item) {
+  const responses = state.sharedPlan.responses.filter((response) => response.itemId === item.id);
+  const going = responses.filter((response) => response.response === "going");
+  const maybe = responses.filter((response) => response.response === "maybe");
+  const mine = responses.find((response) => response.participantId === participantId)?.response || "";
+  const controls = document.createElement("div");
+  controls.className = "shared-response";
+  controls.innerHTML = `
+    <div class="shared-response-actions" aria-label="${escapeHtml(item.name)} 참여 의견">
+      <button type="button" data-plan-response="going" aria-pressed="${mine === "going"}" class="${mine === "going" ? "is-active" : ""}">갈래요 <b>${going.length}</b></button>
+      <button type="button" data-plan-response="maybe" aria-pressed="${mine === "maybe"}" class="${mine === "maybe" ? "is-active" : ""}">고민 중 <b>${maybe.length}</b></button>
+      ${state.sharedPlan.canEdit ? `<button class="remove-plan-item" data-remove-plan-item="${escapeHtml(item.id)}" type="button">계획에서 빼기</button>` : ""}
+    </div>
+    <div class="shared-response-names">
+      ${going.length ? `<span><strong>갈래요</strong>${going.map((response) => escapeHtml(response.name)).join(", ")}</span>` : ""}
+      ${maybe.length ? `<span><strong>고민 중</strong>${maybe.map((response) => escapeHtml(response.name)).join(", ")}</span>` : ""}
+      ${!responses.length ? "<span>아직 가족 의견이 없어요.</span>" : ""}
+    </div>
+  `;
+  card.querySelector(".trust").before(controls);
+  controls.querySelectorAll("[data-plan-response]").forEach((button) => {
+    button.addEventListener("click", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      controls.querySelectorAll("button").forEach((control) => { control.disabled = true; });
+      const response = mine === button.dataset.planResponse ? "clear" : button.dataset.planResponse;
+      await updateSharedResponse(item.id, response);
+      controls.querySelectorAll("button").forEach((control) => { control.disabled = false; });
+    });
+  });
+  controls.querySelector("[data-remove-plan-item]")?.addEventListener("click", async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const items = state.sharedPlan.items.filter((planItem) => planItem.id !== item.id);
+    await patchSharedPlan({ items }, `${item.name}을 계획에서 뺐어요.`);
+  });
+}
+
+function renderSharedPlan(items) {
+  renderSharedPlanControls(items);
+  if (!items.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state shared-plan-empty";
+    empty.innerHTML = `<strong>아직 계획에 일정이 없어요.</strong><p>${state.sharedPlan.canEdit ? "내 저장 일정을 추가하거나, 홈에서 새 일정을 저장해 주세요." : "편집 링크를 가진 가족이 일정을 추가하면 이곳에 표시돼요."}</p>`;
+    cardsEl.append(empty);
+    return;
+  }
+  const issues = detectPlanIssues(items, { enabled: false });
+  groupSavedItems(items, pacificDateKey()).forEach((group) => {
+    const heading = document.createElement("div");
+    heading.className = "plan-group-heading";
+    heading.innerHTML = `<h3>${escapeHtml(group.label)}</h3><span>${group.items.length}개</span>`;
+    cardsEl.append(heading);
+    group.items.forEach((item) => {
+      const card = createOutingCard(item, issues[item.id]);
+      card.classList.add("shared-plan-card");
+      enhanceSharedPlanCard(card, item);
+      cardsEl.append(card);
+    });
+  });
+}
+
+function leaveSharedPlan(openSaved = false) {
+  const url = new URL(publicPageUrl());
+  if (openSaved) url.searchParams.set("saved", "1");
+  window.location.assign(url.toString());
 }
 
 function renderCards(items) {
   cardsEl.innerHTML = "";
+
+  if (state.sharedPlanLoading) {
+    cardsEl.innerHTML = '<div class="shared-plan-loading" aria-live="polite"><strong>가족 계획을 불러오고 있어요.</strong><span></span><span></span><span></span></div>';
+    return;
+  }
+  if (state.sharedPlanError) {
+    cardsEl.innerHTML = `<div class="empty-state shared-plan-empty"><strong>공유 계획을 열지 못했어요.</strong><p>${escapeHtml(state.sharedPlanError)}</p><div class="empty-actions"><button class="primary-action" id="sharedPlanHome" type="button">추천 홈으로</button></div></div>`;
+    cardsEl.querySelector("#sharedPlanHome").addEventListener("click", () => leaveSharedPlan(false));
+    return;
+  }
+  if (state.sharedPlan) {
+    renderSharedPlan(items);
+    return;
+  }
 
   if (!items.length) {
     if (state.savedOnly) {
@@ -1300,6 +1743,7 @@ function selectMapItem(id) {
 
 function render() {
   const items = filteredOutings();
+  const sharedMode = isSharedPlanMode();
   const summaries = {
     today: ["오늘의 추천", "낮잠 전에 다녀오기 좋은 가까운 곳"],
     tomorrow: ["내일의 추천", "내일 일정과 언제든 갈 수 있는 곳"],
@@ -1308,14 +1752,19 @@ function render() {
     nextweek: [nextWeekRangeLabel(), "다음 주에 열리는 유아 친화 행사"],
     anytime: ["전체 추천", "날짜에 구애받지 않고 가볼 만한 곳"]
   };
-  const [eyebrow, title] = state.savedOnly
-    ? ["저장한 일정", "우리 가족 주말 계획"]
-    : summaries[state.date];
+  const [eyebrow, title] = sharedMode
+    ? [state.sharedPlan?.canEdit ? "함께 편집하는 계획" : "함께 정하는 계획", state.sharedPlan?.title || "가족 주말 계획"]
+    : state.savedOnly
+      ? ["저장한 일정", "우리 가족 주말 계획"]
+      : summaries[state.date];
   summaryEyebrowEl.textContent = eyebrow;
   summaryTitleEl.textContent = title;
-  summaryEl.textContent = state.savedOnly
-    ? `${items.length}개 일정을 날짜별로 정리했어요.`
-    : `${items.length}개 후보를 찾았어요.`;
+  document.title = sharedMode && state.sharedPlan ? `${state.sharedPlan.title} | Little Weekends` : "Little Weekends Bay Area";
+  summaryEl.textContent = sharedMode
+    ? state.sharedPlanLoading ? "계획을 불러오고 있어요." : `${items.length}개 일정을 함께 보고 있어요.`
+    : state.savedOnly
+      ? `${items.length}개 일정을 날짜별로 정리했어요.`
+      : `${items.length}개 후보를 찾았어요.`;
   document.querySelector("#filterResultCount").textContent = items.length;
   const filterCount = activeFilterCount();
   const filterCountEl = document.querySelector("#filterCount");
@@ -1325,7 +1774,7 @@ function render() {
   document.querySelector("#mobileSavedCount").textContent = state.saved.size;
   document.querySelector("#locationName").textContent = selectedLocation().name;
   document.querySelector("#mapLocationLabel").textContent = `${selectedLocation().name} 중심`;
-  const contextParts = [state.savedOnly ? "저장한 곳" : `${selectedLocation().name} 중심`, dateLabel()];
+  const contextParts = [sharedMode ? "공유 계획" : state.savedOnly ? "저장한 곳" : `${selectedLocation().name} 중심`, dateLabel()];
   if (state.region !== "all") contextParts.push(regionLabels[state.region]);
   if (state.time !== "all") contextParts.push({ morning: "오전", afternoon: "오후", evening: "저녁" }[state.time]);
   document.querySelector("#listContext").textContent = contextParts.join(" / ");
@@ -1334,14 +1783,21 @@ function render() {
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", String(active));
   });
-  document.querySelector("#saveToggle").classList.toggle("is-active", state.savedOnly);
-  document.querySelector("#saveToggle").setAttribute("aria-pressed", state.savedOnly);
-  const visibleView = state.savedOnly ? "list" : state.view;
-  document.querySelector(".toolbar").hidden = state.savedOnly;
+  document.querySelector(".hero").hidden = sharedMode;
+  document.querySelector(".discovery").hidden = sharedMode;
+  document.querySelector(".mobile-nav").hidden = sharedMode;
+  document.querySelector("#locationButton").hidden = sharedMode;
+  document.querySelector("#saveToggle span").textContent = sharedMode ? "내 저장" : "저장";
+  document.querySelector("#saveToggle").setAttribute("aria-label", sharedMode ? "내 저장 일정으로 이동" : "저장한 일정 보기");
+  document.querySelector("#saveToggle").classList.toggle("is-active", !sharedMode && state.savedOnly);
+  document.querySelector("#saveToggle").setAttribute("aria-pressed", String(!sharedMode && state.savedOnly));
+  if (sharedMode) syncStatusEl.textContent = state.sharedPlan ? `${planUpdatedLabel(state.sharedPlan.updatedAt)} 업데이트` : "공유 계획 확인 중";
+  const visibleView = sharedMode || state.savedOnly ? "list" : state.view;
+  document.querySelector(".toolbar").hidden = sharedMode || state.savedOnly;
   document.querySelector("#filterPanel").hidden = true;
   document.querySelector("#filterButton").setAttribute("aria-expanded", "false");
-  document.querySelector(".section-heading").hidden = state.savedOnly;
-  contentGrid.className = `content-grid is-${visibleView}${state.savedOnly ? " is-plan" : ""}`;
+  document.querySelector(".section-heading").hidden = sharedMode || state.savedOnly;
+  contentGrid.className = `content-grid is-${visibleView}${sharedMode || state.savedOnly ? " is-plan" : ""}${sharedMode ? " is-shared-plan" : ""}`;
   document.querySelectorAll("[data-view]").forEach((button) => {
     const active = button.dataset.view === visibleView;
     button.classList.toggle("is-active", active);
@@ -1353,7 +1809,7 @@ function render() {
     button.setAttribute("aria-pressed", String(active));
   });
   renderCards(items);
-  renderMap(items);
+  if (!sharedMode) renderMap(items);
 }
 
 async function loadAutomaticOutings() {
@@ -1371,7 +1827,10 @@ async function loadAutomaticOutings() {
       const validIds = new Set(outings.map((item) => item.id));
       const currentSavedIds = [...state.saved];
       state.saved = new Set(currentSavedIds.filter((id) => validIds.has(id)));
-      if (state.saved.size !== currentSavedIds.length) persistSaved();
+      if (state.saved.size !== currentSavedIds.length) {
+        persistSaved();
+        currentSavedIds.filter((id) => !state.saved.has(id)).forEach((id) => queuePublishedPlanItemChange(id, false));
+      }
     }
     syncStatusEl.textContent = payload.status === "ok"
       ? `${syncTimeLabel(payload.lastSyncedAt)} · 공식 수집처 ${activeSources}곳`
@@ -1386,7 +1845,8 @@ async function loadAutomaticOutings() {
 }
 
 function toggleSaved(id) {
-  const item = outings.find((outing) => outing.id === id);
+  const item = findOutingById(id);
+  if (!item) return;
   if (state.saved.has(id)) {
     state.saved.delete(id);
     showToast(`${item.name} 저장을 해제했어요.`);
@@ -1396,6 +1856,7 @@ function toggleSaved(id) {
   }
   persistSaved();
   render();
+  queuePublishedPlanItemChange(id, state.saved.has(id));
 }
 
 function nearbyAlternatives(item) {
@@ -1417,7 +1878,7 @@ function nearbyAlternatives(item) {
 }
 
 async function shareOuting(item) {
-  const shareUrl = deepLinkUrl(window.location.href, item.id);
+  const shareUrl = deepLinkUrl(publicPageUrl(), item.id);
   const shareData = {
     title: item.name,
     text: `${item.name}\n${item.timeLabel}\n${item.city}`,
@@ -1436,7 +1897,7 @@ async function shareOuting(item) {
 }
 
 function downloadCalendar(item) {
-  const detailUrl = deepLinkUrl(window.location.href, item.id);
+  const detailUrl = deepLinkUrl(publicPageUrl(), item.id);
   const file = buildCalendarFile(item, detailUrl);
   if (!file) {
     showToast("시간이 정해진 행사만 캘린더에 추가할 수 있어요.");
@@ -1454,7 +1915,7 @@ function downloadCalendar(item) {
 }
 
 function openPendingOuting() {
-  if (!pendingOutingId || !outings.some((item) => item.id === pendingOutingId)) return;
+  if (!pendingOutingId || !findOutingById(pendingOutingId)) return;
   const id = pendingOutingId;
   pendingOutingId = null;
   state.selectedId = id;
@@ -1468,7 +1929,7 @@ function clearDetailUrl() {
 }
 
 function openDetail(id) {
-  const item = outings.find((outing) => outing.id === id);
+  const item = findOutingById(id);
   if (!item) return;
 
   window.history.replaceState(null, "", deepLinkUrl(window.location.href, id));
@@ -1672,6 +2133,10 @@ document.querySelector("#searchInput").addEventListener("input", (event) => {
 });
 
 document.querySelector("#saveToggle").addEventListener("click", () => {
+  if (isSharedPlanMode()) {
+    leaveSharedPlan(true);
+    return;
+  }
   state.savedOnly = !state.savedOnly;
   if (state.savedOnly) state.view = "list";
   state.mobileSection = state.savedOnly ? "saved" : "home";
@@ -1737,6 +2202,9 @@ document.querySelectorAll("[data-location-key]").forEach((button) => {
 document.querySelector("#closeLocationDialog").addEventListener("click", () => locationDialog.close());
 locationDialog.addEventListener("click", (event) => { if (event.target === locationDialog) locationDialog.close(); });
 
+document.querySelector("#closeSharePlanDialog").addEventListener("click", () => sharePlanDialog.close());
+sharePlanDialog.addEventListener("click", (event) => { if (event.target === sharePlanDialog) sharePlanDialog.close(); });
+
 document.querySelector("#closeDialog").addEventListener("click", () => {
   detailDialog.close();
 });
@@ -1744,6 +2212,11 @@ document.querySelector("#closeDialog").addEventListener("click", () => {
 detailDialog.addEventListener("click", (event) => { if (event.target === detailDialog) detailDialog.close(); });
 detailDialog.addEventListener("close", clearDetailUrl);
 
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && state.sharedPlan) loadSharedPlan(true);
+});
+
 render();
 openPendingOuting();
 loadAutomaticOutings();
+if (sharedPlanToken) loadSharedPlan();

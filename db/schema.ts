@@ -1,4 +1,4 @@
-import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const events = sqliteTable("events", {
   id: text("id").primaryKey(),
@@ -35,3 +35,27 @@ export const syncState = sqliteTable("sync_state", {
   message: text("message"),
   eventCount: integer("event_count").notNull().default(0),
 });
+
+export const sharedPlans = sqliteTable("shared_plans", {
+  viewToken: text("view_token").primaryKey(),
+  editTokenHash: text("edit_token_hash").notNull(),
+  title: text("title").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const sharedPlanItems = sqliteTable("shared_plan_items", {
+  planToken: text("plan_token").notNull().references(() => sharedPlans.viewToken, { onDelete: "cascade" }),
+  itemId: text("item_id").notNull(),
+  position: integer("position").notNull(),
+  snapshotJson: text("snapshot_json").notNull(),
+}, (table) => [primaryKey({ columns: [table.planToken, table.itemId] })]);
+
+export const sharedPlanResponses = sqliteTable("shared_plan_responses", {
+  planToken: text("plan_token").notNull(),
+  itemId: text("item_id").notNull(),
+  participantId: text("participant_id").notNull(),
+  participantName: text("participant_name").notNull(),
+  response: text("response").notNull(),
+  updatedAt: text("updated_at").notNull(),
+}, (table) => [primaryKey({ columns: [table.planToken, table.itemId, table.participantId] })]);

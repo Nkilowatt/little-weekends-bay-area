@@ -21,12 +21,13 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="reservationFilter"/);
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
+  assert.match(html, /id="sharePlanDialog"/);
   assert.match(html, /evergreen-outings\.js\?v=3/);
-  assert.match(html, /styles\.css\?v=19/);
+  assert.match(html, /styles\.css\?v=20/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=1/);
-  assert.match(html, /app\.js\?v=19/);
+  assert.match(html, /app\.js\?v=20/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
 });
 
@@ -49,6 +50,10 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /function openPendingOuting\(\)/);
   assert.match(script, /groupSavedItems\(items, pacificDateKey\(\)\)/);
   assert.match(script, /little-weekends-nap-window/);
+  assert.match(script, /function syncPublishedPlan\(showDialog = false\)/);
+  assert.match(script, /function loadSharedPlan\(silent = false\)/);
+  assert.match(script, /function updateSharedResponse\(itemId, response\)/);
+  assert.match(script, /X-Plan-Edit-Token/);
   assert.match(script, /emptyExpandDistance/);
 });
 
@@ -69,10 +74,13 @@ test("event date buckets retain Pacific-day semantics", () => {
 test("Sites build contains the event API and security policy", async () => {
   const worker = await readFile(new URL("dist/server/index.js", root), "utf8");
   const eventSync = await readFile(new URL("dist/server/event-sync.js", root), "utf8");
+  const sharedPlans = await readFile(new URL("dist/server/shared-plans.js", root), "utf8");
+  const migration = await readFile(new URL("drizzle/0003_shared_plans.sql", root), "utf8");
 
   assert.match(worker, /pathname === "\/api\/outings"/);
   assert.match(worker, /"\/evergreen-outings\.js"/);
   assert.match(worker, /"\/planning\.js"/);
+  assert.match(worker, /handleSharedPlanRequest/);
   assert.match(worker, /connect-src 'self'/);
   assert.match(eventSync, /min_age_months/);
   assert.match(eventSync, /confidence_status/);
@@ -82,6 +90,10 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(eventSync, /REFRESH_ATTEMPT_COOLDOWN_MS/);
   assert.match(eventSync, /targetSources = force \? sources/);
   assert.match(eventSync, /events\.length \? "public, max-age=300/);
+  assert.match(sharedPlans, /shared_plan_responses/);
+  assert.match(sharedPlans, /x-plan-edit-token/);
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS shared_plans/);
+  assert.match(migration, /FOREIGN KEY \(plan_token, item_id\)/);
 });
 
 test("Sites build serves both Korean webfonts", async () => {

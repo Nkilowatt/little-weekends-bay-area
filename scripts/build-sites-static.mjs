@@ -114,6 +114,7 @@ const entries = Object.fromEntries(
 );
 
 const workerSource = `import { getOutingsResponse, refreshOutings } from "./event-sync.js";
+import { handleSharedPlanRequest } from "./shared-plans.js";
 
 const entries = ${JSON.stringify(entries)};
 const securityHeaders = ${JSON.stringify(securityHeaders)};
@@ -130,6 +131,8 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname.endsWith("/") && url.pathname !== "/" ? url.pathname.slice(0, -1) : url.pathname;
     if (pathname === "/api/outings") return getOutingsResponse(request, env, context);
+    const sharedPlanResponse = await handleSharedPlanRequest(request, env);
+    if (sharedPlanResponse) return sharedPlanResponse;
     const entry = entries[pathname];
 
     if (!entry) {
@@ -158,6 +161,7 @@ const outputPath = join(root, "dist/server/index.js");
 await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, workerSource, "utf8");
 await copyFile(join(root, "worker/event-sync.js"), join(root, "dist/server/event-sync.js"));
+await copyFile(join(root, "worker/shared-plans.js"), join(root, "dist/server/shared-plans.js"));
 const hostingOutputPath = join(root, "dist/.openai/hosting.json");
 await mkdir(dirname(hostingOutputPath), { recursive: true });
 await writeFile(
