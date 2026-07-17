@@ -15,6 +15,7 @@ const MENLO_PARK_EVENTS_URL = "https://www.menlopark.gov/Events-directory";
 const MENLO_PARK_CHILDREN_URL = "https://www.menlopark.gov/Government/Departments/Library-and-Community-Services/Library/About-the-library/Childrens-services";
 const CUPERTINO_LIBRARY_RSS_URL = "https://gateway.bibliocommons.com/v2/libraries/sccl/rss/events?locations=CU";
 const CUPERTINO_EVENTS_URL = "https://www.cupertino.gov/Events-directory";
+const LIBCAL_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
 
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
@@ -118,6 +119,9 @@ const sources = [
     key: "mountain-view-library-family-events",
     url: mountainViewLibraryCalendarUrl,
     accept: "application/json",
+    // LibCal returns 429 for descriptive bot user agents even though this is
+    // the same public JSON requested by its official browser calendar.
+    userAgent: LIBCAL_BROWSER_USER_AGENT,
     parse: parseMountainViewLibraryEvents,
   },
   {
@@ -1695,7 +1699,7 @@ async function syncSource(db, source, now) {
       const response = await fetch(sourceUrl, {
         headers: {
           Accept: source.accept || "text/html,application/xhtml+xml",
-          "User-Agent": "LittleWeekendsBayArea/1.0 (+https://little-weekends-bay-area.cashmire2.chatgpt.site)",
+          "User-Agent": source.userAgent || "LittleWeekendsBayArea/1.0 (+https://little-weekends-bay-area.cashmire2.chatgpt.site)",
         },
         signal: AbortSignal.timeout(15000),
       });
