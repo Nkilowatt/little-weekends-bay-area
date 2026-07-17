@@ -28,12 +28,12 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /id="sharePlanDialog"/);
-  assert.match(html, /evergreen-outings\.js\?v=5/);
+  assert.match(html, /evergreen-outings\.js\?v=6/);
   assert.match(html, /styles\.css\?v=23/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=2/);
-  assert.match(html, /app\.js\?v=25/);
+  assert.match(html, /app\.js\?v=26/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);

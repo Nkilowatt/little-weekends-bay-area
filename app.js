@@ -1,28 +1,5 @@
 let outings = [
   {
-    id: "sfpl-main-toddler",
-    name: "SFPL Main Toddler Storytime",
-    type: "storytime",
-    setting: "indoor",
-    dateBucket: "today",
-    timeLabel: "오늘 10:30 AM",
-    city: "San Francisco",
-    distance: 17.4,
-    age: "16개월-2세",
-    price: "free",
-    reservation: "예약 불필요",
-    source: "https://sfpl.org/kids/kids/events/storytime-sfpl",
-    sourceName: "San Francisco Public Library",
-    updated: "공식 캘린더 확인 필요",
-    why: "짧은 노래와 책 중심이라 첫 도서관 프로그램으로 부담이 낮아요.",
-    notes: {
-      parking: "도심 지점이라 대중교통 또는 유료 주차를 먼저 확인하세요.",
-      bathroom: "도서관 내 화장실 이용 가능.",
-      stroller: "엘리베이터 접근 가능 여부를 방문 전 확인하세요."
-    },
-    location: { lat: 37.7793, lng: -122.4156 }
-  },
-  {
     id: "san-mateo-hillsdale",
     name: "Hillsdale Toddler Storytime",
     type: "storytime",

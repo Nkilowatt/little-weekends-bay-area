@@ -22,7 +22,7 @@ The core experience is:
 - Primary runtime: OpenAI Sites Worker
 - Event API: `/api/outings`
 - Database: D1 binding `DB`
-- Refresh schedule: 25 official sources every six hours
+- Refresh schedule: 26 official sources every six hours
 
 The user interface is lightweight HTML, CSS, and JavaScript, but the primary service now includes a Worker backend and D1 database for automatic official-event updates.
 
@@ -48,16 +48,23 @@ The current basemap is intentionally lightweight:
 - Distances, distance filtering, map origin, and nearest sorting recalculate from the selected location.
 - Recommended sorting scores age specificity, distance, time, source confidence, cost, and reservation burden while pushing repeated series below unique options.
 - Trust is structured as `human_verified`, `source_confirmed`, `recheck`, or `stale`; automatic source parsing is not presented as human verification.
-- The evergreen catalog contains 40 human-reviewed places across five Bay Area regions.
+- The evergreen catalog contains 46 human-reviewed places across five Bay Area regions.
 - Automatic events include `endAt`; API and client checks remove completed programs. Missing end times use 90 minutes, date-only events remain through the Pacific calendar day, and the visible list is re-evaluated on tab return and every 60 seconds.
-- Redwood City 11:59 PM placeholder endings are normalized to 120 minutes for music, performances, and movies or 90 minutes for other single programs. `SOURCE_DATA_REVISION` is 5 so existing D1 rows are refreshed for the expanded source set.
+- Redwood City 11:59 PM placeholder endings are normalized to 120 minutes for music, performances, and movies or 90 minutes for other single programs. `SOURCE_DATA_REVISION` is 6 so existing D1 rows are refreshed for the expanded source set.
 - Source status is current only when that source has a recent successful sync and active future events. Partial coverage is shown as `partial`, and stale-source events become `recheck`.
 - On-demand recovery has a 30-second cooldown and records `syncing` before network fetches to limit repeated external calls and abuse.
-- On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all 25 sources.
+- On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all 26 sources.
+
+## San Francisco Coverage
+
+- SFPL's official early-childhood audience filter is collected across a 45-day range in 50-event pages, with a 12-page envelope so high-volume central branches do not hide neighborhood programs.
+- Each imported SFPL event keeps its exact official event URL, branch name, branch coordinates, structured start/end time, and age-specific label. Canceled, virtual, and older-audience events are excluded.
+- San Francisco Recreation and Parks remains a separate automatic source for toddler programs, concerts, festivals, and other family-friendly outdoor events.
+- Main, Mission Bay, Noe Valley, Glen Park, Richmond, and Sunset libraries are also available as human-reviewed anytime places.
 
 ## Redwood City Coverage
 
-- The official City of Redwood City calendar RSS feed is one of 25 automatic sources.
+- The official City of Redwood City calendar RSS feed is one of 26 automatic sources.
 - The parser keeps toddler storytimes, Tiny Tales, bilingual storytimes, music and movement, puppet shows, and selected family programs while excluding cancellations and unrelated city events.
 - Schaberg, Redwood Shores, Downtown Library, Magical Bridge, and Stafford Park receive location-specific coordinates and parent logistics when the event title identifies the venue.
 - The city RSS feed is capped to the next 50 citywide events. Verified weekly library series are extended through the 45-day window, while the six-hour refresh keeps one-off programs current.
@@ -156,7 +163,7 @@ Imported text is normalized and escaped before HTML rendering. Official source l
 
 ## Important Data Note
 
-The service combines automatically collected official events with 40 human-reviewed evergreen places. Automatic source parsing is not the same as human verification. Before a broader launch:
+The service combines automatically collected official events with 46 human-reviewed evergreen places. Automatic source parsing is not the same as human verification. Before a broader launch:
 
 - Every public event needs an official source URL.
 - Every public event needs freshness metadata.

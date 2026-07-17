@@ -1,6 +1,6 @@
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
 const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
-const SOURCE_DATA_REVISION = 5;
+const SOURCE_DATA_REVISION = 6;
 const FUTURE_WINDOW_DAYS = 45;
 const DEFAULT_EVENT_DURATION_MINUTES = 60;
 const LEGACY_EVENT_GRACE_MINUTES = 90;
@@ -20,6 +20,7 @@ const SANTA_CLARA_EVENTS_RSS_URL = "https://www.santaclaraca.gov/Home/Components
 const CAMPBELL_LIBRARY_RSS_URL = "https://gateway.bibliocommons.com/v2/libraries/sccl/rss/events?locations=CA";
 const CAMPBELL_EVENTS_URL = "https://www.campbellca.gov/calendar.aspx";
 const LOS_GATOS_EVENTS_URL = "https://www.losgatosca.gov/calendar.aspx";
+const SFPL_EVENTS_URL = "https://sfpl.org/events";
 const LIBCAL_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
 
 const monthNames = [
@@ -174,6 +175,11 @@ const sources = [
     key: "los-gatos-family-events",
     urls: losGatosCalendarUrls,
     parse: parseLosGatosFamilyEvents,
+  },
+  {
+    key: "san-francisco-library-family-events",
+    urls: sanFranciscoLibraryCalendarUrls,
+    parse: parseSanFranciscoLibraryEvents,
   },
   {
     key: "sf-rec-park-family-events",
@@ -1227,6 +1233,16 @@ function burlingameCalendarUrlForDate(dateKey) {
   return `https://www.burlingame.org/calendar.aspx?CID=24,26&month=${Number(month)}&view=list&year=${year}`;
 }
 
+function sanFranciscoLibraryCalendarUrls(now = new Date()) {
+  const startDate = pacificDateKey(now);
+  const endDate = addDays(startDate, FUTURE_WINDOW_DAYS);
+  const query = `field_event_audience_target_id=26&date-from=${startDate}&date-to=${endDate}&items_per_page=50`;
+  // SFPL regularly publishes more than 500 early-childhood events in the
+  // 45-day window. Fetch a stable page envelope so busy branches cannot push
+  // quieter neighborhood branches out of a citywide capped result.
+  return Array.from({ length: 12 }, (_, page) => `${SFPL_EVENTS_URL}?${query}&page=${page}`);
+}
+
 function sanFranciscoRecParkCalendarUrls(now = new Date()) {
   const parts = dateParts(now);
   const currentYear = Number(parts.year);
@@ -1407,6 +1423,122 @@ function parsePaloAltoFamilyEvents(html, now = new Date()) {
     });
     if (event) events.set(event.id, event);
   }
+
+  return [...events.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
+}
+
+function sfplLocationsFromHtml(html) {
+  const locations = new Map();
+  const openings = [...html.matchAll(/<div\s+[^>]*class="geolocation-location[^"]*"[^>]*>/gi)];
+  openings.forEach((opening, index) => {
+    const block = html.slice(opening.index, openings[index + 1]?.index ?? html.length);
+    const latitude = Number(opening[0].match(/data-lat="([^"]+)"/i)?.[1]);
+    const longitude = Number(opening[0].match(/data-lng="([^"]+)"/i)?.[1]);
+    const slug = block.match(/href="\/locations\/([^"]+)"/i)?.[1];
+    const name = stripHtml(block.match(/<h4 class="field-content">([\s\S]*?)<\/h4>/i)?.[1] || "");
+    const address = stripHtml(block.match(/class="address-line1">([\s\S]*?)<\/span>/i)?.[1] || "");
+    const postalCode = stripHtml(block.match(/class="postal-code">([\s\S]*?)<\/span>/i)?.[1] || "");
+    if (slug && name && Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      locations.set(slug, { name, address, postalCode, latitude, longitude });
+    }
+  });
+  return locations;
+}
+
+function sfplTimeMinutes(value, startMinutes = null) {
+  const match = String(value || "").trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2] || 0);
+  if (hour > 12 || minute > 59) return null;
+  const meridiem = match[3]?.toUpperCase();
+  if (meridiem) {
+    return (hour % 12 + (meridiem === "PM" ? 12 : 0)) * 60 + minute;
+  }
+
+  const base = (hour % 12) * 60 + minute;
+  if (startMinutes === null) {
+    if (hour === 12) return 12 * 60 + minute;
+    return hour >= 8 ? base : base + 12 * 60;
+  }
+  return [base, base + 12 * 60].find((candidate) => candidate >= startMinutes && candidate <= startMinutes + 4 * 60) ?? null;
+}
+
+function displayClockFromMinutes(minutes) {
+  const normalized = minutes % (24 * 60);
+  const hour = Math.floor(normalized / 60);
+  const minute = normalized % 60;
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${String(minute).padStart(2, "0")} ${hour >= 12 ? "PM" : "AM"}`;
+}
+
+function parseSanFranciscoLibraryEvents(html, now = new Date()) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const branchLocations = sfplLocationsFromHtml(html);
+  const events = new Map();
+  const openings = [...html.matchAll(/<article about="(\/events\/[^"]+)" class="event\b[^"]*"[^>]*>/gi)];
+
+  openings.forEach((opening, index) => {
+    const block = html.slice(opening.index, openings[index + 1]?.index ?? html.length);
+    const path = decodeHtml(opening[1]);
+    const name = stripHtml(block.match(/class="event__title"[\s\S]*?<span>([\s\S]*?)<\/span>/i)?.[1] || "");
+    const dateText = stripHtml(block.match(/class="date-display-range">([\s\S]*?)<\/span>/i)?.[1] || "");
+    const dateMatch = dateText.match(/(\d{1,2})\/(\d{1,2})\/(20\d{2}),\s*(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)\s*[-–—]\s*(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)/i);
+    const locationSlug = block.match(/class="event__location"[\s\S]*?href="\/locations\/([^"]+)"/i)?.[1];
+    const context = stripHtml(block);
+    if (!name || !dateMatch || !locationSlug || /virtual-library|bookmobiles|kiosk/i.test(locationSlug)) return;
+    if (!/babies-toddlers-or-preschoolers|Babies, Toddlers or Preschoolers|storytime|baby|toddler|preschool|play to learn|family music/i.test(block)) return;
+    if (/\b(?:adults?|teens?|middle school)\b/i.test(context) || /\b(?:virtual|online|zoom)\b/i.test(context) || eventIsCancelled(name, context)) return;
+
+    const dateKey = `${dateMatch[3]}-${String(dateMatch[1]).padStart(2, "0")}-${String(dateMatch[2]).padStart(2, "0")}`;
+    if (dateKey < today || dateKey > lastDate) return;
+    const startMinutes = sfplTimeMinutes(dateMatch[4]);
+    const endMinutes = sfplTimeMinutes(dateMatch[5], startMinutes);
+    if (startMinutes === null) return;
+
+    const branch = branchLocations.get(locationSlug) || {
+      name: locationSlug.split("-").map((part) => part[0]?.toUpperCase() + part.slice(1)).join(" "),
+      latitude: 37.7749,
+      longitude: -122.4194,
+    };
+    const label = branch.name === "Main" ? "SFPL Main Library" : `${branch.name} Branch Library`;
+    const location = {
+      label,
+      city: "San Francisco",
+      distance: distanceFromSanMateo(branch.latitude, branch.longitude),
+      latitude: branch.latitude,
+      longitude: branch.longitude,
+      parking: `${label} 주변 주차와 대중교통 정보를 공식 지점 페이지에서 확인하세요.`,
+      bathroom: "도서관 내 화장실을 이용할 수 있어요.",
+      stroller: "지점의 유모차 접근 동선을 공식 행사 페이지에서 확인하세요.",
+    };
+    const storytime = /storytime/i.test(context);
+    const age = /bab(?:y|ies)/i.test(name)
+      ? "0-18개월"
+      : /toddler/i.test(name)
+        ? "18개월-3세"
+        : /preschool/i.test(name)
+          ? "3-5세"
+          : "0-6세·가족";
+    const durationMinutes = endMinutes === null ? (storytime ? 30 : 60) : Math.max(15, endMinutes - startMinutes);
+    const event = makeEvent({
+      sourceKey: "san-francisco-library-family-events",
+      sourceUrl: new URL(path, SFPL_EVENTS_URL).href,
+      sourceName: "San Francisco Public Library",
+      name,
+      dateKey,
+      time: displayClockFromMinutes(startMinutes),
+      location,
+      type: storytime ? "storytime" : "indoor",
+      age,
+      price: "free",
+      reservation: "정원과 등록 여부는 공식 행사 페이지 확인",
+      why: "SFPL 공식 일정에서 확인한 영유아 대상 도서관 프로그램이에요.",
+      durationMinutes,
+    });
+    if (event) events.set(event.id, event);
+  });
 
   return [...events.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
 }
@@ -2334,11 +2466,13 @@ export {
   redwoodCityEffectiveEnd,
   parseSantaClaraCityEvents,
   parseSantaClaraLibraryEvents,
+  parseSanFranciscoLibraryEvents,
   parseSanFranciscoRecParkEvents,
   parseSanMateoCityEvents,
   parseSanMateoCountyLibraryEvents,
   parseSanMateoStorytimes,
   parseSouthSanFranciscoStorytimes,
   refreshOutings,
+  sanFranciscoLibraryCalendarUrls,
   sourceIsCurrent,
 };

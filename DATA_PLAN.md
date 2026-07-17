@@ -28,8 +28,8 @@ Primary source categories:
 
 Verified source examples to seed first:
 
-- San Francisco Public Library storytime pages: https://sfpl.org/kids/kids/events/storytime-sfpl
-- San Francisco Public Library kids events: https://sfpl.org/kids/events
+- San Francisco Public Library early-childhood events: https://sfpl.org/events?field_event_audience_target_id=26
+- San Francisco Public Library locations: https://sfpl.org/locations
 - San Jose Public Library storytimes: https://www.sjpl.org/storytimes/
 - Palo Alto City Library storytimes: https://library.cityofpaloalto.org/program-storytimes/
 - Sunnyvale kids events: https://www.library.sunnyvale.ca.gov/events/kids-events

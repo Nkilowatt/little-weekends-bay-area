@@ -16,12 +16,14 @@ import {
   parseRedwoodCityEvents,
   parseSantaClaraCityEvents,
   parseSantaClaraLibraryEvents,
+  parseSanFranciscoLibraryEvents,
   parseSanFranciscoRecParkEvents,
   parseSanMateoCityEvents,
   parseSanMateoCountyLibraryEvents,
   parseSanMateoStorytimes,
   parseSouthSanFranciscoStorytimes,
   redwoodCityEffectiveEnd,
+  sanFranciscoLibraryCalendarUrls,
   sourceIsCurrent,
 } from "../worker/event-sync.js";
 
@@ -128,6 +130,30 @@ const fixtures = {
   losGatosCity: `
     <div class="hidden" itemscope itemtype="http://schema.org/Event"><span itemprop="name">Los Gatos Music in the Park</span><span itemprop="startDate">2026-07-26T17:00:00</span><p itemprop="description">A family-friendly outdoor concert.</p><span itemprop="location"><span itemprop="name">Civic Center Lawn</span><span itemprop="address"><span itemprop="streetAddress">110 E. Main Street</span></span></span></div><p></p>
   `,
+  sanFranciscoLibrary: `
+    <div data-views-row-index="0" class="geolocation-location js-hide" data-lat="37.7753" data-lng="-122.393">
+      <h4 class="field-content">Mission Bay</h4><a href="/locations/mission-bay">View branch page</a>
+      <span class="address-line1">960 4th Street</span><span class="postal-code">94158</span>
+    </div>
+    <article about="/events/2026/07/13/storytime-toddlers" class="event event--teaser event--babies-toddlers-or-preschoolers teaser">
+      <span class="date-display-range">Monday, 7/13/2026, 10:30 - 11:00</span>
+      <h2 class="event__title"><span>Storytime: For Toddlers</span></h2>
+      <div class="event__audience">Babies, Toddlers or Preschoolers</div>
+      <div class="event__location"><a href="/locations/mission-bay">Mission Bay</a></div>
+    </article>
+    <article about="/events/2026/07/14/activity-family-music" class="event event--teaser event--babies-toddlers-or-preschoolers teaser">
+      <span class="date-display-range">Tuesday, 7/14/2026, 3:00 - 3:45</span>
+      <h2 class="event__title"><span>Activity: Family Music Circle</span></h2>
+      <div class="event__audience">Babies, Toddlers or Preschoolers</div>
+      <div class="event__location"><a href="/locations/mission-bay">Mission Bay</a></div>
+    </article>
+    <article about="/events/2026/07/15/canceled-storytime" class="event event--teaser event--babies-toddlers-or-preschoolers teaser">
+      <span class="date-display-range">Wednesday, 7/15/2026, 10:30 - 11:00</span>
+      <h2 class="event__title"><span>Canceled Storytime: For Families</span></h2>
+      <div class="event__audience">Babies, Toddlers or Preschoolers</div>
+      <div class="event__location"><a href="/locations/mission-bay">Mission Bay</a></div>
+    </article>
+  `,
   sanFranciscoRecPark: `
     <li><h3><a id="eventTitle_10044"><span>Union Square Daily Programming: Toddler Tuesdays</span></a></h3>
       <div class="hidden" itemscope itemtype="http://schema.org/Event"><span itemprop="name">Union Square Daily Programming: Toddler Tuesdays</span><span itemprop="startDate">2026-07-14T10:00:00</span><p itemprop="description">Come out for Toddler Tuesdays from 10 am to 11:30 am.</p>
@@ -158,6 +184,7 @@ test("all official-source parser families retain their expected fixture contract
     parseCampbellFamilyEvents(fixtures.campbellCity, now),
     parseLosGatosLibraryEvents(fixtures.losGatosLibrary, now),
     parseLosGatosFamilyEvents(fixtures.losGatosCity, now),
+    parseSanFranciscoLibraryEvents(fixtures.sanFranciscoLibrary, now),
     parseSanFranciscoRecParkEvents(fixtures.sanFranciscoRecPark, now),
   ];
 
@@ -195,6 +222,7 @@ test("all official-source parser families retain their expected fixture contract
   assert.ok(allEvents.some((event) => event.sourceKey === "campbell-family-events" && event.city === "Campbell"));
   assert.ok(allEvents.some((event) => event.sourceKey === "los-gatos-library-family-events" && event.city === "Los Gatos"));
   assert.ok(allEvents.some((event) => event.sourceKey === "los-gatos-family-events" && event.city === "Los Gatos"));
+  assert.ok(allEvents.some((event) => event.sourceKey === "san-francisco-library-family-events" && event.city === "San Francisco"));
 
   const sanFranciscoEvent = allEvents.find((event) => event.sourceKey === "sf-rec-park-family-events");
   assert.equal(sanFranciscoEvent.city, "San Francisco");
@@ -206,7 +234,7 @@ test("source health requires success, freshness, and active future events", () =
     status: "ok",
     last_success_at: "2026-07-12T15:00:00.000Z",
     active_event_count: 4,
-    data_revision: 5,
+    data_revision: 6,
   };
 
   assert.equal(sourceIsCurrent(healthy, now), true);
@@ -276,6 +304,23 @@ test("Santa Clara, Campbell, and Los Gatos retain both library and local-event c
   assert.ok(campbellCity.some((event) => event.city === "Campbell" && event.name.includes("Touch-A-Truck")));
   assert.ok(losGatosLibrary.some((event) => event.city === "Los Gatos" && event.name === "Storytime (Ages 0-5)"));
   assert.ok(losGatosCity.some((event) => event.city === "Los Gatos" && event.name === "Los Gatos Music in the Park"));
+});
+
+test("San Francisco library coverage keeps paginated branch-level early-childhood events", () => {
+  const urls = sanFranciscoLibraryCalendarUrls(now);
+  const events = parseSanFranciscoLibraryEvents(fixtures.sanFranciscoLibrary, now);
+
+  assert.equal(urls.length, 12);
+  assert.ok(urls.every((url) => url.includes("field_event_audience_target_id=26")));
+  assert.ok(urls.every((url) => url.includes("items_per_page=50")));
+  assert.ok(urls.some((url) => url.endsWith("page=11")));
+  assert.equal(events.length, 2);
+  assert.ok(events.every((event) => event.city === "San Francisco" && event.sourceName === "San Francisco Public Library"));
+  assert.ok(events.every((event) => event.sourceUrl.startsWith("https://sfpl.org/events/2026/")));
+  assert.ok(events.every((event) => event.latitude === 37.7753 && event.longitude === -122.393));
+  assert.equal(events[0].age, "18개월-3세");
+  assert.equal(new Date(events[0].endAt) - new Date(events[0].startAt), 30 * 60000);
+  assert.equal(new Date(events[1].endAt) - new Date(events[1].startAt), 45 * 60000);
 });
 
 test("source count anomaly guard catches parser collapses without flagging normal drift", () => {
