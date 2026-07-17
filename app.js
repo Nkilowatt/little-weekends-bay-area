@@ -425,6 +425,7 @@ const officialSourceHosts = new Set([
   "smcgov.org",
   "smcl.org",
   "ssfca.gov",
+  "sunnyvale.ca.gov",
   "traintown.com",
   "visithalfmoonbay.org"
 ]);
@@ -572,6 +573,7 @@ const locationOptions = {
   "palo-alto": { name: "Palo Alto", lat: 37.4419, lng: -122.1430 },
   "menlo-park": { name: "Menlo Park", lat: 37.4530, lng: -122.1817 },
   "mountain-view": { name: "Mountain View", lat: 37.3861, lng: -122.0839 },
+  sunnyvale: { name: "Sunnyvale", lat: 37.3688, lng: -122.0363 },
   cupertino: { name: "Cupertino", lat: 37.3230, lng: -122.0322 },
   "santa-clara": { name: "Santa Clara", lat: 37.3541, lng: -121.9552 },
   campbell: { name: "Campbell", lat: 37.2872, lng: -121.9500 },

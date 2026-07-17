@@ -22,9 +22,12 @@ import {
   parseSanMateoCountyLibraryEvents,
   parseSanMateoStorytimes,
   parseSouthSanFranciscoStorytimes,
+  parseSunnyvaleCityEvents,
+  parseSunnyvaleLibraryEvents,
   redwoodCityEffectiveEnd,
   sanFranciscoLibraryCalendarUrls,
   sourceIsCurrent,
+  sunnyvaleLibraryCalendarUrls,
 } from "../worker/event-sync.js";
 
 const now = new Date("2026-07-12T16:00:00.000Z");
@@ -96,6 +99,24 @@ const fixtures = {
     <div class="list-item-container homepage-show"><article><a href="https://www.menlopark.gov/events/family-puppet"><h2 class="list-item-title">Family Puppet Show</h2><p class="event-date published-on small-text">Saturday, July 18, 2026 | 10:00 AM to 11:00 AM</p><p>Stories and puppets for little ones.</p><p class="list-item-address">Menlo Park Library, 800 Alma St., Menlo Park, CA 94025</p><p class="tagged-as-list">Events for families, Events for children</p></a></article></div>
   `,
   mountainViewLibrary: JSON.stringify([{ id: 1, title: "Toddler Storytime", start: "2026-07-16T10:30:00", end: "2026-07-16T11:00:00", url: "https://mountainview.libcal.com/event/1", short_desc: "Stories and songs for toddlers.", location: "1st Floor Program Room", audiences: "Toddlers, Families", categories: "Storytime", in_person_registration: false }]),
+  sunnyvaleLibrary: `
+    <td class="calendar_day calendar_day_with_items" aria-label="Scheduled events, Tuesday, July 14, 2026">
+      <div class="calendar_items"><div class="calendar_item"><span class="calendar_eventtime">11:00 AM</span><a class="calendar_eventlink" href="https://www-library-sunnyvale-ca-gov.translate.goog/Home/Components/Calendar/Event/11529/129?curm=7&amp;cury=2026&amp;direct=true&amp;_x_tr_sl=en" title="Toddler Time with Mariela's Music Time">Toddler Time</a></div></div>
+    </td>
+    <td class="calendar_day calendar_day_with_items" aria-label="Scheduled events, Wednesday, July 15, 2026">
+      <div class="calendar_items"><div class="calendar_item"><span class="calendar_eventtime">3:00 PM</span><a class="calendar_eventlink" href="https://www-library-sunnyvale-ca-gov.translate.goog/Home/Components/Calendar/Event/11557/129?curm=7&amp;cury=2026" title="School-Age STEM Days">School-Age STEM Days</a></div></div>
+    </td>
+  `,
+  sunnyvaleCity: `
+    <td class="calendar_day calendar_day_with_items" aria-label="Scheduled events, Saturday, July 18, 2026">
+      <div class="calendar_items">
+        <div class="calendar_item"><span class="calendar_eventtime">9:30 AM</span><a class="calendar_eventlink" href="https://www-sunnyvale-ca-gov.translate.goog/Home/Components/Calendar/Event/11588/19?curm=7&amp;cury=2026&amp;direct=true" title="Fun on the Run - Ponderosa Park">Fun on the Run</a></div>
+        <div class="calendar_item"><span class="calendar_eventtime">11:00 AM</span><a class="calendar_eventlink" href="https://www-sunnyvale-ca-gov.translate.goog/Home/Components/Calendar/Event/11693/19?curm=7&amp;cury=2026&amp;direct=true" title="Family Storytime">Family Storytime</a></div>
+        <div class="calendar_item"><span class="calendar_eventtime">2:00 PM</span><a class="calendar_eventlink" href="https://www-sunnyvale-ca-gov.translate.goog/Home/Components/Calendar/Event/12000/19?curm=7&amp;cury=2026&amp;direct=true" title="Family Harvest Food Giveaway Program">Family Harvest Food Giveaway Program</a></div>
+        <div class="calendar_item"><span class="calendar_eventtime">3:00 PM</span><a class="calendar_eventlink" href="https://www-sunnyvale-ca-gov.translate.goog/Home/Components/Calendar/Event/12001/19?curm=7&amp;cury=2026&amp;direct=true" title="Family Movie: Goat">Family Movie</a></div>
+      </div>
+    </td>
+  `,
   cupertinoLibrary: `
     <rss><channel><item><title>Toddler Storytime</title><category>Early Learning &amp; Storytimes</category><category>Kids: Toddlers</category>
       <bc:is_cancelled>false</bc:is_cancelled><bc:is_virtual>false</bc:is_virtual><bc:start_date>2026-07-16T17:30:00.000Z</bc:start_date><bc:end_date>2026-07-16T18:00:00.000Z</bc:end_date><bc:start_date_local>2026-07-16T10:30:00</bc:start_date_local>
@@ -176,6 +197,8 @@ test("all official-source parser families retain their expected fixture contract
     parseSanMateoCountyLibraryEvents(fixtures.paloAltoLibrary, now, "palo-alto-library-family-events", "Palo Alto City Library"),
     parseMenloParkFamilyEvents(fixtures.menloPark, now),
     parseMountainViewLibraryEvents(fixtures.mountainViewLibrary, now),
+    parseSunnyvaleLibraryEvents(fixtures.sunnyvaleLibrary, now),
+    parseSunnyvaleCityEvents(fixtures.sunnyvaleCity, now),
     parseSanMateoCountyLibraryEvents(fixtures.cupertinoLibrary, now, "cupertino-library-family-events", "Santa Clara County Library District"),
     parseCupertinoFamilyEvents(fixtures.cupertinoCity, now),
     parseSantaClaraLibraryEvents(fixtures.santaClaraLibrary, now),
@@ -214,6 +237,8 @@ test("all official-source parser families retain their expected fixture contract
   assert.ok(allEvents.some((event) => event.sourceKey === "palo-alto-library-family-events" && event.city === "Palo Alto"));
   assert.ok(allEvents.some((event) => event.sourceKey === "menlo-park-family-events" && event.city === "Menlo Park"));
   assert.ok(allEvents.some((event) => event.sourceKey === "mountain-view-library-family-events" && event.city === "Mountain View"));
+  assert.ok(allEvents.some((event) => event.sourceKey === "sunnyvale-library-family-events" && event.city === "Sunnyvale"));
+  assert.ok(allEvents.some((event) => event.sourceKey === "sunnyvale-family-events" && event.city === "Sunnyvale"));
   assert.ok(allEvents.some((event) => event.sourceKey === "cupertino-library-family-events" && event.city === "Cupertino"));
   assert.ok(allEvents.some((event) => event.sourceKey === "cupertino-family-events" && event.city === "Cupertino"));
   assert.ok(allEvents.some((event) => event.sourceKey === "santa-clara-library-family-events" && event.city === "Santa Clara"));
@@ -234,7 +259,7 @@ test("source health requires success, freshness, and active future events", () =
     status: "ok",
     last_success_at: "2026-07-12T15:00:00.000Z",
     active_event_count: 4,
-    data_revision: 6,
+    data_revision: 7,
   };
 
   assert.equal(sourceIsCurrent(healthy, now), true);
@@ -304,6 +329,25 @@ test("Santa Clara, Campbell, and Los Gatos retain both library and local-event c
   assert.ok(campbellCity.some((event) => event.city === "Campbell" && event.name.includes("Touch-A-Truck")));
   assert.ok(losGatosLibrary.some((event) => event.city === "Los Gatos" && event.name === "Storytime (Ages 0-5)"));
   assert.ok(losGatosCity.some((event) => event.city === "Los Gatos" && event.name === "Los Gatos Music in the Park"));
+});
+
+test("Sunnyvale keeps library storytimes and city family events separate", () => {
+  const urls = sunnyvaleLibraryCalendarUrls(now);
+  const libraryEvents = parseSunnyvaleLibraryEvents(fixtures.sunnyvaleLibrary, now);
+  const cityEvents = parseSunnyvaleCityEvents(fixtures.sunnyvaleCity, now);
+
+  assert.equal(urls.length, 2);
+  assert.ok(urls.every((url) => url.startsWith("https://www-library-sunnyvale-ca-gov.translate.goog/events/kids-events/")));
+  assert.ok(urls.some((url) => url.includes("-curm-7/-cury-2026")));
+  assert.ok(urls.some((url) => url.includes("-curm-8/-cury-2026")));
+  assert.equal(libraryEvents.length, 1);
+  assert.equal(libraryEvents[0].name, "Toddler Time with Mariela's Music Time");
+  assert.equal(libraryEvents[0].age, "2-5세");
+  assert.ok(libraryEvents[0].sourceUrl.startsWith("https://www.library.sunnyvale.ca.gov/Home/Components/Calendar/Event/"));
+  assert.equal(cityEvents.length, 1);
+  assert.equal(cityEvents[0].name, "Fun on the Run - Ponderosa Park");
+  assert.equal(cityEvents[0].setting, "outdoor");
+  assert.ok(cityEvents[0].sourceUrl.startsWith("https://www.sunnyvale.ca.gov/Home/Components/Calendar/Event/"));
 });
 
 test("San Francisco library coverage keeps paginated branch-level early-childhood events", () => {

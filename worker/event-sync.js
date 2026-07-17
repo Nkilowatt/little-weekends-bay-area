@@ -1,6 +1,6 @@
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
 const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
-const SOURCE_DATA_REVISION = 6;
+const SOURCE_DATA_REVISION = 7;
 const FUTURE_WINDOW_DAYS = 45;
 const DEFAULT_EVENT_DURATION_MINUTES = 60;
 const LEGACY_EVENT_GRACE_MINUTES = 90;
@@ -20,6 +20,8 @@ const SANTA_CLARA_EVENTS_RSS_URL = "https://www.santaclaraca.gov/Home/Components
 const CAMPBELL_LIBRARY_RSS_URL = "https://gateway.bibliocommons.com/v2/libraries/sccl/rss/events?locations=CA";
 const CAMPBELL_EVENTS_URL = "https://www.campbellca.gov/calendar.aspx";
 const LOS_GATOS_EVENTS_URL = "https://www.losgatosca.gov/calendar.aspx";
+const SUNNYVALE_LIBRARY_EVENTS_URL = "https://www.library.sunnyvale.ca.gov/events/kids-events";
+const SUNNYVALE_CITY_EVENTS_URL = "https://www.sunnyvale.ca.gov/news-center-and-events-calendar/city-calendar";
 const SFPL_EVENTS_URL = "https://sfpl.org/events";
 const LIBCAL_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
 
@@ -129,6 +131,16 @@ const sources = [
     // the same public JSON requested by its official browser calendar.
     userAgent: LIBCAL_BROWSER_USER_AGENT,
     parse: parseMountainViewLibraryEvents,
+  },
+  {
+    key: "sunnyvale-library-family-events",
+    urls: sunnyvaleLibraryCalendarUrls,
+    parse: parseSunnyvaleLibraryEvents,
+  },
+  {
+    key: "sunnyvale-family-events",
+    urls: sunnyvaleCityCalendarUrls,
+    parse: parseSunnyvaleCityEvents,
   },
   {
     key: "cupertino-library-family-events",
@@ -811,6 +823,172 @@ function parseMountainViewLibraryEvents(json, now = new Date()) {
     }
     return [event];
   }).toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
+}
+
+function sunnyvaleCalendarProxyUrls(host, path, now = new Date()) {
+  const parts = dateParts(now);
+  const currentYear = Number(parts.year);
+  const currentMonth = Number(parts.month);
+  const nextMonthDate = new Date(Date.UTC(currentYear, currentMonth, 1));
+  const monthUrl = (year, month) => `https://${host}${path}/-curm-${month}/-cury-${year}/-direct-true?_x_tr_sl=en&_x_tr_tl=es&_x_tr_hl=en&_x_tr_pto=wapp`;
+  return [
+    monthUrl(currentYear, currentMonth),
+    monthUrl(nextMonthDate.getUTCFullYear(), nextMonthDate.getUTCMonth() + 1),
+  ];
+}
+
+function sunnyvaleLibraryCalendarUrls(now = new Date()) {
+  // Sunnyvale links its Google Translate mirror from the official site. The
+  // mirror carries the same calendar markup while avoiding the site's Akamai
+  // block on server-to-server requests; public event links remain canonical.
+  return sunnyvaleCalendarProxyUrls("www-library-sunnyvale-ca-gov.translate.goog", "/events/kids-events", now);
+}
+
+function sunnyvaleCityCalendarUrls(now = new Date()) {
+  return sunnyvaleCalendarProxyUrls("www-sunnyvale-ca-gov.translate.goog", "/news-center-and-events-calendar/city-calendar", now);
+}
+
+function sunnyvaleCalendarItems(html) {
+  const items = [];
+  const cellPattern = new RegExp(`<td[^>]*class="[^"]*calendar_(?:day|weekendday)[^"]*"[^>]*aria-label="Scheduled events,[^"]*?,\\s*(${monthNames.join("|")})\\s+(\\d{1,2}),\\s*(20\\d{2})"[^>]*>([\\s\\S]*?)<\\/td>`, "gi");
+  let cell;
+  while ((cell = cellPattern.exec(html))) {
+    const monthIndex = monthNames.findIndex((month) => month.toLowerCase() === cell[1].toLowerCase());
+    if (monthIndex < 0) continue;
+    const dateKey = `${cell[3]}-${String(monthIndex + 1).padStart(2, "0")}-${String(cell[2]).padStart(2, "0")}`;
+    const itemPattern = /<div[^>]*class="calendar_item"[^>]*>([\s\S]*?)<\/div>/gi;
+    let item;
+    while ((item = itemPattern.exec(cell[4]))) {
+      const time = stripHtml(item[1].match(/<span[^>]*class="calendar_eventtime"[^>]*>([\s\S]*?)<\/span>/i)?.[1] || "");
+      const anchor = item[1].match(/<a\b([^>]*\bclass="[^"]*calendar_eventlink[^"]*"[^>]*)>([\s\S]*?)<\/a>/i);
+      const attributes = anchor?.[1] || "";
+      const name = stripHtml(attributes.match(/\btitle="([^"]+)"/i)?.[1] || anchor?.[2] || "");
+      const href = decodeHtml(attributes.match(/\bhref="([^"]+)"/i)?.[1] || "");
+      if (name && time && parseClock(time)) items.push({ dateKey, time, name, href });
+    }
+  }
+  return items;
+}
+
+function sunnyvaleOfficialEventUrl(rawHref, library) {
+  const fallback = library ? SUNNYVALE_LIBRARY_EVENTS_URL : SUNNYVALE_CITY_EVENTS_URL;
+  try {
+    const translated = new URL(rawHref);
+    const canonical = new URL(translated.pathname, library ? "https://www.library.sunnyvale.ca.gov" : "https://www.sunnyvale.ca.gov");
+    ["curm", "cury", "direct"].forEach((key) => {
+      const value = translated.searchParams.get(key);
+      if (value) canonical.searchParams.set(key, value);
+    });
+    return canonical.href;
+  } catch {
+    return fallback;
+  }
+}
+
+function sunnyvaleLocation(context, defaultToLibrary = false) {
+  const locations = [
+    { match: /Washington Park/i, label: "Washington Park", latitude: 37.3713, longitude: -122.0436, outdoor: true },
+    { match: /Fairwood Park/i, label: "Fairwood Park", latitude: 37.3978, longitude: -122.0182, outdoor: true },
+    { match: /Fair Oaks Park|Magical Bridge/i, label: "Magical Bridge Playground at Fair Oaks Park", latitude: 37.3811, longitude: -122.0143, outdoor: true },
+    { match: /Ponderosa Park/i, label: "Ponderosa Park", latitude: 37.3474, longitude: -122.0096, outdoor: true },
+    { match: /Columbia Park/i, label: "Columbia Park", latitude: 37.3952, longitude: -122.0077, outdoor: true },
+    { match: /Las Palmas Park/i, label: "Las Palmas Park", latitude: 37.3652, longitude: -122.0386, outdoor: true },
+    { match: /Lakewood Park/i, label: "Lakewood Park", latitude: 37.4028, longitude: -122.0065, outdoor: true },
+    { match: /Music \+ Market|Murphy|Downtown Sunnyvale/i, label: "Downtown Sunnyvale", latitude: 37.3764, longitude: -122.0307, outdoor: true },
+  ];
+  const fallback = defaultToLibrary
+    ? { label: "Sunnyvale Public Library", latitude: 37.3716, longitude: -122.0381, outdoor: false }
+    : { label: "City of Sunnyvale", latitude: 37.3688, longitude: -122.0363, outdoor: false };
+  const selected = locations.find((location) => location.match.test(context)) || fallback;
+  const library = /Library/i.test(selected.label);
+  return {
+    ...selected,
+    city: "Sunnyvale",
+    distance: distanceFromSanMateo(selected.latitude, selected.longitude),
+    parking: library
+      ? "도서관 주차장과 프로그램 시간대 혼잡도를 확인하세요."
+      : `${selected.label}의 주차 위치와 행사일 운영 안내를 공식 페이지에서 확인하세요.`,
+    bathroom: library ? "도서관 내 화장실을 이용할 수 있어요." : "공원 또는 행사장 화장실 위치와 운영 여부를 확인하세요.",
+    stroller: library ? "출입구와 어린이 공간까지 유모차로 이동할 수 있어요." : "공원과 행사장의 유모차 이동 동선을 공식 안내에서 확인하세요.",
+  };
+}
+
+function sunnyvaleLibraryAge(name) {
+  if (/baby|lapsit/i.test(name)) return "0-12개월";
+  if (/toddler/i.test(name)) return "2-5세";
+  if (/preschool/i.test(name)) return "3-5세";
+  if (/little messy art/i.test(name)) return "2-5세";
+  return "0-6세·가족";
+}
+
+function parseSunnyvaleLibraryEvents(html, now = new Date()) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const relevant = /baby|lapsit|toddler|preschool little learners|little messy art|family storytime|storytime|music and movement|family fun night|family movie|puppet|ventriloquist|magic|bubble|jamaroo|malinky|early learning playtime/i;
+  const excluded = /school-age|grades?\s*[1-9]|teen|coding|book sale|library clos|bike safety|paper circuit/i;
+  const events = new Map();
+
+  sunnyvaleCalendarItems(html).forEach((item) => {
+    if (item.dateKey < today || item.dateKey > lastDate || !relevant.test(item.name) || excluded.test(item.name) || eventIsCancelled(item.name)) return;
+    const location = sunnyvaleLocation(item.name, true);
+    const storytime = /storytime|little learners|toddler time|lapsit/i.test(item.name);
+    const outdoor = location.outdoor;
+    const durationMinutes = /family fun night|family movie/i.test(item.name) ? 120 : /lapsit|playtime/i.test(item.name) ? 90 : 60;
+    const event = makeEvent({
+      sourceKey: "sunnyvale-library-family-events",
+      sourceUrl: sunnyvaleOfficialEventUrl(item.href, true),
+      sourceName: "Sunnyvale Public Library",
+      name: item.name,
+      dateKey: item.dateKey,
+      time: item.time,
+      location,
+      setting: outdoor ? "outdoor" : "indoor",
+      type: storytime ? "storytime" : outdoor ? "seasonal" : "indoor",
+      age: sunnyvaleLibraryAge(item.name),
+      price: "free",
+      reservation: "예약 불필요 · 정원과 장소는 공식 페이지 확인",
+      why: outdoor
+        ? "Sunnyvale 공식 어린이 일정에서 확인한 공원 가족 프로그램이에요."
+        : "Sunnyvale Public Library 공식 일정에서 확인한 영유아 프로그램이에요.",
+      durationMinutes,
+    });
+    if (event) events.set(event.id, event);
+  });
+
+  return [...events.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
+}
+
+function parseSunnyvaleCityEvents(html, now = new Date()) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const relevant = /fun on the run|summer series music \+ market|family (?:day|night|festival|concert|celebration)|kids? (?:day|festival|concert|activity)|children'?s (?:day|festival)|festival|parade|movie|music|concert|touch-a-truck|carnival|night market|holiday|tree lighting|celebration/i;
+  const excluded = /meeting|commission|committee|adult|senior|library|storytime|baby|toddler|preschool|family fun night|family movie|food giveaway|grocery|distribution|book sale|sewing lab|get connected/i;
+  const events = new Map();
+
+  sunnyvaleCalendarItems(html).forEach((item) => {
+    if (item.dateKey < today || item.dateKey > lastDate || !relevant.test(item.name) || excluded.test(item.name) || eventIsCancelled(item.name)) return;
+    const location = sunnyvaleLocation(item.name);
+    const durationMinutes = /music \+ market|festival|parade|carnival|night market/i.test(item.name) ? 240 : /fun on the run/i.test(item.name) ? 180 : 120;
+    const event = makeEvent({
+      sourceKey: "sunnyvale-family-events",
+      sourceUrl: sunnyvaleOfficialEventUrl(item.href, false),
+      sourceName: "City of Sunnyvale",
+      name: item.name,
+      dateKey: item.dateKey,
+      time: item.time,
+      location,
+      setting: location.outdoor ? "outdoor" : "indoor",
+      type: "seasonal",
+      age: "가족·전 연령",
+      price: /fun on the run|music \+ market/i.test(item.name) ? "free" : "check",
+      reservation: "예약과 세부 장소는 공식 행사 페이지 확인",
+      why: "Sunnyvale 시 공식 일정에서 확인한 어린이와 가족 대상 지역행사예요.",
+      durationMinutes,
+    });
+    if (event) events.set(event.id, event);
+  });
+
+  return [...events.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
 }
 
 function losGatosLibraryCalendarUrl(now = new Date()) {
@@ -2472,7 +2650,10 @@ export {
   parseSanMateoCountyLibraryEvents,
   parseSanMateoStorytimes,
   parseSouthSanFranciscoStorytimes,
+  parseSunnyvaleCityEvents,
+  parseSunnyvaleLibraryEvents,
   refreshOutings,
   sanFranciscoLibraryCalendarUrls,
   sourceIsCurrent,
+  sunnyvaleLibraryCalendarUrls,
 };

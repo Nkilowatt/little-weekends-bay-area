@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-07-16
+Last updated: 2026-07-17
 
 This roadmap is organized as small, handoff-friendly tasks for future chat sessions.
 
@@ -11,12 +11,12 @@ OpenAI Sites is now the primary service. Time-trust recovery and mobile decision
 ### P0.5 Stabilization Completed
 
 - Results default to the inclusive 12-47 month range.
-- 21 human-reviewed evergreen places cover San Francisco, Peninsula, South Bay, East Bay, and North Bay.
+- 48 human-reviewed evergreen places cover San Francisco, Peninsula, South Bay, East Bay, and North Bay.
 - Scheduled events carry an end time so completed programs leave today's results.
 - Source health requires a recent successful sync and active future events for every source.
 - Partial syncs are shown honestly and stale-source events are downgraded to recheck.
 - External event text is escaped and official links use an HTTPS host allowlist.
-- Regression fixtures cover all seven automatic source parsers, including Redwood City.
+- Regression fixtures cover all 28 automatic sources, including Redwood City, San Francisco, and Sunnyvale.
 
 ### P1 Discovery Polish Completed
 
@@ -33,9 +33,9 @@ OpenAI Sites is now the primary service. Time-trust recovery and mobile decision
 
 - Redwood City 11:59 PM placeholder endings are replaced with practical 90- or 120-minute durations while normal explicit and all-day endings are preserved.
 - API and client time guards remove ended events, retain date-only events through the Pacific day, and re-evaluate visible results on focus and every 60 seconds.
-- Source data revision 4 forces existing D1 events through the corrected parser and expanded 19-source coverage.
-- Palo Alto, Menlo Park, Mountain View, and Cupertino now have dedicated official library or city-family feeds plus nine human-reviewed library destinations.
-- The regression suite contains 28 passing Node tests covering parser normalization, API omission, client status, grouping, imagery, amenity rendering, and South Peninsula source coverage.
+- Source data revision 7 forces existing D1 events through the corrected parser and expanded 28-source coverage.
+- Palo Alto, Menlo Park, Mountain View, Sunnyvale, Cupertino, Santa Clara, Campbell, Los Gatos, and San Francisco now have dedicated official library or city-family feeds plus human-reviewed library destinations.
+- The regression suite contains 32 passing Node tests covering parser normalization, API omission, client status, grouping, imagery, amenity rendering, and regional source coverage.
 
 ### 0. Primary Deployment And Git Reconciliation
 

@@ -33,6 +33,7 @@ Verified source examples to seed first:
 - San Jose Public Library storytimes: https://www.sjpl.org/storytimes/
 - Palo Alto City Library storytimes: https://library.cityofpaloalto.org/program-storytimes/
 - Sunnyvale kids events: https://www.library.sunnyvale.ca.gov/events/kids-events
+- City of Sunnyvale calendar: https://www.sunnyvale.ca.gov/news-center-and-events-calendar/city-calendar
 - Santa Clara City Library storytime: https://www.sclibrary.org/kids-teens/kids/storytime
 - Santa Clara City Library official events RSS: https://www.santaclaraca.gov/Home/Components/RssFeeds/RssFeed/View?id=12
 - Campbell Library events: https://sccl.bibliocommons.com/v2/events?locations=CA
@@ -107,6 +108,7 @@ Optional recurrence fields:
 ## Ingestion Cautions
 
 - Library calendars often have structured recurring events, but page formats vary by city.
+- Sunnyvale's official domains block server-to-server calendar requests at Akamai. Use the translation mirror linked by the official site only for ingestion, and always rewrite public event links to the canonical `sunnyvale.ca.gov` or `library.sunnyvale.ca.gov` URL.
 - Some event pages are stale or reuse old URLs, so every imported event needs a freshness timestamp.
 - Seasonal events can change hours and ticket rules quickly.
 - Do not show unverified events as confirmed.
@@ -124,7 +126,7 @@ First place batch:
 
 First event batch:
 
-- Storytime events from SFPL, San Mateo, South San Francisco, Redwood City, and Santa Clara County libraries.
+- Storytime events from SFPL, San Mateo, South San Francisco, Redwood City, Sunnyvale, and Santa Clara County libraries.
 - Museum toddler hours where official schedules are clear.
 - A small set of seasonal weekend events that can be manually verified.
 

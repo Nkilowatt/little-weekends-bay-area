@@ -11,16 +11,19 @@ test("curated evergreen catalog covers the core peninsula library baseline", asy
   vm.runInNewContext(script, context);
   const catalog = context.window.LITTLE_WEEKENDS_EVERGREEN;
 
-  assert.ok(catalog.length >= 46);
+  assert.ok(catalog.length >= 48);
   assert.equal(new Set(catalog.map((item) => item.id)).size, catalog.length);
   assert.ok(catalog.every((item) => item.confidenceStatus === "human_verified"));
   assert.ok(catalog.every((item) => item.lastReviewedAt >= "2026-07-12" && item.lastReviewedAt <= "2026-07-17"));
   assert.ok(catalog.every((item) => new URL(item.source).protocol === "https:"));
   assert.ok(new Set(catalog.map((item) => item.city)).size >= 8);
-  ["San Francisco", "Belmont", "Foster City", "San Carlos", "Millbrae", "Burlingame", "Palo Alto", "Menlo Park", "Mountain View", "Cupertino", "Santa Clara", "Campbell", "Los Gatos"].forEach((city) => {
+  ["San Francisco", "Belmont", "Foster City", "San Carlos", "Millbrae", "Burlingame", "Palo Alto", "Menlo Park", "Mountain View", "Sunnyvale", "Cupertino", "Santa Clara", "Campbell", "Los Gatos"].forEach((city) => {
     assert.ok(catalog.some((item) => item.city === city));
   });
   ["sfpl-main-library-family-place", "sfpl-mission-bay-library-family-place", "sfpl-noe-valley-library-family-place", "sfpl-glen-park-library-family-place", "sfpl-richmond-library-family-place", "sfpl-sunset-library-family-place"].forEach((id) => {
+    assert.ok(catalog.some((item) => item.id === id));
+  });
+  ["sunnyvale-public-library-family-place", "sunnyvale-magical-bridge-playground"].forEach((id) => {
     assert.ok(catalog.some((item) => item.id === id));
   });
 });
