@@ -684,7 +684,7 @@ function mountainViewLibraryCalendarUrl(now = new Date()) {
     start,
     end,
   });
-  return `https://mountainview.libcal.com/widget/events/calendar/list?${query}`;
+  return `https://api3.libcal.com/widget/events/calendar/list?${query}`;
 }
 
 function parseMountainViewLibraryEvents(json, now = new Date()) {
