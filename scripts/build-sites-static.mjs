@@ -78,6 +78,51 @@ const files = {
     contentType: "image/webp",
     binary: true,
   },
+  "/assets/mobile-moments/park-walk.jpg": {
+    path: "assets/mobile-moments/park-walk.jpg",
+    contentType: "image/jpeg",
+    binary: true,
+  },
+  "/assets/mobile-moments/library-picture-book.jpg": {
+    path: "assets/mobile-moments/library-picture-book.jpg",
+    contentType: "image/jpeg",
+    binary: true,
+  },
+  "/assets/mobile-moments/family-storytime.jpg": {
+    path: "assets/mobile-moments/family-storytime.jpg",
+    contentType: "image/jpeg",
+    binary: true,
+  },
+  "/assets/mobile-moments/playground-morning.jpg": {
+    path: "assets/mobile-moments/playground-morning.jpg",
+    contentType: "image/jpeg",
+    binary: true,
+  },
+  "/assets/mobile-moments/nature-trail.jpg": {
+    path: "assets/mobile-moments/nature-trail.jpg",
+    contentType: "image/jpeg",
+    binary: true,
+  },
+  "/assets/mobile-moments/rainy-puddles.jpg": {
+    path: "assets/mobile-moments/rainy-puddles.jpg",
+    contentType: "image/jpeg",
+    binary: true,
+  },
+  "/assets/mobile-moments/discovery-gallery.jpg": {
+    path: "assets/mobile-moments/discovery-gallery.jpg",
+    contentType: "image/jpeg",
+    binary: true,
+  },
+  "/assets/mobile-moments/community-festival.jpg": {
+    path: "assets/mobile-moments/community-festival.jpg",
+    contentType: "image/jpeg",
+    binary: true,
+  },
+  "/assets/mobile-moments/music-movement.jpg": {
+    path: "assets/mobile-moments/music-movement.jpg",
+    contentType: "image/jpeg",
+    binary: true,
+  },
   "/favicon.svg": {
     path: "favicon.svg",
     contentType: "image/svg+xml; charset=utf-8",

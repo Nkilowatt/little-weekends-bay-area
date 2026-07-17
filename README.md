@@ -11,7 +11,7 @@ Working alpha for a Bay Area toddler outings service. It helps parents of 1-3 ye
 
 The UI remains lightweight HTML, CSS, and JavaScript. OpenAI Sites serves those assets and the same-origin event API. A static fallback remains available when the API is delayed.
 
-The current P1 experience includes structured 1-3 age filtering, selectable Bay Area origin hubs including Redwood City, Menlo Park, Palo Alto, Mountain View, and Cupertino, event-first date groups, region/time/reservation/amenity filters, concise recommendation reasons, actionable empty states, nearby alternatives, sharing, and 35 human-reviewed evergreen places across the Bay Area. Mobile discovery keeps search visible, uses a compact hero, and prioritizes directions and official information in the detail action bar.
+The current P1 experience includes structured 1-3 age filtering, selectable Bay Area origin hubs including Redwood City, Menlo Park, Palo Alto, Mountain View, and Cupertino, event-first date groups, region/time/reservation/amenity filters, concise recommendation reasons, actionable empty states, nearby alternatives, sharing, and 35 human-reviewed evergreen places across the Bay Area. Mobile discovery keeps search visible, uses a compact hero, and prioritizes directions and official information in the detail action bar. A nine-scene contextual photo banner adds a warmer family moment without implying that generated activity imagery depicts a named venue; its scene stays stable for the same Pacific date, origin city, and discovery context.
 
 The old Netlify URL is a legacy entry point. Once the current Git history is reconciled and pushed, Netlify will redirect visitors to the OpenAI Sites deployment.
 

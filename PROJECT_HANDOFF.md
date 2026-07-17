@@ -88,6 +88,7 @@ The current basemap is intentionally lightweight:
 - Detail panels provide native sharing with clipboard fallback and three deduplicated nearby alternatives.
 - Images support optional actual/context provenance, while fallback category art is labeled `활동 예시`. Parking, bathroom, changing-table, and stroller notes use the same confirmed/unknown status model.
 - At 768px and below the hero is compact, search is always visible, filter fields are grouped by decision stage, and the sticky detail action area leads with directions and official information without hiding save/share/calendar actions.
+- Mobile places a labeled contextual photo moment between the compact hero title and discovery controls. Nine generated scenes are selected deterministically from Pacific date, origin city, date tab, search, and activity filters, so the image does not jump on refresh and is never presented as a named venue photo.
 - The first save exposes a `계획 보기` action, and the saved view explains date grouping, nap and schedule conflict checks, calendar export, and family sharing.
 
 ## Current Code Shape

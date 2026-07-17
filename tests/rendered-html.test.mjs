@@ -26,12 +26,16 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /id="sharePlanDialog"/);
   assert.match(html, /evergreen-outings\.js\?v=4/);
-  assert.match(html, /styles\.css\?v=21/);
+  assert.match(html, /styles\.css\?v=22/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=2/);
-  assert.match(html, /app\.js\?v=22/);
+  assert.match(html, /app\.js\?v=23/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
+  assert.match(html, /id="mobileMoment" hidden/);
+  assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
+  assert.match(html, /오늘의 작은 장면/);
+  assert.match(html, /활동 이미지/);
 });
 
 test("client bundle includes decision filters, recovery actions, and detail alternatives", async () => {
@@ -63,6 +67,11 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /itemImageCaption\(item\)/);
   assert.match(script, /amenityRow\("기저귀 교환대"/);
   assert.match(script, /isOutingCurrent\(item\)/);
+  assert.match(script, /const mobileMomentScenes = Object\.freeze/);
+  assert.match(script, /function stableMomentIndex\(value\)/);
+  assert.match(script, /function mobileMomentScene\(\)/);
+  assert.match(script, /function syncMobileMoment\(\)/);
+  assert.equal((script.match(/assets\/mobile-moments\/[a-z-]+\.jpg/g) || []).length, 9);
 });
 
 test("age labels normalize to month ranges", () => {
@@ -116,6 +125,28 @@ test("Sites build serves both Korean webfonts", async () => {
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("content-type"), "font/woff2");
     assert.ok((await response.arrayBuffer()).byteLength > 100_000);
+  }
+});
+
+test("Sites build serves all nine mobile moment photos", async () => {
+  const { default: worker } = await import(new URL("../dist/server/index.js", import.meta.url));
+  const routes = [
+    "park-walk",
+    "library-picture-book",
+    "family-storytime",
+    "playground-morning",
+    "nature-trail",
+    "rainy-puddles",
+    "discovery-gallery",
+    "community-festival",
+    "music-movement",
+  ];
+
+  for (const name of routes) {
+    const response = await worker.fetch(new Request(`https://little-weekends.test/assets/mobile-moments/${name}.jpg`), {}, {});
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("content-type"), "image/jpeg");
+    assert.ok((await response.arrayBuffer()).byteLength > 80_000);
   }
 });
 
