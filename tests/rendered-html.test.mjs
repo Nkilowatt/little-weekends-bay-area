@@ -15,6 +15,9 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="locationDialog"/);
   assert.match(html, /data-location-key="oakland"/);
   assert.match(html, /data-location-key="redwood-city"/);
+  assert.match(html, /data-location-key="menlo-park"/);
+  assert.match(html, /data-location-key="mountain-view"/);
+  assert.match(html, /data-location-key="cupertino"/);
   assert.match(html, /value="tomorrow">내일/);
   assert.match(html, /id="regionFilter"/);
   assert.match(html, /id="timeFilter"/);
@@ -22,12 +25,12 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /id="sharePlanDialog"/);
-  assert.match(html, /evergreen-outings\.js\?v=3/);
+  assert.match(html, /evergreen-outings\.js\?v=4/);
   assert.match(html, /styles\.css\?v=21/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=2/);
-  assert.match(html, /app\.js\?v=21/);
+  assert.match(html, /app\.js\?v=22/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
 });
 

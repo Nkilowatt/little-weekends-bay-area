@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-07-15
+Last updated: 2026-07-16
 
 This roadmap is organized as small, handoff-friendly tasks for future chat sessions.
 
@@ -33,8 +33,9 @@ OpenAI Sites is now the primary service. Time-trust recovery and mobile decision
 
 - Redwood City 11:59 PM placeholder endings are replaced with practical 90- or 120-minute durations while normal explicit and all-day endings are preserved.
 - API and client time guards remove ended events, retain date-only events through the Pacific day, and re-evaluate visible results on focus and every 60 seconds.
-- Source data revision 3 forces existing D1 events through the corrected parser.
-- The regression suite contains 27 passing Node tests covering parser normalization, API omission, client status, grouping, imagery, and amenity rendering.
+- Source data revision 4 forces existing D1 events through the corrected parser and expanded 19-source coverage.
+- Palo Alto, Menlo Park, Mountain View, and Cupertino now have dedicated official library or city-family feeds plus nine human-reviewed library destinations.
+- The regression suite contains 28 passing Node tests covering parser normalization, API omission, client status, grouping, imagery, amenity rendering, and South Peninsula source coverage.
 
 ### 0. Primary Deployment And Git Reconciliation
 

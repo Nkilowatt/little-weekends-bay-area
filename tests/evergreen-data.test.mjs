@@ -11,13 +11,13 @@ test("curated evergreen catalog covers the core peninsula library baseline", asy
   vm.runInNewContext(script, context);
   const catalog = context.window.LITTLE_WEEKENDS_EVERGREEN;
 
-  assert.ok(catalog.length >= 26);
+  assert.ok(catalog.length >= 35);
   assert.equal(new Set(catalog.map((item) => item.id)).size, catalog.length);
   assert.ok(catalog.every((item) => item.confidenceStatus === "human_verified"));
-  assert.ok(catalog.every((item) => item.lastReviewedAt >= "2026-07-12" && item.lastReviewedAt <= "2026-07-13"));
+  assert.ok(catalog.every((item) => item.lastReviewedAt >= "2026-07-12" && item.lastReviewedAt <= "2026-07-16"));
   assert.ok(catalog.every((item) => new URL(item.source).protocol === "https:"));
   assert.ok(new Set(catalog.map((item) => item.city)).size >= 8);
-  ["Belmont", "Foster City", "San Carlos", "Millbrae", "Burlingame"].forEach((city) => {
+  ["Belmont", "Foster City", "San Carlos", "Millbrae", "Burlingame", "Palo Alto", "Menlo Park", "Mountain View", "Cupertino"].forEach((city) => {
     assert.ok(catalog.some((item) => item.city === city));
   });
 });

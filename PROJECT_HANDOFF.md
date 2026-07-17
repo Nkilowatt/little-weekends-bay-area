@@ -1,6 +1,6 @@
 # Project Handoff
 
-Last updated: 2026-07-13
+Last updated: 2026-07-16
 
 ## Product
 
@@ -22,7 +22,7 @@ The core experience is:
 - Primary runtime: OpenAI Sites Worker
 - Event API: `/api/outings`
 - Database: D1 binding `DB`
-- Refresh schedule: 12 official sources every six hours
+- Refresh schedule: 19 official sources every six hours
 
 The user interface is lightweight HTML, CSS, and JavaScript, but the primary service now includes a Worker backend and D1 database for automatic official-event updates.
 
@@ -48,12 +48,12 @@ The current basemap is intentionally lightweight:
 - Distances, distance filtering, map origin, and nearest sorting recalculate from the selected location.
 - Recommended sorting scores age specificity, distance, time, source confidence, cost, and reservation burden while pushing repeated series below unique options.
 - Trust is structured as `human_verified`, `source_confirmed`, `recheck`, or `stale`; automatic source parsing is not presented as human verification.
-- The evergreen catalog contains 26 human-reviewed places across five Bay Area regions.
+- The evergreen catalog contains 35 human-reviewed places across five Bay Area regions.
 - Automatic events include `endAt`; API and client checks remove completed programs. Missing end times use 90 minutes, date-only events remain through the Pacific calendar day, and the visible list is re-evaluated on tab return and every 60 seconds.
-- Redwood City 11:59 PM placeholder endings are normalized to 120 minutes for music, performances, and movies or 90 minutes for other single programs. `SOURCE_DATA_REVISION` is 3 so existing D1 rows are refreshed.
+- Redwood City 11:59 PM placeholder endings are normalized to 120 minutes for music, performances, and movies or 90 minutes for other single programs. `SOURCE_DATA_REVISION` is 4 so existing D1 rows are refreshed for the expanded source set.
 - Source status is current only when that source has a recent successful sync and active future events. Partial coverage is shown as `partial`, and stale-source events become `recheck`.
 - On-demand recovery has a 30-second cooldown and records `syncing` before network fetches to limit repeated external calls and abuse.
-- On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all 12 sources.
+- On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all 19 sources.
 
 ## Redwood City Coverage
 
@@ -68,6 +68,14 @@ The current basemap is intentionally lightweight:
 - Stable weekly storytimes from those feeds extend through the 45-day window; one-off maker, performance, and seasonal programs remain tied to their official event records.
 - Burlingame uses the official city library calendar for the current and following month, including Main Library and Easton Branch family programs.
 - All five libraries are also available as human-reviewed anytime places.
+
+## South Peninsula And West Valley Coverage
+
+- Palo Alto City Library's official BiblioCommons feed covers Children's, Mitchell Park, Rinconada, Downtown, and College Terrace library programs in addition to the existing city family calendar.
+- Menlo Park combines its official children-and-family event directory with the published weekly storytime schedule, including Menlo Park Library and Belle Haven Library.
+- Mountain View Public Library uses its official public LibCal JSON with baby, toddler, preschool, family, storytime, STEAM, music, and park programs filtered for in-person use.
+- Cupertino combines the branch-filtered Santa Clara County Library BiblioCommons feed with the City of Cupertino `Kids & family` event directory.
+- Menlo Park, Mountain View, and Cupertino are selectable distance origins. Nine library locations across Palo Alto, Menlo Park, Mountain View, and Cupertino are available as human-reviewed anytime places.
 
 ## Current P1 Discovery Baseline
 

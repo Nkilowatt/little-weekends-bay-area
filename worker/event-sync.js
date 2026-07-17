@@ -1,6 +1,6 @@
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
 const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
-const SOURCE_DATA_REVISION = 3;
+const SOURCE_DATA_REVISION = 4;
 const FUTURE_WINDOW_DAYS = 45;
 const DEFAULT_EVENT_DURATION_MINUTES = 60;
 const LEGACY_EVENT_GRACE_MINUTES = 90;
@@ -10,6 +10,11 @@ const LEGACY_EVENT_GRACE_MINUTES = 90;
 const REFRESH_ATTEMPT_COOLDOWN_MS = 30 * 1000;
 const REDWOOD_CITY_RSS_URL = "https://www.redwoodcity.org/Home/Components/RssFeeds/RssFeed/View?id=1";
 const PALO_ALTO_EVENTS_URL = "https://www.paloalto.gov/Events-Directory";
+const PALO_ALTO_LIBRARY_RSS_URL = "https://gateway.bibliocommons.com/v2/libraries/paloalto/rss/events";
+const MENLO_PARK_EVENTS_URL = "https://www.menlopark.gov/Events-directory";
+const MENLO_PARK_CHILDREN_URL = "https://www.menlopark.gov/Government/Departments/Library-and-Community-Services/Library/About-the-library/Childrens-services";
+const CUPERTINO_LIBRARY_RSS_URL = "https://gateway.bibliocommons.com/v2/libraries/sccl/rss/events?locations=CU";
+const CUPERTINO_EVENTS_URL = "https://www.cupertino.gov/Events-directory";
 
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
@@ -97,6 +102,34 @@ const sources = [
     key: "palo-alto-family-events",
     url: PALO_ALTO_EVENTS_URL,
     parse: parsePaloAltoFamilyEvents,
+  },
+  {
+    key: "palo-alto-library-family-events",
+    url: PALO_ALTO_LIBRARY_RSS_URL,
+    accept: "application/rss+xml,application/xml,text/xml",
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "palo-alto-library-family-events", "Palo Alto City Library"),
+  },
+  {
+    key: "menlo-park-family-events",
+    urls: () => [MENLO_PARK_EVENTS_URL, MENLO_PARK_CHILDREN_URL],
+    parse: parseMenloParkFamilyEvents,
+  },
+  {
+    key: "mountain-view-library-family-events",
+    url: mountainViewLibraryCalendarUrl,
+    accept: "application/json",
+    parse: parseMountainViewLibraryEvents,
+  },
+  {
+    key: "cupertino-library-family-events",
+    url: CUPERTINO_LIBRARY_RSS_URL,
+    accept: "application/rss+xml,application/xml,text/xml",
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "cupertino-library-family-events", "Santa Clara County Library District"),
+  },
+  {
+    key: "cupertino-family-events",
+    url: CUPERTINO_EVENTS_URL,
+    parse: parseCupertinoFamilyEvents,
   },
   {
     key: "sf-rec-park-family-events",
@@ -523,7 +556,7 @@ function eventWhy(name, categories) {
 }
 
 function expandSanMateoCountyRecurringEvents(events, now = new Date()) {
-  const stableRecurringProgram = /^(?:Baby Bounce(?: Storytime)?(?: (?:With|with) Stay (?:and|&) Play!?)?|Toddler Storytime(?: (?:With|with) Stay (?:and|&) Play!?)?|Family Storytime(?: (?:With|with) Stay (?:and|&) Play!?)?|Bilingual .*Storytime.*|.* Bilingual Storytime.*|中英雙語故事時間.*)$/i;
+  const stableRecurringProgram = /^(?:Baby Bounce(?: Storytime)?(?: (?:With|with) Stay (?:and|&) Play!?)?|Baby Storytime|Toddler Storytime(?: (?:With|with) Stay (?:and|&) Play!?)?|Family Storytime(?: at [^:]+)?(?: (?:With|with) Stay (?:and|&) Play!?)?|Little Ones Storytime|Music & Movement|Bilingual .*Storytime.*|.* Bilingual (?:Family )?Storytime.*|中英雙語故事時間.*)$/i;
   const lastDate = addDays(pacificDateKey(now), FUTURE_WINDOW_DAYS);
   const expanded = new Map();
   const recurringSeries = new Set();
@@ -560,7 +593,7 @@ function expandSanMateoCountyRecurringEvents(events, now = new Date()) {
   return [...expanded.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
 }
 
-function parseSanMateoCountyLibraryEvents(xml, now = new Date(), sourceKey = sources[2].key) {
+function parseSanMateoCountyLibraryEvents(xml, now = new Date(), sourceKey = sources[2].key, sourceName = "San Mateo County Libraries") {
   const today = pacificDateKey(now);
   const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
   const events = [];
@@ -570,11 +603,16 @@ function parseSanMateoCountyLibraryEvents(xml, now = new Date(), sourceKey = sou
   while ((item = itemPattern.exec(xml))) {
     const block = item[1];
     const categories = xmlValues(block, "category");
-    const audienceMatch = categories.some((category) => /Preschoolers \(0-5\)|All Ages/i.test(category));
-    const childMatch = categories.some((category) => /Children \(6-11\)/i.test(category));
     const name = xmlValue(block, "title");
     const broadlyKidFriendly = /animal|music|puppet|magic|play|dance|family|kids|craft|maker|steam|story/i.test(`${name} ${categories.join(" ")}`);
+    const youngChildAudience = categories.some((category) => /Preschoolers? \(0-5\)|Pre-schoolers|Preschoolers|Babies|Toddlers|Kids: (?:Babies|Preschoolers|Toddlers)/i.test(category));
+    const familyAudience = categories.some((category) => /All Ages|Kids: Family Events/i.test(category));
+    const audienceMatch = youngChildAudience || (familyAudience && broadlyKidFriendly);
+    const childMatch = categories.some((category) => /Children \(6-11\)|Kids \(6-11\)|Kids: Grades K-8/i.test(category));
+    const olderOnlyProgram = /\b(?:ESL|conversation club|book club|tai chi|origami|adult|teen|grades? [1-9])\b/i.test(name)
+      && !/family|baby|toddler|preschool|storytime|music|puppet|animal|magic|dance|play/i.test(name);
     if (!audienceMatch && !(childMatch && broadlyKidFriendly)) continue;
+    if (olderOnlyProgram) continue;
     if (xmlValue(block, "bc:is_cancelled") === "true" || xmlValue(block, "bc:is_virtual") === "true") continue;
 
     const startAt = xmlValue(block, "bc:start_date");
@@ -610,7 +648,7 @@ function parseSanMateoCountyLibraryEvents(xml, now = new Date(), sourceKey = sou
     const event = makeEvent({
       sourceKey,
       sourceUrl: xmlValue(block, "link"),
-      sourceName: "San Mateo County Libraries",
+      sourceName,
       name,
       dateKey,
       time: displayClockFrom24(localTime),
@@ -629,6 +667,270 @@ function parseSanMateoCountyLibraryEvents(xml, now = new Date(), sourceKey = sou
   }
 
   return expandSanMateoCountyRecurringEvents(events, now);
+}
+
+function mountainViewLibraryCalendarUrl(now = new Date()) {
+  const start = pacificDateKey(now);
+  const end = addDays(start, FUTURE_WINDOW_DAYS + 1);
+  const query = new URLSearchParams({
+    iid: "3989",
+    c: "8800",
+    sp: "1",
+    timezone: PACIFIC_TIME_ZONE,
+    start,
+    end,
+  });
+  return `https://mountainview.libcal.com/widget/events/calendar/list?${query}`;
+}
+
+function parseMountainViewLibraryEvents(json, now = new Date()) {
+  let records;
+  try {
+    records = JSON.parse(json);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(records)) return [];
+
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const youngChildAudience = /Babies|Toddlers|Preschoolers/i;
+  const broadFamilyAudience = /Families|All Ages/i;
+  const familyProgram = /storytime|baby|toddler|preschool|family|read to|music|dance|puppet|animal|wildlife|steam|craft|play|kids|children/i;
+  const excluded = /Adults|Seniors|Teens|Tweens/i;
+  const location = {
+    label: "Mountain View Public Library",
+    city: "Mountain View",
+    distance: distanceFromSanMateo(37.3992, -122.1095),
+    latitude: 37.3992,
+    longitude: -122.1095,
+    parking: "Franklin Street와 주변 공영 주차 정보를 도서관 안내에서 확인하세요.",
+    bathroom: "도서관 내 화장실을 이용할 수 있어요.",
+    stroller: "도서관 출입구와 어린이 공간까지 유모차로 이동할 수 있어요.",
+  };
+
+  return records.flatMap((record) => {
+    const name = stripHtml(record?.title);
+    const description = stripHtml(record?.short_desc);
+    const audiences = String(record?.audiences || "");
+    const categories = String(record?.categories || "");
+    const context = `${name} ${description} ${audiences} ${categories}`;
+    const youngChildRelevant = youngChildAudience.test(audiences);
+    const familyRelevant = broadFamilyAudience.test(audiences) && familyProgram.test(context);
+    const audienceRelevant = youngChildRelevant || familyRelevant;
+    if (!name || record?.online_event || /\bOnline\b/i.test(record?.location || "")) return [];
+    if (!audienceRelevant && (excluded.test(audiences) || !familyProgram.test(context))) return [];
+
+    const startValue = String(record?.start || "");
+    const dateKey = startValue.slice(0, 10);
+    const clock = startValue.slice(11, 16);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey) || !/^\d{2}:\d{2}$/.test(clock) || dateKey < today || dateKey > lastDate) return [];
+
+    const outdoor = /Pioneer Park|outdoor|courtyard|park/i.test(`${record?.location || ""} ${description}`);
+    const type = /storytime|read to|music & movement/i.test(context)
+      ? "storytime"
+      : /steam|craft|make|art|play/i.test(context)
+        ? "indoor"
+        : "seasonal";
+    const event = makeEvent({
+      sourceKey: "mountain-view-library-family-events",
+      sourceUrl: String(record?.url || "https://mountainview.libcal.com/"),
+      sourceName: "Mountain View Public Library",
+      name,
+      dateKey,
+      time: displayClockFrom24(clock),
+      location,
+      setting: outdoor ? "outdoor" : "indoor",
+      type,
+      age: youngChildRelevant ? "0-5세·가족" : "가족·전 연령",
+      price: "free",
+      reservation: record?.in_person_registration
+        ? /closed|full/i.test(String(record?.seats || "")) ? "예약 마감" : "예약 필요"
+        : "예약 불필요",
+      why: "Mountain View Public Library 공식 일정에서 확인한 영유아·가족 프로그램이에요.",
+    });
+    if (!event) return [];
+    const endValue = String(record?.end || "");
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(endValue)) {
+      const endAt = pacificIso(endValue.slice(0, 10), endValue.slice(11, 16));
+      if (new Date(endAt) > new Date(event.startAt)) event.endAt = endAt;
+    }
+    return [event];
+  }).toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
+}
+
+function menloParkLocation(address) {
+  const belleHaven = /Belle Haven|Terminal Ave/i.test(address);
+  const mainLibrary = /Menlo Park Library|Alma St/i.test(address);
+  const selected = belleHaven
+    ? { label: "Belle Haven Library", latitude: 37.4770, longitude: -122.1600 }
+    : mainLibrary
+      ? { label: "Menlo Park Library", latitude: 37.4521, longitude: -122.1778 }
+      : /Fremont Park/i.test(address)
+        ? { label: "Fremont Park", latitude: 37.4504, longitude: -122.1858 }
+        : { label: "City of Menlo Park", latitude: 37.4530, longitude: -122.1817 };
+  return {
+    ...selected,
+    city: "Menlo Park",
+    distance: distanceFromSanMateo(selected.latitude, selected.longitude),
+    parking: `${selected.label} 주변 주차 정보를 공식 행사 페이지에서 확인하세요.`,
+    bathroom: /Library/i.test(selected.label) ? "도서관 내 화장실을 이용할 수 있어요." : "행사장 화장실 정보를 공식 페이지에서 확인하세요.",
+    stroller: `${selected.label}의 출입구와 유모차 이동 동선을 확인하세요.`,
+  };
+}
+
+function parseMenloParkFamilyEvents(html, now = new Date()) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const events = new Map();
+  const scheduleBlock = html.match(/<h3>Storytime schedule<\/h3>[\s\S]*?<table[^>]*>([\s\S]*?)<\/table>/i)?.[1] || "";
+  const scheduleRows = scheduleBlock.match(/<tr>[\s\S]*?<\/tr>/gi) || [];
+  const scheduleSource = MENLO_PARK_CHILDREN_URL;
+
+  scheduleRows.forEach((row) => {
+    const cells = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((match) => stripHtml(match[1]));
+    if (cells.length < 3) return;
+    const weekday = weekdayNames[cells[0].replace(/\s+/g, "")];
+    const clock = parseClock(cells[1].replace(/\./g, ""));
+    if (!Number.isInteger(weekday) || !clock) return;
+    const location = menloParkLocation(cells[2]);
+    datesForWeekday(today, lastDate, weekday).forEach((dateKey) => {
+      const event = makeEvent({
+        sourceKey: "menlo-park-family-events",
+        sourceUrl: scheduleSource,
+        sourceName: "City of Menlo Park",
+        name: "Family Storytime",
+        dateKey,
+        time: displayClockFrom24(clock),
+        location,
+        type: "storytime",
+        age: "0-5세·가족",
+        price: "free",
+        reservation: "예약 불필요",
+        durationMinutes: 30,
+        confidenceStatus: "recurring_estimate",
+        why: "Menlo Park 공식 주간표에서 확인한 책·노래·움직임 중심의 가족 스토리타임이에요.",
+      });
+      if (event) events.set(event.id, event);
+    });
+  });
+
+  const itemPattern = /<div class="list-item-container[^>]*>[\s\S]*?<article>([\s\S]*?)<\/article>\s*<\/div>/gi;
+  const relevant = /storytime|puppet|concert|movie|family|animal|wildlife|festival|music|dance|craft|art|play|reading|library adventure/i;
+  const excluded = /middle grade|teen|adult|commission|meeting|chess|conversation club/i;
+  let item;
+  while ((item = itemPattern.exec(html))) {
+    const block = item[1];
+    const name = stripHtml(block.match(/<h2 class="list-item-title">([\s\S]*?)<\/h2>/i)?.[1]);
+    const tags = stripHtml(block.match(/<p class="tagged-as-list">([\s\S]*?)<\/p>/i)?.[1]);
+    const description = stripHtml(block.match(/<span class="list-item-block-desc">([\s\S]*?)<\/span>/i)?.[1]
+      || block.match(/<p>\s*([^<][\s\S]*?)<\/p>/i)?.[1]);
+    const address = stripHtml(block.match(/<p class="list-item-address">([\s\S]*?)<\/p>/i)?.[1]);
+    const href = decodeHtml(block.match(/<a href="([^"]+)"/i)?.[1] || "");
+    const dateText = stripHtml(block.match(/<p class="event-date[^>]*">([\s\S]*?)<\/p>/i)?.[1]);
+    const match = dateText.match(/([A-Za-z]+)\s+(\d{1,2}),\s*(20\d{2})\s*\|\s*(\d{1,2}:\d{2}\s*[AP]M)(?:\s*to\s*(\d{1,2}:\d{2}\s*[AP]M))?/i);
+    const context = `${name} ${description} ${tags}`;
+    if (!name || !match || !/Events for (?:families|children)/i.test(tags) || !relevant.test(context) || excluded.test(context)) continue;
+    const monthIndex = monthNames.findIndex((month) => month.toLowerCase().startsWith(match[1].toLowerCase()));
+    if (monthIndex < 0) continue;
+    const dateKey = `${match[3]}-${String(monthIndex + 1).padStart(2, "0")}-${String(match[2]).padStart(2, "0")}`;
+    if (dateKey < today || dateKey > lastDate) continue;
+    const location = menloParkLocation(address);
+    const outdoor = /park|outdoor|concert|festival/i.test(`${name} ${address}`);
+    const event = makeEvent({
+      sourceKey: "menlo-park-family-events",
+      sourceUrl: href || MENLO_PARK_EVENTS_URL,
+      sourceName: "City of Menlo Park",
+      name,
+      dateKey,
+      time: match[4],
+      location,
+      setting: outdoor ? "outdoor" : "indoor",
+      type: /storytime/i.test(name) ? "storytime" : "seasonal",
+      age: /storytime/i.test(name) ? "0-5세·가족" : "가족·전 연령",
+      price: "free",
+      reservation: "예약 불필요 · 공식 페이지 확인",
+      why: "Menlo Park 시 공식 일정에서 확인한 어린이·가족 프로그램이에요.",
+    });
+    if (!event) continue;
+    const endClock = parseClock(match[5]);
+    if (endClock) {
+      const endAt = pacificIso(dateKey, endClock);
+      if (new Date(endAt) > new Date(event.startAt)) event.endAt = endAt;
+    }
+    events.set(event.id, event);
+  }
+
+  return [...events.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
+}
+
+function cupertinoLocation(context, address) {
+  const locations = [
+    { match: /McClellan Ranch|22221 McClellan/i, label: "McClellan Ranch Preserve", latitude: 37.3138, longitude: -122.0618 },
+    { match: /Creekside Park|10455 Miller/i, label: "Creekside Park", latitude: 37.3167, longitude: -122.0158 },
+    { match: /Memorial Park|21163 Anton/i, label: "Memorial Park", latitude: 37.3248, longitude: -122.0445 },
+    { match: /Cupertino Library|10800 Torre/i, label: "Cupertino Library", latitude: 37.3183, longitude: -122.0287 },
+    { match: /Quinlan|10185.*Stelling/i, label: "Quinlan Community Center", latitude: 37.3211, longitude: -122.0430 },
+    { match: /Civic (?:Center|Plaza)|10300 Torre/i, label: "Cupertino Civic Center", latitude: 37.3180, longitude: -122.0297 },
+  ];
+  const selected = locations.find((location) => location.match.test(`${context} ${address}`))
+    || { label: "City of Cupertino", latitude: 37.3230, longitude: -122.0322 };
+  return {
+    ...selected,
+    city: "Cupertino",
+    distance: distanceFromSanMateo(selected.latitude, selected.longitude),
+    parking: `${selected.label} 주변 주차 정보를 공식 행사 페이지에서 확인하세요.`,
+    bathroom: "행사장 화장실 정보를 공식 페이지에서 확인하세요.",
+    stroller: `${selected.label}의 유모차 이동 동선을 공식 안내에서 확인하세요.`,
+  };
+}
+
+function parseCupertinoFamilyEvents(html, now = new Date()) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const events = [];
+  const itemPattern = /<div class="list-item-container[^>]*>[\s\S]*?<article>([\s\S]*?)<\/article>\s*<\/div>/gi;
+  const excluded = /middle school|working group|meeting|adult|senior/i;
+  let item;
+
+  while ((item = itemPattern.exec(html))) {
+    const block = item[1];
+    const name = stripHtml(block.match(/<h2 class="list-item-title">([\s\S]*?)<\/h2>/i)?.[1]);
+    const description = stripHtml(block.match(/<span class="list-item-block-desc">([\s\S]*?)<\/span>/i)?.[1]);
+    const address = stripHtml(block.match(/<p class="list-item-address">([\s\S]*?)<\/p>/i)?.[1]);
+    const tags = stripHtml(block.match(/<p class="tagged-as-list">([\s\S]*?)<\/p>/i)?.[1]);
+    const href = decodeHtml(block.match(/<a href="([^"]+)"/i)?.[1] || "");
+    const day = block.match(/<span class="part-date">(\d{1,2})<\/span>/i)?.[1];
+    const monthName = block.match(/<span class="part-month">([A-Za-z]+)<\/span>/i)?.[1];
+    const year = block.match(/<span class="part-year">(20\d{2})<\/span>/i)?.[1];
+    const context = `${name} ${description} ${tags} ${address}`;
+    if (!name || !day || !monthName || !year || !/Kids & family/i.test(tags) || excluded.test(context)) continue;
+    const monthIndex = monthNames.findIndex((month) => month.toLowerCase().startsWith(monthName.toLowerCase()));
+    if (monthIndex < 0) continue;
+    const dateKey = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    if (dateKey < today || dateKey > lastDate) continue;
+    const location = cupertinoLocation(context, address);
+    const outdoor = /park|ranch|campout|concert|movie|outdoor|amphitheater/i.test(context);
+    const event = makeEvent({
+      sourceKey: "cupertino-family-events",
+      sourceUrl: href || CUPERTINO_EVENTS_URL,
+      sourceName: "City of Cupertino",
+      name,
+      dateKey,
+      time: "12:00 PM",
+      location,
+      setting: outdoor ? "outdoor" : "indoor",
+      type: "seasonal",
+      age: "가족·전 연령",
+      price: /\bfree\b/i.test(context) ? "free" : "check",
+      reservation: "시간과 예약 여부는 공식 페이지 확인",
+      confidenceStatus: "date_confirmed",
+      why: "Cupertino 시 공식 일정에서 확인한 어린이·가족 지역행사예요.",
+    });
+    if (event) events.push(event);
+  }
+
+  return events.toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
 }
 
 function sanMateoCityCalendarUrl(now = new Date()) {
@@ -1646,7 +1948,10 @@ export {
   getOutingsResponse,
   parseBayAreaDiscoveryMuseumEvents,
   parseBurlingameLibraryEvents,
+  parseCupertinoFamilyEvents,
   parseCuriOdysseyDailyEvents,
+  parseMenloParkFamilyEvents,
+  parseMountainViewLibraryEvents,
   parsePaloAltoFamilyEvents,
   parseRedwoodCityEvents,
   redwoodCityEffectiveEnd,

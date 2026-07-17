@@ -56,6 +56,11 @@ const sourceKeys = [
   "smcl-millbrae-family-events",
   "burlingame-library-family-events",
   "palo-alto-family-events",
+  "palo-alto-library-family-events",
+  "menlo-park-family-events",
+  "mountain-view-library-family-events",
+  "cupertino-library-family-events",
+  "cupertino-family-events",
   "sf-rec-park-family-events",
 ];
 
@@ -112,7 +117,7 @@ function seededDatabase() {
     'source_confirmed', 1, ?)`);
   const syncInsert = database.prepare(`INSERT INTO sync_state
     (source_key, status, last_attempt_at, last_success_at, message, event_count, data_revision)
-    VALUES (?, 'ok', ?, ?, NULL, 1, 3)`);
+    VALUES (?, 'ok', ?, ?, NULL, 1, 4)`);
 
   sourceKeys.forEach((sourceKey, index) => {
     eventInsert.run(`event-${index}`, sourceKey, `Event ${index}`, startAt, endAt, now.toISOString(), now.toISOString());
@@ -128,9 +133,9 @@ test("API reports full coverage only when every source is current", async () => 
   const payload = await response.json();
 
   assert.equal(payload.status, "ok");
-  assert.equal(payload.currentSourceCount, 14);
-  assert.equal(payload.sourceCount, 14);
-  assert.equal(payload.events.length, 14);
+  assert.equal(payload.currentSourceCount, sourceKeys.length);
+  assert.equal(payload.sourceCount, sourceKeys.length);
+  assert.equal(payload.events.length, sourceKeys.length);
   assert.ok(payload.events.every((event) => event.endDate));
 });
 
@@ -144,7 +149,7 @@ test("API marks stale-source events for recheck without retry amplification", as
   const staleSourceEvent = payload.events.find((event) => event.sourceKey === sourceKeys[0]);
 
   assert.equal(payload.status, "partial");
-  assert.equal(payload.currentSourceCount, 13);
+  assert.equal(payload.currentSourceCount, sourceKeys.length - 1);
   assert.equal(staleSourceEvent.confidenceStatus, "recheck");
   assert.match(staleSourceEvent.updated, /재확인 필요/);
 });

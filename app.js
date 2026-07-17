@@ -411,9 +411,11 @@ const officialSourceHosts = new Set([
   "bibliocommons.com",
   "burlingame.org",
   "cdm.org",
+  "cityofpaloalto.org",
   "cityofsanmateo.org",
   "creativity.org",
   "curiodyssey.org",
+  "cupertino.gov",
   "ebparks.org",
   "fairyland.org",
   "gateway.bibliocommons.com",
@@ -421,7 +423,10 @@ const officialSourceHosts = new Set([
   "happyhollow.org",
   "hiller.org",
   "lawrencehallofscience.org",
+  "libcal.com",
   "lindsaywildlife.org",
+  "menlopark.gov",
+  "mountainview.gov",
   "oaklandzoo.org",
   "paloalto.gov",
   "paloaltozoo.org",
@@ -453,7 +458,7 @@ const regionLabels = {
 
 function regionForCity(city) {
   const normalizedCity = String(city || "").toLowerCase();
-  if (["san mateo", "south san francisco", "san carlos", "palo alto", "half moon bay", "redwood city", "burlingame", "belmont", "foster city", "millbrae"].some((name) => normalizedCity.includes(name))) return "peninsula";
+  if (["san mateo", "south san francisco", "san carlos", "palo alto", "menlo park", "half moon bay", "redwood city", "burlingame", "belmont", "foster city", "millbrae"].some((name) => normalizedCity.includes(name))) return "peninsula";
   if (normalizedCity.includes("san francisco")) return "sf";
   if (["san jose", "cupertino", "santa clara", "sunnyvale", "mountain view", "los gatos", "milpitas"].some((name) => normalizedCity.includes(name))) return "south-bay";
   if (["oakland", "berkeley", "walnut creek", "fremont", "hayward", "alameda", "concord", "pleasanton", "richmond"].some((name) => normalizedCity.includes(name))) return "east-bay";
@@ -581,6 +586,9 @@ const locationOptions = {
   "redwood-city": { name: "Redwood City", lat: 37.4852, lng: -122.2364 },
   "san-francisco": { name: "San Francisco", lat: 37.7749, lng: -122.4194 },
   "palo-alto": { name: "Palo Alto", lat: 37.4419, lng: -122.1430 },
+  "menlo-park": { name: "Menlo Park", lat: 37.4530, lng: -122.1817 },
+  "mountain-view": { name: "Mountain View", lat: 37.3861, lng: -122.0839 },
+  cupertino: { name: "Cupertino", lat: 37.3230, lng: -122.0322 },
   "san-jose": { name: "San Jose", lat: 37.3382, lng: -121.8863 },
   oakland: { name: "Oakland", lat: 37.8044, lng: -122.2712 }
 };

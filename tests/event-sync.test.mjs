@@ -5,7 +5,10 @@ import {
   eventCountLooksAnomalous,
   parseBayAreaDiscoveryMuseumEvents,
   parseBurlingameLibraryEvents,
+  parseCupertinoFamilyEvents,
   parseCuriOdysseyDailyEvents,
+  parseMenloParkFamilyEvents,
+  parseMountainViewLibraryEvents,
   parsePaloAltoFamilyEvents,
   parseRedwoodCityEvents,
   parseSanFranciscoRecParkEvents,
@@ -76,6 +79,24 @@ const fixtures = {
       </a>
     </article></div>
   `,
+  paloAltoLibrary: `
+    <rss><channel><item><title>Little Ones Storytime</title><category>Kids Storytimes</category><category>Babies (under 2)</category><category>Pre-schoolers (3-5)</category>
+      <bc:is_cancelled>false</bc:is_cancelled><bc:is_virtual>false</bc:is_virtual><bc:start_date>2026-07-15T17:30:00.000Z</bc:start_date><bc:end_date>2026-07-15T18:00:00.000Z</bc:end_date><bc:start_date_local>2026-07-15T10:30:00</bc:start_date_local>
+      <link>https://paloalto.bibliocommons.com/events/fixture</link><bc:location><bc:name>Children's Library</bc:name><bc:city>Palo Alto</bc:city><bc:number>1276</bc:number><bc:street>Harriet St</bc:street><bc:latitude>37.4462</bc:latitude><bc:longitude>-122.1478</bc:longitude></bc:location><bc:registration_info><bc:is_required>false</bc:is_required><bc:is_full>false</bc:is_full></bc:registration_info></item></channel></rss>
+  `,
+  menloPark: `
+    <h3>Storytime schedule</h3><table><tbody><tr><td>Tuesdays</td><td>7:15 p.m.</td><td>Belle Haven Library<br>100 Terminal Ave.</td></tr></tbody></table>
+    <div class="list-item-container homepage-show"><article><a href="https://www.menlopark.gov/events/family-puppet"><h2 class="list-item-title">Family Puppet Show</h2><p class="event-date published-on small-text">Saturday, July 18, 2026 | 10:00 AM to 11:00 AM</p><p>Stories and puppets for little ones.</p><p class="list-item-address">Menlo Park Library, 800 Alma St., Menlo Park, CA 94025</p><p class="tagged-as-list">Events for families, Events for children</p></a></article></div>
+  `,
+  mountainViewLibrary: JSON.stringify([{ id: 1, title: "Toddler Storytime", start: "2026-07-16T10:30:00", end: "2026-07-16T11:00:00", url: "https://mountainview.libcal.com/event/1", short_desc: "Stories and songs for toddlers.", location: "1st Floor Program Room", audiences: "Toddlers, Families", categories: "Storytime", in_person_registration: false }]),
+  cupertinoLibrary: `
+    <rss><channel><item><title>Toddler Storytime</title><category>Early Learning &amp; Storytimes</category><category>Kids: Toddlers</category>
+      <bc:is_cancelled>false</bc:is_cancelled><bc:is_virtual>false</bc:is_virtual><bc:start_date>2026-07-16T17:30:00.000Z</bc:start_date><bc:end_date>2026-07-16T18:00:00.000Z</bc:end_date><bc:start_date_local>2026-07-16T10:30:00</bc:start_date_local>
+      <link>https://sccl.bibliocommons.com/events/fixture</link><bc:location><bc:name>Cupertino Library</bc:name><bc:city>Cupertino</bc:city><bc:number>10800</bc:number><bc:street>Torre Ave</bc:street><bc:latitude>37.3183</bc:latitude><bc:longitude>-122.0287</bc:longitude></bc:location><bc:registration_info><bc:is_required>false</bc:is_required><bc:is_full>false</bc:is_full></bc:registration_info></item></channel></rss>
+  `,
+  cupertinoCity: `
+    <div class="list-item-container homepage-show"><article><a href="https://www.cupertino.gov/events/family-movie"><h2 class="list-item-title">Movies in the Park</h2><p class="clearfix"><span class="list-item-block-date"><span class="part-date">18</span><span class="part-month">Jul</span><span class="part-year">2026</span></span><span class="list-item-block-desc">A free family movie outdoors.</span></p><p class="list-item-address">Creekside Park, 10455 Miller Avenue, Cupertino, CA 95014</p><p class="tagged-as-list">Kids &amp; family, City Wide Events</p></a></article></div>
+  `,
   sanFranciscoRecPark: `
     <li><h3><a id="eventTitle_10044"><span>Union Square Daily Programming: Toddler Tuesdays</span></a></h3>
       <div class="hidden" itemscope itemtype="http://schema.org/Event"><span itemprop="name">Union Square Daily Programming: Toddler Tuesdays</span><span itemprop="startDate">2026-07-14T10:00:00</span><p itemprop="description">Come out for Toddler Tuesdays from 10 am to 11:30 am.</p>
@@ -95,6 +116,11 @@ test("all official-source parser families retain their expected fixture contract
     parseRedwoodCityEvents(fixtures.redwoodCity, now),
     parseBurlingameLibraryEvents(fixtures.burlingame, now),
     parsePaloAltoFamilyEvents(fixtures.paloAlto, now),
+    parseSanMateoCountyLibraryEvents(fixtures.paloAltoLibrary, now, "palo-alto-library-family-events", "Palo Alto City Library"),
+    parseMenloParkFamilyEvents(fixtures.menloPark, now),
+    parseMountainViewLibraryEvents(fixtures.mountainViewLibrary, now),
+    parseSanMateoCountyLibraryEvents(fixtures.cupertinoLibrary, now, "cupertino-library-family-events", "Santa Clara County Library District"),
+    parseCupertinoFamilyEvents(fixtures.cupertinoCity, now),
     parseSanFranciscoRecParkEvents(fixtures.sanFranciscoRecPark, now),
   ];
 
@@ -106,21 +132,28 @@ test("all official-source parser families retain their expected fixture contract
     assert.ok(Number.isFinite(event.maxAgeMonths));
   });
 
-  const redwoodEvent = parsed.at(-4)[0];
+  const allEvents = parsed.flat();
+  const redwoodEvent = allEvents.find((event) => event.sourceKey === "redwood-city-family-events");
   assert.equal(redwoodEvent.city, "Redwood City");
   assert.equal(redwoodEvent.age, "2-5세");
   assert.equal(new Date(redwoodEvent.endAt) - new Date(redwoodEvent.startAt), 30 * 60000);
 
-  const burlingameEvent = parsed.at(-3)[0];
+  const burlingameEvent = allEvents.find((event) => event.sourceKey === "burlingame-library-family-events");
   assert.equal(burlingameEvent.city, "Burlingame");
   assert.equal(burlingameEvent.age, "0-2세");
   assert.equal(new Date(burlingameEvent.endAt) - new Date(burlingameEvent.startAt), 30 * 60000);
 
-  const paloAltoEvent = parsed.at(-2)[0];
+  const paloAltoEvent = allEvents.find((event) => event.sourceKey === "palo-alto-family-events");
   assert.equal(paloAltoEvent.city, "Palo Alto");
   assert.equal(paloAltoEvent.confidenceStatus, "date_confirmed");
 
-  const sanFranciscoEvent = parsed.at(-1)[0];
+  assert.ok(allEvents.some((event) => event.sourceKey === "palo-alto-library-family-events" && event.city === "Palo Alto"));
+  assert.ok(allEvents.some((event) => event.sourceKey === "menlo-park-family-events" && event.city === "Menlo Park"));
+  assert.ok(allEvents.some((event) => event.sourceKey === "mountain-view-library-family-events" && event.city === "Mountain View"));
+  assert.ok(allEvents.some((event) => event.sourceKey === "cupertino-library-family-events" && event.city === "Cupertino"));
+  assert.ok(allEvents.some((event) => event.sourceKey === "cupertino-family-events" && event.city === "Cupertino"));
+
+  const sanFranciscoEvent = allEvents.find((event) => event.sourceKey === "sf-rec-park-family-events");
   assert.equal(sanFranciscoEvent.city, "San Francisco");
   assert.equal(sanFranciscoEvent.age, "1-6세·가족");
 });
@@ -130,7 +163,7 @@ test("source health requires success, freshness, and active future events", () =
     status: "ok",
     last_success_at: "2026-07-12T15:00:00.000Z",
     active_event_count: 4,
-    data_revision: 3,
+    data_revision: 4,
   };
 
   assert.equal(sourceIsCurrent(healthy, now), true);
@@ -170,6 +203,20 @@ test("county branch storytimes extend beyond each short branch RSS window", () =
   assert.ok(events.every((event) => event.sourceKey === "smcl-belmont-family-events"));
   assert.ok(new Date(events.at(-1).startAt) - new Date(events[0].startAt) >= 35 * 86400000);
   assert.ok(events.slice(1).every((event) => event.confidenceStatus === "recurring_estimate"));
+});
+
+test("south peninsula and west valley sources retain toddler-friendly branch coverage", () => {
+  const paloAlto = parseSanMateoCountyLibraryEvents(fixtures.paloAltoLibrary, now, "palo-alto-library-family-events", "Palo Alto City Library");
+  const menloPark = parseMenloParkFamilyEvents(fixtures.menloPark, now);
+  const mountainView = parseMountainViewLibraryEvents(fixtures.mountainViewLibrary, now);
+  const cupertinoLibrary = parseSanMateoCountyLibraryEvents(fixtures.cupertinoLibrary, now, "cupertino-library-family-events", "Santa Clara County Library District");
+  const cupertinoCity = parseCupertinoFamilyEvents(fixtures.cupertinoCity, now);
+
+  assert.ok(paloAlto.some((event) => event.city === "Palo Alto" && event.minAgeMonths === 0));
+  assert.ok(menloPark.filter((event) => event.type === "storytime").length >= 6);
+  assert.ok(mountainView.some((event) => event.city === "Mountain View" && event.name === "Toddler Storytime"));
+  assert.ok(cupertinoLibrary.some((event) => event.city === "Cupertino" && event.type === "storytime"));
+  assert.ok(cupertinoCity.some((event) => event.city === "Cupertino" && event.confidenceStatus === "date_confirmed"));
 });
 
 test("source count anomaly guard catches parser collapses without flagging normal drift", () => {
