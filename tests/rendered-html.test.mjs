@@ -18,6 +18,9 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /data-location-key="menlo-park"/);
   assert.match(html, /data-location-key="mountain-view"/);
   assert.match(html, /data-location-key="cupertino"/);
+  assert.match(html, /data-location-key="santa-clara"/);
+  assert.match(html, /data-location-key="campbell"/);
+  assert.match(html, /data-location-key="los-gatos"/);
   assert.match(html, /value="tomorrow">내일/);
   assert.match(html, /id="regionFilter"/);
   assert.match(html, /id="timeFilter"/);
@@ -25,12 +28,12 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /id="sharePlanDialog"/);
-  assert.match(html, /evergreen-outings\.js\?v=4/);
+  assert.match(html, /evergreen-outings\.js\?v=5/);
   assert.match(html, /styles\.css\?v=23/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=2/);
-  assert.match(html, /app\.js\?v=24/);
+  assert.match(html, /app\.js\?v=25/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
@@ -47,6 +50,9 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /confidenceStatus === "date_confirmed"/);
   assert.match(script, /little-weekends-location/);
   assert.match(script, /"redwoodcity\.org"/);
+  assert.match(script, /"santaclaraca\.gov"/);
+  assert.match(script, /"campbellca\.gov"/);
+  assert.match(script, /"losgatosca\.gov"/);
   assert.match(script, /function regionForCity\(city\)/);
   assert.match(script, /function matchesTime\(item\)/);
   assert.match(script, /function recommendationReasons\(item\)/);
@@ -76,6 +82,7 @@ test("client bundle includes decision filters, recovery actions, and detail alte
 
 test("age labels normalize to month ranges", () => {
   assert.deepEqual(ageRangeFromLabel("18개월-3세"), { minAgeMonths: 18, maxAgeMonths: 47 });
+  assert.deepEqual(ageRangeFromLabel("0-18개월"), { minAgeMonths: 0, maxAgeMonths: 18 });
   assert.deepEqual(ageRangeFromLabel("1-3세"), { minAgeMonths: 12, maxAgeMonths: 47 });
   assert.deepEqual(ageRangeFromLabel("4-11세"), { minAgeMonths: 48, maxAgeMonths: 143 });
   assert.deepEqual(ageRangeFromLabel("가족·전 연령"), { minAgeMonths: 0, maxAgeMonths: 216 });

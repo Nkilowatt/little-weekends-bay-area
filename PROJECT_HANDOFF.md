@@ -22,7 +22,7 @@ The core experience is:
 - Primary runtime: OpenAI Sites Worker
 - Event API: `/api/outings`
 - Database: D1 binding `DB`
-- Refresh schedule: 19 official sources every six hours
+- Refresh schedule: 25 official sources every six hours
 
 The user interface is lightweight HTML, CSS, and JavaScript, but the primary service now includes a Worker backend and D1 database for automatic official-event updates.
 
@@ -44,20 +44,20 @@ The current basemap is intentionally lightweight:
 
 - Results default to activities overlapping the 12-47 month range.
 - Parents can filter specifically for age 1, 2, or 3.
-- Location can be set to San Mateo, Redwood City, San Francisco, Palo Alto, San Jose, or Oakland without storing an exact address.
+- Location can be set to San Mateo, Redwood City, San Francisco, Palo Alto, Menlo Park, Mountain View, Cupertino, Santa Clara, Campbell, Los Gatos, San Jose, or Oakland without storing an exact address.
 - Distances, distance filtering, map origin, and nearest sorting recalculate from the selected location.
 - Recommended sorting scores age specificity, distance, time, source confidence, cost, and reservation burden while pushing repeated series below unique options.
 - Trust is structured as `human_verified`, `source_confirmed`, `recheck`, or `stale`; automatic source parsing is not presented as human verification.
-- The evergreen catalog contains 35 human-reviewed places across five Bay Area regions.
+- The evergreen catalog contains 40 human-reviewed places across five Bay Area regions.
 - Automatic events include `endAt`; API and client checks remove completed programs. Missing end times use 90 minutes, date-only events remain through the Pacific calendar day, and the visible list is re-evaluated on tab return and every 60 seconds.
-- Redwood City 11:59 PM placeholder endings are normalized to 120 minutes for music, performances, and movies or 90 minutes for other single programs. `SOURCE_DATA_REVISION` is 4 so existing D1 rows are refreshed for the expanded source set.
+- Redwood City 11:59 PM placeholder endings are normalized to 120 minutes for music, performances, and movies or 90 minutes for other single programs. `SOURCE_DATA_REVISION` is 5 so existing D1 rows are refreshed for the expanded source set.
 - Source status is current only when that source has a recent successful sync and active future events. Partial coverage is shown as `partial`, and stale-source events become `recheck`.
 - On-demand recovery has a 30-second cooldown and records `syncing` before network fetches to limit repeated external calls and abuse.
-- On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all 19 sources.
+- On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all 25 sources.
 
 ## Redwood City Coverage
 
-- The official City of Redwood City calendar RSS feed is one of 12 automatic sources.
+- The official City of Redwood City calendar RSS feed is one of 25 automatic sources.
 - The parser keeps toddler storytimes, Tiny Tales, bilingual storytimes, music and movement, puppet shows, and selected family programs while excluding cancellations and unrelated city events.
 - Schaberg, Redwood Shores, Downtown Library, Magical Bridge, and Stafford Park receive location-specific coordinates and parent logistics when the event title identifies the venue.
 - The city RSS feed is capped to the next 50 citywide events. Verified weekly library series are extended through the 45-day window, while the six-hour refresh keeps one-off programs current.
@@ -75,7 +75,10 @@ The current basemap is intentionally lightweight:
 - Menlo Park combines its official children-and-family event directory with the published weekly storytime schedule, including Menlo Park Library and Belle Haven Library.
 - Mountain View Public Library uses its official public LibCal JSON with baby, toddler, preschool, family, storytime, STEAM, music, and park programs filtered for in-person use.
 - Cupertino combines the branch-filtered Santa Clara County Library BiblioCommons feed with the City of Cupertino `Kids & family` event directory.
-- Menlo Park, Mountain View, and Cupertino are selectable distance origins. Nine library locations across Palo Alto, Menlo Park, Mountain View, and Cupertino are available as human-reviewed anytime places.
+- Santa Clara combines separate official library-event and city-event RSS feeds. Central Park, Northside, and Mission prefixes map to their own branches so programs are not collapsed into a single city point.
+- Campbell combines the branch-filtered Santa Clara County Library BiblioCommons feed with current-and-next-month City of Campbell community and recreation calendars.
+- Los Gatos combines the official Library LibCal JSON feed with the current-and-next-month Town of Los Gatos calendar, keeping storytimes and town events independent.
+- Menlo Park, Mountain View, Cupertino, Santa Clara, Campbell, and Los Gatos are selectable distance origins. Fourteen library locations across Palo Alto, Menlo Park, Mountain View, Cupertino, Santa Clara, Campbell, and Los Gatos are available as human-reviewed anytime places.
 
 ## Current P1 Discovery Baseline
 
@@ -153,7 +156,7 @@ Imported text is normalized and escaped before HTML rendering. Official source l
 
 ## Important Data Note
 
-The service combines automatically collected official events with 21 human-reviewed evergreen places. Automatic source parsing is not the same as human verification. Before a broader launch:
+The service combines automatically collected official events with 40 human-reviewed evergreen places. Automatic source parsing is not the same as human verification. Before a broader launch:
 
 - Every public event needs an official source URL.
 - Every public event needs freshness metadata.

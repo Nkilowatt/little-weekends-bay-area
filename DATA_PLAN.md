@@ -34,6 +34,11 @@ Verified source examples to seed first:
 - Palo Alto City Library storytimes: https://library.cityofpaloalto.org/program-storytimes/
 - Sunnyvale kids events: https://www.library.sunnyvale.ca.gov/events/kids-events
 - Santa Clara City Library storytime: https://www.sclibrary.org/kids-teens/kids/storytime
+- Santa Clara City Library official events RSS: https://www.santaclaraca.gov/Home/Components/RssFeeds/RssFeed/View?id=12
+- Campbell Library events: https://sccl.bibliocommons.com/v2/events?locations=CA
+- City of Campbell community calendar: https://www.campbellca.gov/calendar.aspx
+- Los Gatos Library events: https://losgatosca.libcal.com/calendar?cid=11830
+- Town of Los Gatos calendar: https://www.losgatosca.gov/calendar.aspx
 - City of San Mateo children's programs and storytimes: https://www.cityofsanmateo.org/4256/Childrens-Programs-and-Storytimes
 - South San Francisco Toddler Storytime: https://www.ssfca.gov/Events/0226-Toddler-Storytime
 - Santa Clara County Library District location/event pages: https://sccld.org/

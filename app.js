@@ -396,6 +396,9 @@ function ageRangeFromLabel(label) {
   const monthRange = value.match(/(\d+)개월-(\d+)개월/);
   if (monthRange) return { minAgeMonths: Number(monthRange[1]), maxAgeMonths: Number(monthRange[2]) };
 
+  const compactMonthRange = value.match(/(\d+)-(\d+)개월/);
+  if (compactMonthRange) return { minAgeMonths: Number(compactMonthRange[1]), maxAgeMonths: Number(compactMonthRange[2]) };
+
   const mixedRange = value.match(/(\d+)개월-(\d+)세/);
   if (mixedRange) return { minAgeMonths: Number(mixedRange[1]), maxAgeMonths: (Number(mixedRange[2]) + 1) * 12 - 1 };
 
@@ -410,6 +413,7 @@ const officialSourceHosts = new Set([
   "bayareadiscoverymuseum.org",
   "bibliocommons.com",
   "burlingame.org",
+  "campbellca.gov",
   "cdm.org",
   "cityofpaloalto.org",
   "cityofsanmateo.org",
@@ -425,6 +429,7 @@ const officialSourceHosts = new Set([
   "lawrencehallofscience.org",
   "libcal.com",
   "lindsaywildlife.org",
+  "losgatosca.gov",
   "menlopark.gov",
   "mountainview.gov",
   "oaklandzoo.org",
@@ -434,7 +439,9 @@ const officialSourceHosts = new Set([
   "randallmuseum.org",
   "redwoodcity.org",
   "sanjoseca.gov",
+  "santaclaraca.gov",
   "sccld.org",
+  "sclibrary.org",
   "sfpl.org",
   "sfrecpark.org",
   "sfzoo.org",
@@ -460,7 +467,7 @@ function regionForCity(city) {
   const normalizedCity = String(city || "").toLowerCase();
   if (["san mateo", "south san francisco", "san carlos", "palo alto", "menlo park", "half moon bay", "redwood city", "burlingame", "belmont", "foster city", "millbrae"].some((name) => normalizedCity.includes(name))) return "peninsula";
   if (normalizedCity.includes("san francisco")) return "sf";
-  if (["san jose", "cupertino", "santa clara", "sunnyvale", "mountain view", "los gatos", "milpitas"].some((name) => normalizedCity.includes(name))) return "south-bay";
+  if (["san jose", "cupertino", "santa clara", "sunnyvale", "mountain view", "campbell", "los gatos", "milpitas"].some((name) => normalizedCity.includes(name))) return "south-bay";
   if (["oakland", "berkeley", "walnut creek", "fremont", "hayward", "alameda", "concord", "pleasanton", "richmond"].some((name) => normalizedCity.includes(name))) return "east-bay";
   if (["sausalito", "sonoma", "marin", "novato", "san rafael", "napa", "petaluma"].some((name) => normalizedCity.includes(name))) return "north-bay";
   return "other";
@@ -589,6 +596,9 @@ const locationOptions = {
   "menlo-park": { name: "Menlo Park", lat: 37.4530, lng: -122.1817 },
   "mountain-view": { name: "Mountain View", lat: 37.3861, lng: -122.0839 },
   cupertino: { name: "Cupertino", lat: 37.3230, lng: -122.0322 },
+  "santa-clara": { name: "Santa Clara", lat: 37.3541, lng: -121.9552 },
+  campbell: { name: "Campbell", lat: 37.2872, lng: -121.9500 },
+  "los-gatos": { name: "Los Gatos", lat: 37.2358, lng: -121.9624 },
   "san-jose": { name: "San Jose", lat: 37.3382, lng: -121.8863 },
   oakland: { name: "Oakland", lat: 37.8044, lng: -122.2712 }
 };

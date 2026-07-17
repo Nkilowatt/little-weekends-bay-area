@@ -5,12 +5,17 @@ import {
   eventCountLooksAnomalous,
   parseBayAreaDiscoveryMuseumEvents,
   parseBurlingameLibraryEvents,
+  parseCampbellFamilyEvents,
   parseCupertinoFamilyEvents,
   parseCuriOdysseyDailyEvents,
+  parseLosGatosFamilyEvents,
+  parseLosGatosLibraryEvents,
   parseMenloParkFamilyEvents,
   parseMountainViewLibraryEvents,
   parsePaloAltoFamilyEvents,
   parseRedwoodCityEvents,
+  parseSantaClaraCityEvents,
+  parseSantaClaraLibraryEvents,
   parseSanFranciscoRecParkEvents,
   parseSanMateoCityEvents,
   parseSanMateoCountyLibraryEvents,
@@ -97,6 +102,32 @@ const fixtures = {
   cupertinoCity: `
     <div class="list-item-container homepage-show"><article><a href="https://www.cupertino.gov/events/family-movie"><h2 class="list-item-title">Movies in the Park</h2><p class="clearfix"><span class="list-item-block-date"><span class="part-date">18</span><span class="part-month">Jul</span><span class="part-year">2026</span></span><span class="list-item-block-desc">A free family movie outdoors.</span></p><p class="list-item-address">Creekside Park, 10455 Miller Avenue, Cupertino, CA 95014</p><p class="tagged-as-list">Kids &amp; family, City Wide Events</p></a></article></div>
   `,
+  santaClaraLibrary: `
+    <rss><channel><item><title>NORTHSIDE: Baby &amp; Me Storytime (0-1.5 years) (07/22/2026 10:30 AM - 11:00 AM)</title>
+      <description>Storytime for babies from birth to 1.5 years old with songs and fingerplays.</description>
+      <link>https://www.santaclaraca.gov/Home/Components/Calendar/Event/fixture/</link>
+      <eventStartDate>7/22/2026 10:30:00 AM</eventStartDate><eventEndDate>7/22/2026 11:00:00 AM</eventEndDate>
+    </item></channel></rss>
+  `,
+  santaClaraCity: `
+    <rss><channel><item><title>Celebrate Santa Clara Family Night Market (07/18/2026 2:00 PM - 4:00 PM)</title>
+      <description>A free family night market celebration with music and kids activities.</description>
+      <link>https://www.santaclaraca.gov/Home/Components/Calendar/Event/city-fixture/</link>
+      <eventStartDate>7/18/2026 2:00:00 PM</eventStartDate><eventEndDate>7/18/2026 4:00:00 PM</eventEndDate>
+    </item></channel></rss>
+  `,
+  campbellLibrary: `
+    <rss><channel><item><title>Toddler Storytime</title><category>Early Learning &amp; Storytimes</category><category>Kids: Toddlers</category>
+      <bc:is_cancelled>false</bc:is_cancelled><bc:is_virtual>false</bc:is_virtual><bc:start_date>2026-07-22T17:30:00.000Z</bc:start_date><bc:end_date>2026-07-22T18:00:00.000Z</bc:end_date><bc:start_date_local>2026-07-22T10:30:00</bc:start_date_local>
+      <link>https://sccl.bibliocommons.com/events/campbell-fixture</link><bc:location><bc:name>Campbell Library</bc:name><bc:city>Campbell</bc:city><bc:number>77</bc:number><bc:street>Harrison Ave</bc:street><bc:latitude>37.2882</bc:latitude><bc:longitude>-121.9432</bc:longitude></bc:location><bc:registration_info><bc:is_required>false</bc:is_required><bc:is_full>false</bc:is_full></bc:registration_info></item></channel></rss>
+  `,
+  campbellCity: `
+    <div class="hidden" itemscope itemtype="http://schema.org/Event"><span itemprop="name">Touch-A-Truck Family Day</span><span itemprop="startDate">2026-07-18T09:30:00</span><p itemprop="description">Families and kids can explore community vehicles for free.</p><span itemprop="location"><span itemprop="name">Campbell Community Center</span><span itemprop="address"><span itemprop="streetAddress">1 W. Campbell Ave.</span></span></span></div><p></p>
+  `,
+  losGatosLibrary: JSON.stringify([{ id: 2, title: "Storytime (Ages 0-5)", start: "2026-07-21T11:00:00", end: "2026-07-21T11:30:00", url: "https://losgatosca.libcal.com/event/2", short_desc: "Babies, toddlers, and their families sing, read, and dance together.", location: "Children's Room", audiences: "Children", categories: "Kids, Storytime", in_person_registration: false }]),
+  losGatosCity: `
+    <div class="hidden" itemscope itemtype="http://schema.org/Event"><span itemprop="name">Los Gatos Music in the Park</span><span itemprop="startDate">2026-07-26T17:00:00</span><p itemprop="description">A family-friendly outdoor concert.</p><span itemprop="location"><span itemprop="name">Civic Center Lawn</span><span itemprop="address"><span itemprop="streetAddress">110 E. Main Street</span></span></span></div><p></p>
+  `,
   sanFranciscoRecPark: `
     <li><h3><a id="eventTitle_10044"><span>Union Square Daily Programming: Toddler Tuesdays</span></a></h3>
       <div class="hidden" itemscope itemtype="http://schema.org/Event"><span itemprop="name">Union Square Daily Programming: Toddler Tuesdays</span><span itemprop="startDate">2026-07-14T10:00:00</span><p itemprop="description">Come out for Toddler Tuesdays from 10 am to 11:30 am.</p>
@@ -121,6 +152,12 @@ test("all official-source parser families retain their expected fixture contract
     parseMountainViewLibraryEvents(fixtures.mountainViewLibrary, now),
     parseSanMateoCountyLibraryEvents(fixtures.cupertinoLibrary, now, "cupertino-library-family-events", "Santa Clara County Library District"),
     parseCupertinoFamilyEvents(fixtures.cupertinoCity, now),
+    parseSantaClaraLibraryEvents(fixtures.santaClaraLibrary, now),
+    parseSantaClaraCityEvents(fixtures.santaClaraCity, now),
+    parseSanMateoCountyLibraryEvents(fixtures.campbellLibrary, now, "campbell-library-family-events", "Santa Clara County Library District"),
+    parseCampbellFamilyEvents(fixtures.campbellCity, now),
+    parseLosGatosLibraryEvents(fixtures.losGatosLibrary, now),
+    parseLosGatosFamilyEvents(fixtures.losGatosCity, now),
     parseSanFranciscoRecParkEvents(fixtures.sanFranciscoRecPark, now),
   ];
 
@@ -152,6 +189,12 @@ test("all official-source parser families retain their expected fixture contract
   assert.ok(allEvents.some((event) => event.sourceKey === "mountain-view-library-family-events" && event.city === "Mountain View"));
   assert.ok(allEvents.some((event) => event.sourceKey === "cupertino-library-family-events" && event.city === "Cupertino"));
   assert.ok(allEvents.some((event) => event.sourceKey === "cupertino-family-events" && event.city === "Cupertino"));
+  assert.ok(allEvents.some((event) => event.sourceKey === "santa-clara-library-family-events" && event.city === "Santa Clara"));
+  assert.ok(allEvents.some((event) => event.sourceKey === "santa-clara-family-events" && event.city === "Santa Clara"));
+  assert.ok(allEvents.some((event) => event.sourceKey === "campbell-library-family-events" && event.city === "Campbell"));
+  assert.ok(allEvents.some((event) => event.sourceKey === "campbell-family-events" && event.city === "Campbell"));
+  assert.ok(allEvents.some((event) => event.sourceKey === "los-gatos-library-family-events" && event.city === "Los Gatos"));
+  assert.ok(allEvents.some((event) => event.sourceKey === "los-gatos-family-events" && event.city === "Los Gatos"));
 
   const sanFranciscoEvent = allEvents.find((event) => event.sourceKey === "sf-rec-park-family-events");
   assert.equal(sanFranciscoEvent.city, "San Francisco");
@@ -163,7 +206,7 @@ test("source health requires success, freshness, and active future events", () =
     status: "ok",
     last_success_at: "2026-07-12T15:00:00.000Z",
     active_event_count: 4,
-    data_revision: 4,
+    data_revision: 5,
   };
 
   assert.equal(sourceIsCurrent(healthy, now), true);
@@ -217,6 +260,22 @@ test("south peninsula and west valley sources retain toddler-friendly branch cov
   assert.ok(mountainView.some((event) => event.city === "Mountain View" && event.name === "Toddler Storytime"));
   assert.ok(cupertinoLibrary.some((event) => event.city === "Cupertino" && event.type === "storytime"));
   assert.ok(cupertinoCity.some((event) => event.city === "Cupertino" && event.confidenceStatus === "date_confirmed"));
+});
+
+test("Santa Clara, Campbell, and Los Gatos retain both library and local-event coverage", () => {
+  const santaClaraLibrary = parseSantaClaraLibraryEvents(fixtures.santaClaraLibrary, now);
+  const santaClaraCity = parseSantaClaraCityEvents(fixtures.santaClaraCity, now);
+  const campbellLibrary = parseSanMateoCountyLibraryEvents(fixtures.campbellLibrary, now, "campbell-library-family-events", "Santa Clara County Library District");
+  const campbellCity = parseCampbellFamilyEvents(fixtures.campbellCity, now);
+  const losGatosLibrary = parseLosGatosLibraryEvents(fixtures.losGatosLibrary, now);
+  const losGatosCity = parseLosGatosFamilyEvents(fixtures.losGatosCity, now);
+
+  assert.ok(santaClaraLibrary.some((event) => event.city === "Santa Clara" && event.type === "storytime" && event.maxAgeMonths <= 18));
+  assert.ok(santaClaraCity.some((event) => event.city === "Santa Clara" && event.type === "seasonal"));
+  assert.ok(campbellLibrary.some((event) => event.city === "Campbell" && event.type === "storytime"));
+  assert.ok(campbellCity.some((event) => event.city === "Campbell" && event.name.includes("Touch-A-Truck")));
+  assert.ok(losGatosLibrary.some((event) => event.city === "Los Gatos" && event.name === "Storytime (Ages 0-5)"));
+  assert.ok(losGatosCity.some((event) => event.city === "Los Gatos" && event.name === "Los Gatos Music in the Park"));
 });
 
 test("source count anomaly guard catches parser collapses without flagging normal drift", () => {

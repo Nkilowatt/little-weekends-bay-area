@@ -61,6 +61,12 @@ const sourceKeys = [
   "mountain-view-library-family-events",
   "cupertino-library-family-events",
   "cupertino-family-events",
+  "santa-clara-library-family-events",
+  "santa-clara-family-events",
+  "campbell-library-family-events",
+  "campbell-family-events",
+  "los-gatos-library-family-events",
+  "los-gatos-family-events",
   "sf-rec-park-family-events",
 ];
 
@@ -117,7 +123,7 @@ function seededDatabase() {
     'source_confirmed', 1, ?)`);
   const syncInsert = database.prepare(`INSERT INTO sync_state
     (source_key, status, last_attempt_at, last_success_at, message, event_count, data_revision)
-    VALUES (?, 'ok', ?, ?, NULL, 1, 4)`);
+    VALUES (?, 'ok', ?, ?, NULL, 1, 5)`);
 
   sourceKeys.forEach((sourceKey, index) => {
     eventInsert.run(`event-${index}`, sourceKey, `Event ${index}`, startAt, endAt, now.toISOString(), now.toISOString());

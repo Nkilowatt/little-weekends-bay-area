@@ -1,6 +1,6 @@
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
 const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
-const SOURCE_DATA_REVISION = 4;
+const SOURCE_DATA_REVISION = 5;
 const FUTURE_WINDOW_DAYS = 45;
 const DEFAULT_EVENT_DURATION_MINUTES = 60;
 const LEGACY_EVENT_GRACE_MINUTES = 90;
@@ -15,6 +15,11 @@ const MENLO_PARK_EVENTS_URL = "https://www.menlopark.gov/Events-directory";
 const MENLO_PARK_CHILDREN_URL = "https://www.menlopark.gov/Government/Departments/Library-and-Community-Services/Library/About-the-library/Childrens-services";
 const CUPERTINO_LIBRARY_RSS_URL = "https://gateway.bibliocommons.com/v2/libraries/sccl/rss/events?locations=CU";
 const CUPERTINO_EVENTS_URL = "https://www.cupertino.gov/Events-directory";
+const SANTA_CLARA_LIBRARY_RSS_URL = "https://www.santaclaraca.gov/Home/Components/RssFeeds/RssFeed/View?id=12";
+const SANTA_CLARA_EVENTS_RSS_URL = "https://www.santaclaraca.gov/Home/Components/RssFeeds/RssFeed/View?id=9";
+const CAMPBELL_LIBRARY_RSS_URL = "https://gateway.bibliocommons.com/v2/libraries/sccl/rss/events?locations=CA";
+const CAMPBELL_EVENTS_URL = "https://www.campbellca.gov/calendar.aspx";
+const LOS_GATOS_EVENTS_URL = "https://www.losgatosca.gov/calendar.aspx";
 const LIBCAL_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
 
 const monthNames = [
@@ -134,6 +139,41 @@ const sources = [
     key: "cupertino-family-events",
     url: CUPERTINO_EVENTS_URL,
     parse: parseCupertinoFamilyEvents,
+  },
+  {
+    key: "santa-clara-library-family-events",
+    url: SANTA_CLARA_LIBRARY_RSS_URL,
+    accept: "application/rss+xml,application/xml,text/xml",
+    parse: parseSantaClaraLibraryEvents,
+  },
+  {
+    key: "santa-clara-family-events",
+    url: SANTA_CLARA_EVENTS_RSS_URL,
+    accept: "application/rss+xml,application/xml,text/xml",
+    parse: parseSantaClaraCityEvents,
+  },
+  {
+    key: "campbell-library-family-events",
+    url: CAMPBELL_LIBRARY_RSS_URL,
+    accept: "application/rss+xml,application/xml,text/xml",
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "campbell-library-family-events", "Santa Clara County Library District"),
+  },
+  {
+    key: "campbell-family-events",
+    urls: campbellCalendarUrls,
+    parse: parseCampbellFamilyEvents,
+  },
+  {
+    key: "los-gatos-library-family-events",
+    url: losGatosLibraryCalendarUrl,
+    accept: "application/json",
+    userAgent: LIBCAL_BROWSER_USER_AGENT,
+    parse: parseLosGatosLibraryEvents,
+  },
+  {
+    key: "los-gatos-family-events",
+    urls: losGatosCalendarUrls,
+    parse: parseLosGatosFamilyEvents,
   },
   {
     key: "sf-rec-park-family-events",
@@ -279,6 +319,9 @@ function ageRangeFromLabel(label) {
   const value = String(label || "").replace(/\s+/g, "");
   const monthRange = value.match(/(\d+)개월-(\d+)개월/);
   if (monthRange) return { minAgeMonths: Number(monthRange[1]), maxAgeMonths: Number(monthRange[2]) };
+
+  const compactMonthRange = value.match(/(\d+)-(\d+)개월/);
+  if (compactMonthRange) return { minAgeMonths: Number(compactMonthRange[1]), maxAgeMonths: Number(compactMonthRange[2]) };
 
   const mixedRange = value.match(/(\d+)개월-(\d+)세/);
   if (mixedRange) return { minAgeMonths: Number(mixedRange[1]), maxAgeMonths: (Number(mixedRange[2]) + 1) * 12 - 1 };
@@ -560,7 +603,7 @@ function eventWhy(name, categories) {
 }
 
 function expandSanMateoCountyRecurringEvents(events, now = new Date()) {
-  const stableRecurringProgram = /^(?:Baby Bounce(?: Storytime)?(?: (?:With|with) Stay (?:and|&) Play!?)?|Baby Storytime|Toddler Storytime(?: (?:With|with) Stay (?:and|&) Play!?)?|Family Storytime(?: at [^:]+)?(?: (?:With|with) Stay (?:and|&) Play!?)?|Little Ones Storytime|Music & Movement|Bilingual .*Storytime.*|.* Bilingual (?:Family )?Storytime.*|中英雙語故事時間.*)$/i;
+  const stableRecurringProgram = /^(?:Baby Bounce(?: Storytime)?(?: (?:With|with) Stay (?:and|&) Play!?)?|Baby(?: & Me)? Storytime(?: \([^)]*\))?|Toddler Storytime(?: (?:With|with) Stay (?:and|&) Play!?)?|Family Storytime(?: at [^:]+)?(?: (?:With|with) Stay (?:and|&) Play!?)?|Outdoor Family Storytime|Saturday Storytime|Storytime \(Ages 0-5\)|Little Ones Storytime|Music & Movement(?: Storytime)?|Goodnight, Little Storytime|Bilingual .*Storytime.*|.* Bilingual (?:Family )?Storytime.*|Cantos y Cuentos.*|中英雙語故事時間.*)$/i;
   const lastDate = addDays(pacificDateKey(now), FUTURE_WINDOW_DAYS);
   const expanded = new Map();
   const recurringSeries = new Set();
@@ -608,7 +651,8 @@ function parseSanMateoCountyLibraryEvents(xml, now = new Date(), sourceKey = sou
     const block = item[1];
     const categories = xmlValues(block, "category");
     const name = xmlValue(block, "title");
-    const broadlyKidFriendly = /animal|music|puppet|magic|play|dance|family|kids|craft|maker|steam|story/i.test(`${name} ${categories.join(" ")}`);
+    const activityCategories = categories.filter((category) => !/^(?:All Ages|Kids: Family Events|Adults|Seniors|Teens|Tweens|English|Spanish)$/i.test(category));
+    const broadlyKidFriendly = /animal|music|puppet|magic|play|dance|family|kids|craft|maker|steam|storytime|early learning|movie|read to|bubble/i.test(`${name} ${activityCategories.join(" ")}`);
     const youngChildAudience = categories.some((category) => /Preschoolers? \(0-5\)|Pre-schoolers|Preschoolers|Babies|Toddlers|Kids: (?:Babies|Preschoolers|Toddlers)/i.test(category));
     const familyAudience = categories.some((category) => /All Ages|Kids: Family Events/i.test(category));
     const audienceMatch = youngChildAudience || (familyAudience && broadlyKidFriendly);
@@ -658,7 +702,7 @@ function parseSanMateoCountyLibraryEvents(xml, now = new Date(), sourceKey = sou
       time: displayClockFrom24(localTime),
       location,
       type,
-      age: audienceMatch ? "0-5세·가족" : "4-11세",
+      age: youngChildAudience ? "0-5세·가족" : familyAudience ? "가족·전 연령" : "4-11세",
       reservation: registrationFull ? "예약 마감" : registrationRequired ? "예약 필요" : "예약 불필요",
       why: eventWhy(name, categories),
     });
@@ -761,6 +805,113 @@ function parseMountainViewLibraryEvents(json, now = new Date()) {
     }
     return [event];
   }).toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
+}
+
+function losGatosLibraryCalendarUrl(now = new Date()) {
+  const start = pacificDateKey(now);
+  const end = addDays(start, FUTURE_WINDOW_DAYS + 1);
+  const query = new URLSearchParams({
+    iid: "4911",
+    c: "11830",
+    sp: "1",
+    timezone: PACIFIC_TIME_ZONE,
+    start,
+    end,
+  });
+  return `https://api3.libcal.com/widget/events/calendar/list?${query}`;
+}
+
+function losGatosLibraryLocation(record) {
+  const context = `${record?.title || ""} ${record?.short_desc || ""} ${record?.location || ""}`;
+  const selected = /Blossom Hill Park/i.test(context)
+    ? { label: "Blossom Hill Park", latitude: 37.2372, longitude: -121.9567, outdoor: true }
+    : /Oak Meadow Park/i.test(context)
+      ? { label: "Oak Meadow Park", latitude: 37.2356, longitude: -121.9734, outdoor: true }
+      : { label: "Los Gatos Library", latitude: 37.2227, longitude: -121.9804, outdoor: false };
+  return {
+    ...selected,
+    city: "Los Gatos",
+    distance: distanceFromSanMateo(selected.latitude, selected.longitude),
+    parking: `${selected.label} 주변 주차 정보를 공식 행사 페이지에서 확인하세요.`,
+    bathroom: selected.outdoor ? "공원 화장실 위치와 운영 여부를 공식 안내에서 확인하세요." : "도서관 내 화장실을 이용할 수 있어요.",
+    stroller: `${selected.label}의 출입구와 유모차 이동 동선을 확인하세요.`,
+  };
+}
+
+function losGatosAge(name, context) {
+  const range = name.match(/Ages?\s*(\d+)\s*[-–]\s*(\d+)/i);
+  if (range) return `${range[1]}-${range[2]}세`;
+  const minimum = name.match(/Ages?\s*(\d+)\+/i);
+  if (minimum) return `${minimum[1]}-12세`;
+  if (/baby|toddler|storytime|music and movement/i.test(context)) return "0-5세·가족";
+  if (/children|kids/i.test(context)) return "3-12세";
+  return "가족·전 연령";
+}
+
+function parseLosGatosLibraryEvents(json, now = new Date()) {
+  let records;
+  try {
+    records = JSON.parse(json);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(records)) return [];
+
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const familyProgram = /storytime|baby|toddler|preschool|family|music|dance|puppet|animal|wildlife|magic|steam|craft|play|summer reading|movie/i;
+
+  const events = records.flatMap((record) => {
+    const name = stripHtml(record?.title);
+    const description = stripHtml(record?.short_desc);
+    const audiences = String(record?.audiences || "");
+    const categories = String(record?.categories || "");
+    const context = `${name} ${description} ${audiences} ${categories}`;
+    const childAudience = /Children|Families|All Ages/i.test(audiences) || /Kids|Storytime|All Ages/i.test(categories);
+    const olderOnly = /Adults|Seniors|Teens|Tweens/i.test(audiences) && !/Children|Families/i.test(audiences);
+    if (!name || record?.online_event || /\bOnline\b|Zoom/i.test(record?.location || "")) return [];
+    if (!childAudience || !familyProgram.test(context) || olderOnly || eventIsCancelled(context)) return [];
+
+    const startValue = String(record?.start || "");
+    const dateKey = startValue.slice(0, 10);
+    const clock = startValue.slice(11, 16);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey) || !/^\d{2}:\d{2}$/.test(clock) || dateKey < today || dateKey > lastDate) return [];
+
+    const location = losGatosLibraryLocation(record);
+    const type = /storytime|music and movement/i.test(context)
+      ? "storytime"
+      : /steam|craft|make|art|play/i.test(context)
+        ? "indoor"
+        : "seasonal";
+    const event = makeEvent({
+      sourceKey: "los-gatos-library-family-events",
+      sourceUrl: String(record?.url || "https://losgatosca.libcal.com/calendar?cid=11830"),
+      sourceName: "Los Gatos Library",
+      name,
+      dateKey,
+      time: displayClockFrom24(clock),
+      location,
+      setting: location.outdoor ? "outdoor" : "indoor",
+      type,
+      age: losGatosAge(name, context),
+      price: "free",
+      reservation: record?.in_person_registration
+        ? /closed|full/i.test(String(record?.seats || "")) ? "예약 마감" : "예약 필요"
+        : "예약 불필요",
+      why: type === "storytime"
+        ? "Los Gatos Library 공식 일정에서 확인한 책·노래·움직임 중심의 영유아 프로그램이에요."
+        : "Los Gatos Library 공식 일정에서 확인한 어린이와 가족 대상 프로그램이에요.",
+    });
+    if (!event) return [];
+    const endValue = String(record?.end || "");
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(endValue)) {
+      const endAt = pacificIso(endValue.slice(0, 10), endValue.slice(11, 16));
+      if (new Date(endAt) > new Date(event.startAt)) event.endAt = endAt;
+    }
+    return [event];
+  });
+
+  return expandSanMateoCountyRecurringEvents(events, now);
 }
 
 function menloParkLocation(address) {
@@ -935,6 +1086,124 @@ function parseCupertinoFamilyEvents(html, now = new Date()) {
   }
 
   return events.toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
+}
+
+function civicPlusCalendarUrls(baseUrl, calendarIds, now = new Date()) {
+  const parts = dateParts(now);
+  const currentYear = Number(parts.year);
+  const currentMonth = Number(parts.month);
+  const nextMonthDate = new Date(Date.UTC(currentYear, currentMonth, 1));
+  const calendarUrl = (year, month) => `${baseUrl}?CID=${calendarIds}&month=${month}&view=list&year=${year}`;
+  return [
+    calendarUrl(currentYear, currentMonth),
+    calendarUrl(nextMonthDate.getUTCFullYear(), nextMonthDate.getUTCMonth() + 1),
+  ];
+}
+
+function campbellCalendarUrls(now = new Date()) {
+  return civicPlusCalendarUrls(CAMPBELL_EVENTS_URL, "47,29,14", now);
+}
+
+function losGatosCalendarUrls(now = new Date()) {
+  return civicPlusCalendarUrls(LOS_GATOS_EVENTS_URL, "16", now);
+}
+
+function westValleyLocation(city, context, locationName, street) {
+  const value = `${context} ${locationName} ${street}`;
+  const candidates = city === "Campbell"
+    ? [
+      { match: /Campbell Library|77 Harrison/i, label: "Campbell Library", latitude: 37.2882, longitude: -121.9432 },
+      { match: /John D\. Morgan Park|540 W\. Rincon/i, label: "John D. Morgan Park", latitude: 37.2818, longitude: -121.9584 },
+      { match: /Community Center|1 W\. Campbell/i, label: "Campbell Community Center", latitude: 37.2887, longitude: -121.9509 },
+      { match: /Downtown Campbell/i, label: "Downtown Campbell", latitude: 37.2872, longitude: -121.9499 },
+    ]
+    : [
+      { match: /Los Gatos Library|100 Villa/i, label: "Los Gatos Library", latitude: 37.2227, longitude: -121.9804 },
+      { match: /Oak Meadow Park/i, label: "Oak Meadow Park", latitude: 37.2356, longitude: -121.9734 },
+      { match: /Town Plaza Park|Jazz on the Plazz/i, label: "Town Plaza Park", latitude: 37.2230, longitude: -121.9833 },
+      { match: /Civic Center|110 E\.? Main/i, label: "Los Gatos Civic Center", latitude: 37.2218, longitude: -121.9781 },
+      { match: /Downtown Los Gatos/i, label: "Downtown Los Gatos", latitude: 37.2226, longitude: -121.9837 },
+    ];
+  const fallback = city === "Campbell"
+    ? { label: locationName || "City of Campbell", latitude: 37.2872, longitude: -121.9500 }
+    : { label: locationName || "Town of Los Gatos", latitude: 37.2358, longitude: -121.9624 };
+  const selected = candidates.find((candidate) => candidate.match.test(value)) || fallback;
+  const library = /Library/i.test(selected.label);
+  return {
+    ...selected,
+    city,
+    distance: distanceFromSanMateo(selected.latitude, selected.longitude),
+    parking: `${selected.label} 주변 주차 정보를 공식 행사 페이지에서 확인하세요.`,
+    bathroom: library ? "도서관 내 화장실을 이용할 수 있어요." : "행사장 화장실 위치와 운영 여부를 공식 안내에서 확인하세요.",
+    stroller: `${selected.label}의 유모차 이동 동선을 공식 안내에서 확인하세요.`,
+  };
+}
+
+function parseWestValleyFamilyEvents(html, now, config) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const events = new Map();
+  const eventPattern = /<div class="hidden" itemscope itemtype="http:\/\/schema\.org\/Event">([\s\S]*?)<\/div><p>/gi;
+  const relevant = /family|kid|child|toddler|baby|storytime|music|concert|movie|festival|parade|touch-a-truck|scavenger hunt|rock painting|recreation swim|pool party|holiday|tree lighting|egg hunt|pumpkin|carnival|jazz on the plazz/i;
+  const excluded = /cancelled|canceled|postponed|meeting|commission|committee|adult|senior|pickleball|league|planning|development review|book club/i;
+  let match;
+
+  while ((match = eventPattern.exec(html))) {
+    const block = match[1];
+    const name = stripHtml(block.match(/itemprop="name"[^>]*>([\s\S]*?)<\/span>/i)?.[1] || "");
+    const localStart = block.match(/itemprop="startDate"[^>]*>([^<]+)</i)?.[1] || "";
+    const description = stripHtml(block.match(/itemprop="description"[^>]*>([\s\S]*?)<\/p>/i)?.[1] || "");
+    const locationName = stripHtml(block.match(/itemprop="location"[\s\S]*?itemprop="name"[^>]*>([\s\S]*?)<\/span>/i)?.[1] || "");
+    const street = stripHtml(block.match(/itemprop="streetAddress"[^>]*>([^<]+)</i)?.[1] || "");
+    const dateKey = localStart.slice(0, 10);
+    const localTime = localStart.slice(11, 16);
+    const context = `${name} ${description} ${locationName} ${street}`;
+    if (!name || !dateKey || dateKey < today || dateKey > lastDate || !relevant.test(context) || excluded.test(context) || eventIsCancelled(context)) continue;
+
+    const location = westValleyLocation(config.city, context, locationName, street);
+    const timeConfirmed = /^\d{2}:\d{2}$/.test(localTime) && localTime !== "00:00";
+    const displayTime = timeConfirmed ? displayClockFrom24(localTime) : "12:00 PM";
+    const outdoor = /park|outdoor|movie|festival|parade|scavenger|concert|jazz|plazz|swim|touch-a-truck|carnival/i.test(context);
+    const storytime = /storytime/i.test(context);
+    const event = makeEvent({
+      sourceKey: config.sourceKey,
+      sourceUrl: config.sourceUrl,
+      sourceName: config.sourceName,
+      name,
+      dateKey,
+      time: displayTime,
+      location,
+      setting: outdoor ? "outdoor" : "indoor",
+      type: storytime ? "storytime" : "seasonal",
+      age: storytime || /toddler|baby/i.test(context) ? "0-5세·가족" : "가족·전 연령",
+      price: /\bfree\b/i.test(context) ? "free" : "check",
+      reservation: "공식 행사 안내 확인",
+      why: `${config.city} 공식 일정에서 확인한 어린이와 가족 대상 지역행사예요.`,
+      durationMinutes: outdoor ? 180 : 90,
+      confidenceStatus: timeConfirmed ? "source_confirmed" : "date_confirmed",
+    });
+    if (event) events.set(event.id, event);
+  }
+
+  return [...events.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
+}
+
+function parseCampbellFamilyEvents(html, now = new Date()) {
+  return parseWestValleyFamilyEvents(html, now, {
+    city: "Campbell",
+    sourceKey: "campbell-family-events",
+    sourceUrl: CAMPBELL_EVENTS_URL,
+    sourceName: "City of Campbell",
+  });
+}
+
+function parseLosGatosFamilyEvents(html, now = new Date()) {
+  return parseWestValleyFamilyEvents(html, now, {
+    city: "Los Gatos",
+    sourceKey: "los-gatos-family-events",
+    sourceUrl: LOS_GATOS_EVENTS_URL,
+    sourceName: "Town of Los Gatos",
+  });
 }
 
 function sanMateoCityCalendarUrl(now = new Date()) {
@@ -1353,6 +1622,107 @@ function parseBayAreaDiscoveryMuseumEvents(html, now = new Date()) {
     }
   }
   return events;
+}
+
+function santaClaraLocation(rawName, description, libraryFeed) {
+  const context = `${rawName} ${description}`;
+  const locations = [
+    { match: /NORTHSIDE:/i, label: "Northside Branch Library", latitude: 37.4004, longitude: -121.9590 },
+    { match: /MISSION:/i, label: "Mission Branch Library", latitude: 37.3497, longitude: -121.9455 },
+    { match: /CENTRAL:|Central Park Library/i, label: "Central Park Library", latitude: 37.3401, longitude: -121.9743 },
+    { match: /Central Park/i, label: "Santa Clara Central Park", latitude: 37.3420, longitude: -121.9698 },
+  ];
+  const selected = locations.find((location) => location.match.test(context))
+    || (libraryFeed
+      ? { label: "Santa Clara City Library", latitude: 37.3401, longitude: -121.9743 }
+      : { label: "City of Santa Clara", latitude: 37.3541, longitude: -121.9552 });
+  const isLibrary = /Library/i.test(selected.label);
+  return {
+    ...selected,
+    city: "Santa Clara",
+    distance: distanceFromSanMateo(selected.latitude, selected.longitude),
+    parking: `${selected.label} 주변 주차 정보를 공식 행사 페이지에서 확인하세요.`,
+    bathroom: isLibrary ? "도서관 내 화장실을 이용할 수 있어요." : "행사장 화장실 위치와 운영 여부를 공식 안내에서 확인하세요.",
+    stroller: `${selected.label}의 출입구와 유모차 이동 동선을 확인하세요.`,
+  };
+}
+
+function santaClaraAge(name, description) {
+  const context = `${name} ${description}`;
+  if (/0\s*[-–]\s*1\.5|birth to 1\.5|Baby & Me/i.test(context)) return "0-18개월";
+  if (/toddler/i.test(context)) return "18개월-3세";
+  if (/ages?\s*2\s*[-–]\s*5|preschool/i.test(context)) return "2-5세";
+  if (/grades?\s*K\s*[-–]\s*5|maker kids/i.test(context)) return "5-11세";
+  if (/storytime|family|children of all ages/i.test(context)) return "0-5세·가족";
+  return "가족·전 연령";
+}
+
+function parseSantaClaraEvents(xml, now = new Date(), libraryFeed = true) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const sourceKey = libraryFeed ? "santa-clara-library-family-events" : "santa-clara-family-events";
+  const sourceUrl = libraryFeed ? SANTA_CLARA_LIBRARY_RSS_URL : SANTA_CLARA_EVENTS_RSS_URL;
+  const sourceName = libraryFeed ? "Santa Clara City Library" : "City of Santa Clara";
+  const libraryTitleRelevant = /storytime|baby|toddler|playdate|family|maker kids|mad science|puppet|magic|music|dance|animal|wildlife|movie|festival|summer adventure|kids|(?:kids|children|family).*craft|craft.*(?:kids|children|family)/i;
+  const libraryDescriptionRelevant = /bab(?:y|ies)|toddlers?|children (?:ages|of all ages)|ages?\s*\d|early literacy|storytime|caregivers?/i;
+  const cityRelevant = /family|children|kids|night market|festival|parade|movie|music|concert|celebrate santa clara|holiday|tree lighting|egg hunt|pumpkin|carnival/i;
+  const excluded = /\badult\b|\bteens?\b|ESL|lawyers|genealogy|book sale|commission|committee|meeting|coding camp|finance/i;
+  const events = [];
+  const itemPattern = /<item>([\s\S]*?)<\/item>/gi;
+  let item;
+
+  while ((item = itemPattern.exec(xml))) {
+    const block = item[1];
+    const rawName = xmlValue(block, "title").replace(/\s+\(\d{1,2}\/\d{1,2}\/\d{4}[\s\S]*\)$/, "").trim();
+    const description = xmlValue(block, "description");
+    const context = `${rawName} ${description}`;
+    const relevant = libraryFeed
+      ? libraryTitleRelevant.test(rawName) || libraryDescriptionRelevant.test(description)
+      : cityRelevant.test(context);
+    if (!rawName || !relevant || excluded.test(context) || eventIsCancelled(context) || /^ONLINE:/i.test(rawName)) continue;
+
+    const start = redwoodCityDateTime(xmlValue(block, "eventStartDate"));
+    const end = redwoodCityDateTime(xmlValue(block, "eventEndDate"));
+    if (!start?.iso || start.dateKey < today || start.dateKey > lastDate) continue;
+
+    const name = rawName.replace(/^(?:CENTRAL|NORTHSIDE|MISSION):\s*/i, "").trim();
+    const location = santaClaraLocation(rawName, description, libraryFeed);
+    const storytime = /storytime|cuentos/i.test(name);
+    const outdoor = /outdoor|park|night market|festival|parade|carnival/i.test(context);
+    const event = makeEvent({
+      sourceKey,
+      sourceUrl: xmlValue(block, "link") || sourceUrl,
+      sourceName,
+      name,
+      dateKey: start.dateKey,
+      time: start.time,
+      location,
+      setting: outdoor ? "outdoor" : "indoor",
+      type: storytime ? "storytime" : libraryFeed ? "indoor" : "seasonal",
+      age: santaClaraAge(name, description),
+      price: "free",
+      reservation: /registration (?:is )?required|RSVP/i.test(context) ? "예약 필요" : "예약 불필요 · 공식 페이지 확인",
+      why: storytime
+        ? "Santa Clara City Library 공식 일정에서 확인한 책·노래·움직임 중심의 영유아 프로그램이에요."
+        : libraryFeed
+          ? "Santa Clara City Library 공식 일정에서 확인한 어린이와 가족 대상 프로그램이에요."
+          : "Santa Clara 시 공식 일정에서 확인한 가족 친화 지역행사예요.",
+    });
+    if (event) {
+      event.endAt = redwoodCityEffectiveEnd(name, start, end) || event.endAt;
+      events.push(event);
+    }
+  }
+
+  return libraryFeed ? expandSanMateoCountyRecurringEvents(events, now) : events;
+}
+
+function parseSantaClaraLibraryEvents(xml, now = new Date()) {
+  return parseSantaClaraEvents(xml, now, true);
+}
+
+function parseSantaClaraCityEvents(xml, now = new Date()) {
+  return parseSantaClaraEvents(xml, now, false);
 }
 
 function redwoodCityDateTime(value) {
@@ -1952,13 +2322,18 @@ export {
   getOutingsResponse,
   parseBayAreaDiscoveryMuseumEvents,
   parseBurlingameLibraryEvents,
+  parseCampbellFamilyEvents,
   parseCupertinoFamilyEvents,
   parseCuriOdysseyDailyEvents,
+  parseLosGatosFamilyEvents,
+  parseLosGatosLibraryEvents,
   parseMenloParkFamilyEvents,
   parseMountainViewLibraryEvents,
   parsePaloAltoFamilyEvents,
   parseRedwoodCityEvents,
   redwoodCityEffectiveEnd,
+  parseSantaClaraCityEvents,
+  parseSantaClaraLibraryEvents,
   parseSanFranciscoRecParkEvents,
   parseSanMateoCityEvents,
   parseSanMateoCountyLibraryEvents,
