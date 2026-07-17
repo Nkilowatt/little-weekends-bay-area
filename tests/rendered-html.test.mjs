@@ -26,16 +26,15 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /id="sharePlanDialog"/);
   assert.match(html, /evergreen-outings\.js\?v=4/);
-  assert.match(html, /styles\.css\?v=22/);
+  assert.match(html, /styles\.css\?v=23/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=2/);
-  assert.match(html, /app\.js\?v=23/);
+  assert.match(html, /app\.js\?v=24/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
-  assert.match(html, /오늘의 작은 장면/);
-  assert.match(html, /활동 이미지/);
+  assert.doesNotMatch(html, /mobileMomentCaption|mobileMomentTitle|<figcaption/);
 });
 
 test("client bundle includes decision filters, recovery actions, and detail alternatives", async () => {
@@ -72,6 +71,7 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /function mobileMomentScene\(\)/);
   assert.match(script, /function syncMobileMoment\(\)/);
   assert.equal((script.match(/assets\/mobile-moments\/[a-z-]+\.jpg/g) || []).length, 9);
+  assert.doesNotMatch(script, /mobileMomentTitleEl/);
 });
 
 test("age labels normalize to month ranges", () => {

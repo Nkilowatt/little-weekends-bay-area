@@ -858,27 +858,7 @@ h1, h2 { text-wrap: balance; }
     position: relative;
     width: 100%;
   }
-  .mobile-moment::after {
-    background: linear-gradient(180deg, transparent 50%, rgba(9, 27, 22, 0.56));
-    content: "";
-    inset: 0;
-    pointer-events: none;
-    position: absolute;
-  }
   .mobile-moment img { height: 100%; object-fit: cover; object-position: center; width: 100%; }
-  .mobile-moment figcaption {
-    align-items: baseline;
-    bottom: 9px;
-    color: #f8fbf9;
-    display: flex;
-    gap: 7px;
-    left: 11px;
-    position: absolute;
-    text-shadow: 0 1px 8px rgba(9, 27, 22, 0.5);
-    z-index: 1;
-  }
-  .mobile-moment figcaption span { font-size: 0.82rem; font-weight: 850; }
-  .mobile-moment figcaption small { font-size: 0.65rem; font-weight: 800; opacity: 0.84; }
   .discovery { padding: 10px 0 18px; }
   .quick-heading { align-items: center; }
   .quick-heading h2, .results-header h2 { font-size: 1.48rem; }

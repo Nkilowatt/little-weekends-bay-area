@@ -719,61 +719,51 @@ const sharePlanBody = document.querySelector("#sharePlanBody");
 const mobileSearchMedia = window.matchMedia("(max-width: 768px)");
 const mobileMomentEl = document.querySelector("#mobileMoment");
 const mobileMomentImageEl = document.querySelector("#mobileMomentImage");
-const mobileMomentTitleEl = document.querySelector("#mobileMomentTitle");
 
 const mobileMomentScenes = Object.freeze([
   {
     id: "park-walk",
     src: "assets/mobile-moments/park-walk.jpg",
-    title: "동네 공원 산책",
     alt: "보호자와 어린아이가 손을 잡고 나무가 우거진 공원길을 걷는 활동 이미지"
   },
   {
     id: "library-picture-book",
     src: "assets/mobile-moments/library-picture-book.jpg",
-    title: "그림책 한 권",
     alt: "보호자와 어린아이가 햇살 드는 어린이 도서 공간에서 그림책을 함께 보는 활동 이미지"
   },
   {
     id: "family-storytime",
     src: "assets/mobile-moments/family-storytime.jpg",
-    title: "함께 듣는 이야기",
     alt: "어린아이들과 보호자들이 도서관 바닥에 앉아 그림책 이야기를 듣는 활동 이미지"
   },
   {
     id: "playground-morning",
     src: "assets/mobile-moments/playground-morning.jpg",
-    title: "아침 놀이터",
     alt: "보호자가 가까이에서 지켜보는 가운데 어린아이가 나무 놀이터 계단을 오르는 활동 이미지"
   },
   {
     id: "nature-trail",
     src: "assets/mobile-moments/nature-trail.jpg",
-    title: "숲길에서 발견",
     alt: "보호자와 어린아이가 숲길에 쪼그려 앉아 솔방울을 살펴보는 활동 이미지"
   },
   {
     id: "rainy-puddles",
     src: "assets/mobile-moments/rainy-puddles.jpg",
-    title: "비 오는 날의 물웅덩이",
     alt: "비 오는 날 보호자와 노란 우비를 입은 어린아이가 물웅덩이를 걷는 활동 이미지"
   },
   {
     id: "discovery-gallery",
     src: "assets/mobile-moments/discovery-gallery.jpg",
-    title: "작은 발견",
     alt: "보호자와 어린아이가 어린이 체험 공간의 빛 테이블을 함께 살펴보는 활동 이미지"
   },
   {
     id: "community-festival",
     src: "assets/mobile-moments/community-festival.jpg",
-    title: "동네 축제 나들이",
     alt: "어린아이가 보호자의 어깨에 올라앉아 나무 아래 작은 동네 축제를 바라보는 활동 이미지"
   },
   {
     id: "music-movement",
     src: "assets/mobile-moments/music-movement.jpg",
-    title: "음악 따라 움직이기",
     alt: "보호자와 어린아이들이 밝은 공간에서 천 스카프를 흔들며 음악 놀이를 하는 활동 이미지"
   }
 ]);
@@ -819,7 +809,6 @@ function syncMobileMoment() {
   mobileMomentImageEl.dataset.scene = scene.id;
   mobileMomentImageEl.src = scene.src;
   mobileMomentImageEl.alt = scene.alt;
-  mobileMomentTitleEl.textContent = scene.title;
 }
 
 function persistSaved() {
