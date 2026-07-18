@@ -22,6 +22,7 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /data-location-key="santa-clara"/);
   assert.match(html, /data-location-key="campbell"/);
   assert.match(html, /data-location-key="los-gatos"/);
+  assert.match(html, /data-date="today"[\s\S]*data-date="tomorrow"[\s\S]*data-date="weekend"/);
   assert.match(html, /value="tomorrow">내일/);
   assert.match(html, /id="regionFilter"/);
   assert.match(html, /id="timeFilter"/);
