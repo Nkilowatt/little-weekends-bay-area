@@ -236,8 +236,28 @@
     return { content: lines.join("\r\n"), filename: `${safeName}.ics` };
   }
 
+  function buildCalendarUrl(item, detailUrl) {
+    if (!item?.startDate || !detailUrl) return "";
+    const start = new Date(item.startDate);
+    if (!Number.isFinite(start.getTime())) return "";
+    const url = new URL("/calendar.ics", detailUrl);
+    const end = item.endDate ? new Date(item.endDate) : null;
+    url.searchParams.set("id", String(item.id || "outing").slice(0, 220));
+    url.searchParams.set("name", String(item.name || "Little Weekends 일정").slice(0, 180));
+    url.searchParams.set("start", start.toISOString());
+    if (end && Number.isFinite(end.getTime()) && end > start) url.searchParams.set("end", end.toISOString());
+    if (item.confidenceStatus) url.searchParams.set("status", String(item.confidenceStatus).slice(0, 40));
+    const location = String(item.address || item.city || "").trim();
+    if (location) url.searchParams.set("location", location.slice(0, 280));
+    if (item.why) url.searchParams.set("why", String(item.why).slice(0, 360));
+    if (item.source) url.searchParams.set("source", String(item.source).slice(0, 800));
+    url.searchParams.set("detail", detailUrl);
+    return url.toString();
+  }
+
   global.LITTLE_WEEKENDS_PLANNING = {
     buildCalendarFile,
+    buildCalendarUrl,
     clearDeepLinkUrl,
     deepLinkUrl,
     detectPlanIssues,

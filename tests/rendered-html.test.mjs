@@ -31,11 +31,11 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /id="sharePlanDialog"/);
   assert.match(html, /evergreen-outings\.js\?v=7/);
-  assert.match(html, /styles\.css\?v=23/);
+  assert.match(html, /styles\.css\?v=24/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
-  assert.match(html, /planning\.js\?v=2/);
-  assert.match(html, /app\.js\?v=27/);
+  assert.match(html, /planning\.js\?v=3/);
+  assert.match(html, /app\.js\?v=28/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
@@ -61,7 +61,8 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /function recommendationReasons\(item\)/);
   assert.match(script, /function nearbyAlternatives\(item\)/);
   assert.match(script, /function shareOuting\(item\)/);
-  assert.match(script, /function downloadCalendar\(item\)/);
+  assert.match(script, /const calendarHref = buildCalendarUrl\(item, detailUrl\)/);
+  assert.doesNotMatch(script, /URL\.createObjectURL/);
   assert.match(script, /function openPendingOuting\(\)/);
   assert.match(script, /groupSavedItems\(items, pacificDateKey\(\)\)/);
   assert.match(script, /little-weekends-nap-window/);
@@ -105,6 +106,7 @@ test("Sites build contains the event API and security policy", async () => {
   const migration = await readFile(new URL("drizzle/0003_shared_plans.sql", root), "utf8");
 
   assert.match(worker, /pathname === "\/api\/outings"/);
+  assert.match(worker, /handleCalendarRequest/);
   assert.match(worker, /"\/evergreen-outings\.js"/);
   assert.match(worker, /"\/planning\.js"/);
   assert.match(worker, /handleSharedPlanRequest/);
@@ -138,6 +140,20 @@ test("Sites build serves both Korean webfonts", async () => {
   }
 });
 
+test("Sites build serves calendar actions as real ICS responses", async () => {
+  const { default: worker } = await import(new URL("../dist/server/index.js", import.meta.url));
+  const url = new URL("https://little-weekends.test/calendar.ics");
+  url.searchParams.set("id", "storytime");
+  url.searchParams.set("name", "가족 스토리타임");
+  url.searchParams.set("start", "2026-07-18T17:30:00.000Z");
+  url.searchParams.set("end", "2026-07-18T18:15:00.000Z");
+  const response = await worker.fetch(new Request(url), {}, {});
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "text/calendar; charset=utf-8");
+  assert.match(await response.text(), /BEGIN:VCALENDAR[\s\S]*SUMMARY:가족 스토리타임[\s\S]*END:VCALENDAR/);
+});
+
 test("Sites build serves all nine mobile moment photos", async () => {
   const { default: worker } = await import(new URL("../dist/server/index.js", import.meta.url));
   const routes = [
@@ -164,6 +180,10 @@ test("typography scale and Korean wrapping remain intentionally readable", async
   const css = await readFile(new URL("styles.css", root), "utf8");
 
   assert.match(css, /font-size:\s*115%/);
+  assert.match(css, /--font-ui:\s*system-ui/);
+  assert.match(css, /\.hero h1\s*\{[^}]*font-family:\s*var\(--font-display\)/);
+  assert.match(css, /@media \(max-width:\s*768px\)[\s\S]*?\.hero h1\s*\{[^}]*font-family:\s*var\(--font-display-compact\)/);
+  assert.match(css, /\.quick-heading h2, \.results-header h2\s*\{[^}]*font-family:\s*var\(--font-ui\)/);
   assert.match(css, /line-break:\s*strict/);
   assert.match(css, /word-break:\s*keep-all/);
   assert.match(css, /overflow-wrap:\s*break-word/);

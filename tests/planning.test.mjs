@@ -81,6 +81,27 @@ test("calendar downloads use exact times when known and all-day dates otherwise"
   assert.doesNotMatch(dateOnly.content, /DTSTART:20260715T/);
 });
 
+test("calendar actions point to a same-origin ICS response instead of a temporary blob", async () => {
+  const { buildCalendarUrl } = await planningHelpers();
+  const calendarUrl = new URL(buildCalendarUrl({
+    id: "family-storytime",
+    name: "가족 스토리타임",
+    address: "1044 Middlefield Road",
+    why: "아이와 함께 듣는 이야기 시간",
+    startDate: "2026-07-13T10:30:00-07:00",
+    endDate: "2026-07-13T11:15:00-07:00",
+    confidenceStatus: "source_confirmed",
+    source: "https://example.test/event",
+  }, "https://little-weekends.test/?outing=family-storytime"));
+
+  assert.equal(calendarUrl.origin, "https://little-weekends.test");
+  assert.equal(calendarUrl.pathname, "/calendar.ics");
+  assert.equal(calendarUrl.searchParams.get("id"), "family-storytime");
+  assert.equal(calendarUrl.searchParams.get("name"), "가족 스토리타임");
+  assert.equal(calendarUrl.searchParams.get("start"), "2026-07-13T17:30:00.000Z");
+  assert.equal(calendarUrl.searchParams.get("detail"), "https://little-weekends.test/?outing=family-storytime");
+});
+
 test("outing time status removes ended events and keeps date-only events for their Pacific day", async () => {
   const { isOutingCurrent, outingTimeStatus } = await planningHelpers();
   const now = new Date("2026-07-16T05:30:00.000Z");

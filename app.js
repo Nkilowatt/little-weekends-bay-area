@@ -637,7 +637,7 @@ const state = {
 };
 
 const {
-  buildCalendarFile,
+  buildCalendarUrl,
   clearDeepLinkUrl,
   deepLinkUrl,
   detectPlanIssues,
@@ -2122,24 +2122,6 @@ async function shareOuting(item) {
   }
 }
 
-function downloadCalendar(item) {
-  const detailUrl = deepLinkUrl(publicPageUrl(), item.id);
-  const file = buildCalendarFile(item, detailUrl);
-  if (!file) {
-    showToast("시간이 정해진 행사만 캘린더에 추가할 수 있어요.");
-    return;
-  }
-  const objectUrl = URL.createObjectURL(new Blob([file.content], { type: "text/calendar;charset=utf-8" }));
-  const link = document.createElement("a");
-  link.href = objectUrl;
-  link.download = file.filename;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-  showToast("캘린더 파일을 준비했어요.");
-}
-
 function openPendingOuting() {
   if (!pendingOutingId || !findOutingById(pendingOutingId)) return;
   const id = pendingOutingId;
@@ -2168,12 +2150,14 @@ function openDetail(id) {
   const isSaved = state.saved.has(id);
   const trust = trustStatus(item);
   const distance = distanceFor(item);
+  const detailUrl = deepLinkUrl(publicPageUrl(), item.id);
   const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address || `${item.name}, ${item.city}, CA`)}`;
   const sourceAction = item.source
     ? `<a class="secondary-action decision-source" href="${escapeHtml(item.source)}" target="_blank" rel="noopener noreferrer">${trust.key === "verified" || trust.key === "source-confirmed" ? "공식 정보 보기" : "공식 일정 확인"}</a>`
     : "";
-  const calendarAction = item.startDate
-    ? '<button class="secondary-action decision-calendar" type="button" id="calendarDetail">캘린더에 추가</button>'
+  const calendarHref = buildCalendarUrl(item, detailUrl);
+  const calendarAction = calendarHref
+    ? `<a class="secondary-action decision-calendar" id="calendarDetail" href="${escapeHtml(calendarHref)}" target="_blank" rel="noopener noreferrer">캘린더에 추가</a>`
     : "";
   const alternatives = nearbyAlternatives(item);
   const alternativesMarkup = alternatives.map((alternative) => {
@@ -2203,7 +2187,7 @@ function openDetail(id) {
 
   detailBody.querySelector("#saveDetail").addEventListener("click", () => { toggleSaved(id); openDetail(id); });
   detailBody.querySelector("#shareDetail").addEventListener("click", () => shareOuting(item));
-  detailBody.querySelector("#calendarDetail")?.addEventListener("click", () => downloadCalendar(item));
+  detailBody.querySelector("#calendarDetail")?.addEventListener("click", () => showToast("캘린더 추가 화면을 열고 있어요."));
   detailBody.querySelectorAll("[data-alternative-id]").forEach((button) => {
     button.addEventListener("click", () => {
       state.selectedId = button.dataset.alternativeId;

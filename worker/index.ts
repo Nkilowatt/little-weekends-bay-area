@@ -1,6 +1,7 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { handleCalendarRequest } from "./calendar.js";
 import { getOutingsResponse, refreshOutings } from "./event-sync.js";
 import { handleSharedPlanRequest } from "./shared-plans.js";
 
@@ -45,6 +46,9 @@ const worker = {
     if (url.pathname === "/api/outings") {
       return getOutingsResponse(request, env, ctx);
     }
+
+    const calendarResponse = handleCalendarRequest(request);
+    if (calendarResponse) return calendarResponse;
 
     const sharedPlanResponse = await handleSharedPlanRequest(request, env);
     if (sharedPlanResponse) return sharedPlanResponse;
