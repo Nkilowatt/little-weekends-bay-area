@@ -31,11 +31,11 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /id="sharePlanDialog"/);
   assert.match(html, /evergreen-outings\.js\?v=7/);
-  assert.match(html, /styles\.css\?v=24/);
+  assert.match(html, /styles\.css\?v=25/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=3/);
-  assert.match(html, /app\.js\?v=28/);
+  assert.match(html, /app\.js\?v=29/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
@@ -60,6 +60,11 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /function matchesTime\(item\)/);
   assert.match(script, /function recommendationReasons\(item\)/);
   assert.match(script, /function nearbyAlternatives\(item\)/);
+  assert.match(script, /function sfBranchContext\(items\)/);
+  assert.match(script, /id="sfBranchSelect"/);
+  assert.match(script, /function detailLocationMarkup\(item\)/);
+  assert.match(script, /세부 위치 확인 중/);
+  assert.match(script, /id="copyAddress"/);
   assert.match(script, /function shareOuting\(item\)/);
   assert.match(script, /const calendarHref = buildCalendarUrl\(item, detailUrl\)/);
   assert.doesNotMatch(script, /URL\.createObjectURL/);
@@ -104,6 +109,7 @@ test("Sites build contains the event API and security policy", async () => {
   const eventSync = await readFile(new URL("dist/server/event-sync.js", root), "utf8");
   const sharedPlans = await readFile(new URL("dist/server/shared-plans.js", root), "utf8");
   const migration = await readFile(new URL("drizzle/0003_shared_plans.sql", root), "utf8");
+  const locationMigration = await readFile(new URL("drizzle/0004_event_location.sql", root), "utf8");
 
   assert.match(worker, /pathname === "\/api\/outings"/);
   assert.match(worker, /handleCalendarRequest/);
@@ -114,6 +120,8 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(eventSync, /min_age_months/);
   assert.match(eventSync, /confidence_status/);
   assert.match(eventSync, /end_at/);
+  assert.match(eventSync, /venue_name/);
+  assert.match(eventSync, /address/);
   assert.match(eventSync, /active_event_count/);
   assert.match(eventSync, /data_revision/);
   assert.match(eventSync, /REFRESH_ATTEMPT_COOLDOWN_MS/);
@@ -123,6 +131,8 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(sharedPlans, /x-plan-edit-token/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS shared_plans/);
   assert.match(migration, /FOREIGN KEY \(plan_token, item_id\)/);
+  assert.match(locationMigration, /ADD COLUMN venue_name/);
+  assert.match(locationMigration, /ADD COLUMN address/);
 });
 
 test("Sites build serves both Korean webfonts", async () => {

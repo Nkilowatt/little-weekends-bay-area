@@ -84,6 +84,8 @@ function seededDatabase() {
       setting TEXT NOT NULL,
       start_at TEXT NOT NULL,
       end_at TEXT,
+      venue_name TEXT NOT NULL DEFAULT '',
+      address TEXT NOT NULL DEFAULT '',
       city TEXT NOT NULL,
       distance REAL NOT NULL,
       age TEXT NOT NULL,
@@ -117,16 +119,16 @@ function seededDatabase() {
   const startAt = new Date(now.getTime() + 3600000).toISOString();
   const endAt = new Date(now.getTime() + 7200000).toISOString();
   const eventInsert = database.prepare(`INSERT INTO events (
-    id, source_key, name, type, setting, start_at, end_at, city, distance, age,
+    id, source_key, name, type, setting, start_at, end_at, venue_name, address, city, distance, age,
     min_age_months, max_age_months, price, reservation, source_url, source_name,
     verified_at, why, notes_json, latitude, longitude, confidence_status, active, last_seen_at
-  ) VALUES (?, ?, ?, 'storytime', 'indoor', ?, ?, 'San Mateo', 1, '1-3세', 12, 47,
+  ) VALUES (?, ?, ?, 'storytime', 'indoor', ?, ?, 'Fixture Library', '1 Main Street, San Mateo, CA', 'San Mateo', 1, '1-3세', 12, 47,
     'free', '예약 불필요', 'https://www.cityofsanmateo.org/', 'Official source', ?,
     'Fixture event', '{"parking":"","bathroom":"","stroller":""}', 37.56, -122.32,
     'source_confirmed', 1, ?)`);
   const syncInsert = database.prepare(`INSERT INTO sync_state
     (source_key, status, last_attempt_at, last_success_at, message, event_count, data_revision)
-    VALUES (?, 'ok', ?, ?, NULL, 1, 7)`);
+    VALUES (?, 'ok', ?, ?, NULL, 1, 8)`);
 
   sourceKeys.forEach((sourceKey, index) => {
     eventInsert.run(`event-${index}`, sourceKey, `Event ${index}`, startAt, endAt, now.toISOString(), now.toISOString());
@@ -146,6 +148,8 @@ test("API reports full coverage only when every source is current", async () => 
   assert.equal(payload.sourceCount, sourceKeys.length);
   assert.equal(payload.events.length, sourceKeys.length);
   assert.ok(payload.events.every((event) => event.endDate));
+  assert.ok(payload.events.every((event) => event.venueName === "Fixture Library"));
+  assert.ok(payload.events.every((event) => event.address === "1 Main Street, San Mateo, CA"));
 });
 
 test("API marks stale-source events for recheck without retry amplification", async () => {

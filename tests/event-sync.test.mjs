@@ -214,6 +214,7 @@ test("all official-source parser families retain their expected fixture contract
   parsed.forEach((events) => assert.ok(events.length > 0));
   parsed.flat().forEach((event) => {
     assert.match(event.sourceUrl, /^https:\/\//);
+    assert.ok(event.venueName);
     assert.ok(new Date(event.endAt) > new Date(event.startAt));
     assert.ok(Number.isFinite(event.minAgeMonths));
     assert.ok(Number.isFinite(event.maxAgeMonths));
@@ -259,7 +260,7 @@ test("source health requires success, freshness, and active future events", () =
     status: "ok",
     last_success_at: "2026-07-12T15:00:00.000Z",
     active_event_count: 4,
-    data_revision: 7,
+    data_revision: 8,
   };
 
   assert.equal(sourceIsCurrent(healthy, now), true);
@@ -362,6 +363,8 @@ test("San Francisco library coverage keeps paginated branch-level early-childhoo
   assert.ok(events.every((event) => event.city === "San Francisco" && event.sourceName === "San Francisco Public Library"));
   assert.ok(events.every((event) => event.sourceUrl.startsWith("https://sfpl.org/events/2026/")));
   assert.ok(events.every((event) => event.latitude === 37.7753 && event.longitude === -122.393));
+  assert.ok(events.every((event) => event.venueName === "Mission Bay Branch Library"));
+  assert.ok(events.every((event) => event.address === "960 4th Street, San Francisco, CA 94158"));
   assert.equal(events[0].age, "18개월-3세");
   assert.equal(new Date(events[0].endAt) - new Date(events[0].startAt), 30 * 60000);
   assert.equal(new Date(events[1].endAt) - new Date(events[1].startAt), 45 * 60000);

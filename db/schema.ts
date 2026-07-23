@@ -8,6 +8,8 @@ export const events = sqliteTable("events", {
   setting: text("setting").notNull(),
   startAt: text("start_at").notNull(),
   endAt: text("end_at"),
+  venueName: text("venue_name").notNull().default(""),
+  address: text("address").notNull().default(""),
   city: text("city").notNull(),
   distance: real("distance").notNull(),
   age: text("age").notNull(),

@@ -1,6 +1,6 @@
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
 const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
-const SOURCE_DATA_REVISION = 7;
+const SOURCE_DATA_REVISION = 8;
 const FUTURE_WINDOW_DAYS = 45;
 const DEFAULT_EVENT_DURATION_MINUTES = 60;
 const LEGACY_EVENT_GRACE_MINUTES = 90;
@@ -361,6 +361,15 @@ function distanceFromSanMateo(latitude, longitude) {
   return Math.round((3958.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 10) / 10;
 }
 
+function completeAddress(value, city, postalCode = "") {
+  const address = String(value || "").replace(/\s+/g, " ").trim().replace(/[.,]\s*$/, "");
+  if (!address) return "";
+  const cityPattern = new RegExp(city.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+  const locality = cityPattern.test(address) ? address : `${address}, ${city}`;
+  const state = /,\s*CA(?:\s+\d{5})?$/i.test(locality) ? locality : `${locality}, CA`;
+  return postalCode && !new RegExp(`\\b${postalCode}\\b`).test(state) ? `${state} ${postalCode}` : state;
+}
+
 function makeEvent({
   sourceKey,
   sourceUrl,
@@ -397,6 +406,8 @@ function makeEvent({
     setting,
     startAt,
     endAt,
+    venueName: location.label || "",
+    address: location.address || "",
     city: location.city,
     distance: location.distance,
     age: ageLabel,
@@ -564,6 +575,7 @@ function parseSanMateoStorytimes(html, now = new Date()) {
         : { latitude: 37.5267, longitude: -122.3338 };
     const location = {
       label: parkName,
+      address: completeAddress(address, "San Mateo"),
       city: "San Mateo",
       distance: /Shoreview/i.test(parkName) ? 4.7 : 3.5,
       ...knownPark,
@@ -702,6 +714,7 @@ function parseSanMateoCountyLibraryEvents(xml, now = new Date(), sourceKey = sou
         : "seasonal";
     const location = {
       label: locationName || city,
+      address: completeAddress(street, city),
       city,
       distance: distanceFromSanMateo(latitude, longitude),
       latitude,
@@ -1110,6 +1123,7 @@ function menloParkLocation(address) {
         : { label: "City of Menlo Park", latitude: 37.4530, longitude: -122.1817 };
   return {
     ...selected,
+    address: completeAddress(address, "Menlo Park"),
     city: "Menlo Park",
     distance: distanceFromSanMateo(selected.latitude, selected.longitude),
     parking: `${selected.label} 주변 주차 정보를 공식 행사 페이지에서 확인하세요.`,
@@ -1216,6 +1230,7 @@ function cupertinoLocation(context, address) {
     || { label: "City of Cupertino", latitude: 37.3230, longitude: -122.0322 };
   return {
     ...selected,
+    address: completeAddress(address, "Cupertino"),
     city: "Cupertino",
     distance: distanceFromSanMateo(selected.latitude, selected.longitude),
     parking: `${selected.label} 주변 주차 정보를 공식 행사 페이지에서 확인하세요.`,
@@ -1315,6 +1330,7 @@ function westValleyLocation(city, context, locationName, street) {
   const library = /Library/i.test(selected.label);
   return {
     ...selected,
+    address: completeAddress(street, city),
     city,
     distance: distanceFromSanMateo(selected.latitude, selected.longitude),
     parking: `${selected.label} 주변 주차 정보를 공식 행사 페이지에서 확인하세요.`,
@@ -1536,6 +1552,7 @@ function paloAltoLocation(context, address) {
   };
   return {
     ...selected,
+    address: completeAddress(address, "Palo Alto"),
     city: "Palo Alto",
     distance: distanceFromSanMateo(selected.latitude, selected.longitude),
     parking: `${selected.label} 주변 주차 정보를 공식 행사 페이지에서 확인하세요.`,
@@ -1683,6 +1700,7 @@ function parseSanFranciscoLibraryEvents(html, now = new Date()) {
     const label = branch.name === "Main" ? "SFPL Main Library" : `${branch.name} Branch Library`;
     const location = {
       label,
+      address: completeAddress(branch.address, "San Francisco", branch.postalCode),
       city: "San Francisco",
       distance: distanceFromSanMateo(branch.latitude, branch.longitude),
       latitude: branch.latitude,
@@ -1732,6 +1750,7 @@ function sanFranciscoLocation(locationName, address) {
         : { label: locationName || "San Francisco Recreation & Parks", latitude: 37.7749, longitude: -122.4194 };
   return {
     ...selected,
+    address: completeAddress(address, "San Francisco"),
     city: "San Francisco",
     distance: distanceFromSanMateo(selected.latitude, selected.longitude),
     parking: `${selected.label} 주변 주차와 대중교통 정보를 공식 행사 페이지에서 확인하세요.`,
@@ -1852,6 +1871,7 @@ function parseCuriOdysseyDailyEvents(html, now = new Date()) {
   const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
   const location = {
     label: "CuriOdyssey",
+    address: "1651 Coyote Point Drive, San Mateo, CA 94401",
     city: "San Mateo",
     distance: 4.6,
     latitude: 37.5906,
@@ -1902,6 +1922,7 @@ function parseBayAreaDiscoveryMuseumEvents(html, now = new Date()) {
     const endDate = `${currentYear}-${String(endMonth + 1).padStart(2, "0")}-${String(range[4]).padStart(2, "0")}`;
     const location = {
       label: "Bay Area Discovery Museum",
+      address: "557 McReynolds Road, Sausalito, CA 94965",
       city: "Sausalito",
       distance: distanceFromSanMateo(37.8356, -122.4764),
       latitude: 37.8356,
@@ -2070,6 +2091,7 @@ function redwoodCityLocation(name, description) {
     {
       match: /Redwood Shores|@ Shores/i,
       label: "Redwood Shores Branch Library",
+      address: "399 Marine Parkway, Redwood City, CA 94065",
       latitude: 37.5311,
       longitude: -122.2587,
       parking: "Redwood Shores Branch Library 주차장을 이용할 수 있어요.",
@@ -2079,6 +2101,7 @@ function redwoodCityLocation(name, description) {
     {
       match: /Magical Bridge|Red Morton|Parcade/i,
       label: "Magical Bridge Playground at Red Morton Park",
+      address: "1120 Roosevelt Avenue, Redwood City, CA 94061",
       latitude: 37.4869,
       longitude: -122.2470,
       parking: "Red Morton Park 주변 주차장을 이용하고 행사 위치를 공식 안내에서 확인하세요.",
@@ -2106,6 +2129,7 @@ function redwoodCityLocation(name, description) {
     {
       match: /Downtown|Cuentos y Cantos|Música con Val|Music with Val/i,
       label: "Downtown Library",
+      address: "1044 Middlefield Road, Redwood City, CA 94063",
       latitude: 37.4844,
       longitude: -122.2286,
       parking: "Downtown Library 주변 공영 주차장을 확인하세요.",
@@ -2232,6 +2256,8 @@ function createSchemaStatements(db) {
       setting TEXT NOT NULL,
       start_at TEXT NOT NULL,
       end_at TEXT,
+      venue_name TEXT NOT NULL DEFAULT '',
+      address TEXT NOT NULL DEFAULT '',
       city TEXT NOT NULL,
       distance REAL NOT NULL,
       age TEXT NOT NULL,
@@ -2274,6 +2300,8 @@ async function ensureSchema(db) {
     if (!columns.has("max_age_months")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN max_age_months INTEGER NOT NULL DEFAULT 216"));
     if (!columns.has("confidence_status")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN confidence_status TEXT NOT NULL DEFAULT 'source_confirmed'"));
     if (!columns.has("end_at")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN end_at TEXT"));
+    if (!columns.has("venue_name")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN venue_name TEXT NOT NULL DEFAULT ''"));
+    if (!columns.has("address")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN address TEXT NOT NULL DEFAULT ''"));
     if (migrations.length) {
       await db.batch(migrations);
       await db.prepare("UPDATE events SET active = 0").run();
@@ -2295,16 +2323,18 @@ async function ensureSchema(db) {
 
 function upsertStatement(db, event, verifiedAt) {
   return db.prepare(`INSERT INTO events (
-    id, source_key, name, type, setting, start_at, end_at, city, distance, age,
+    id, source_key, name, type, setting, start_at, end_at, venue_name, address, city, distance, age,
     min_age_months, max_age_months, price, reservation, source_url, source_name,
     verified_at, why, notes_json, latitude, longitude, confidence_status, active, last_seen_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
   ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
     type = excluded.type,
     setting = excluded.setting,
     start_at = excluded.start_at,
     end_at = excluded.end_at,
+    venue_name = excluded.venue_name,
+    address = excluded.address,
     city = excluded.city,
     distance = excluded.distance,
     age = excluded.age,
@@ -2329,6 +2359,8 @@ function upsertStatement(db, event, verifiedAt) {
       event.setting,
       event.startAt,
       event.endAt,
+      event.venueName,
+      event.address,
       event.city,
       event.distance,
       event.age,
@@ -2500,6 +2532,8 @@ function rowToOuting(row, now) {
     startDate: row.start_at,
     endDate: row.end_at,
     timeLabel: confidenceStatus === "date_confirmed" ? "시간은 공식 페이지 확인" : koreanTimeLabel(row.start_at),
+    venueName: row.venue_name || "",
+    address: row.address || "",
     city: row.city,
     distance: row.distance,
     age: row.age,

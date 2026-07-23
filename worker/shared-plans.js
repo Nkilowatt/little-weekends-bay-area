@@ -69,6 +69,7 @@ function sanitizeSnapshot(item) {
     sourceName: safeText(item?.sourceName, 140, "공식 운영기관"),
     updated: safeText(item?.updated, 120, "공유 당시 정보"),
     why: safeText(item?.why, 500, "공식 페이지에서 세부 정보를 확인해 주세요."),
+    venueName: safeText(item?.venueName, 180),
     address: safeText(item?.address, 220),
     confidenceStatus: safeText(item?.confidenceStatus, 40, "recheck"),
     notes: {

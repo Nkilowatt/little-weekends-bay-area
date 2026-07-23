@@ -514,6 +514,8 @@ function normalizeOuting(item) {
   const notes = item.notes || {};
   const confidenceStatus = inferredConfidenceStatus(item);
   const city = safeText(item.city, "Bay Area", 100);
+  const address = safeText(item.address, "", 220);
+  const venueName = safeText(item.venueName, !item.startDate && address ? item.name : "", 180);
   const reservation = safeText(item.reservation, "공식 페이지 확인", 180);
   const rawAmenities = item.amenities || {};
   const amenities = {
@@ -544,7 +546,8 @@ function normalizeOuting(item) {
     sourceName: safeText(item.sourceName, "공식 운영기관", 140),
     updated: safeText(item.updated, "확인 시각 없음", 120),
     why: safeText(item.why, "공식 페이지에서 세부 정보를 확인해 주세요.", 500),
-    address: safeText(item.address, "", 220),
+    venueName,
+    address,
     notes: {
       parking: amenities.parking.text,
       bathroom: amenities.bathroom.text,
@@ -633,7 +636,8 @@ const state = {
   search: "",
   selectedId: null,
   locationKey: storedLocationKey,
-  expandedGroups: new Set()
+  expandedGroups: new Set(),
+  sfVenue: "all"
 };
 
 const {
@@ -890,6 +894,8 @@ function recommendationScore(item) {
   score += { human_verified: 18, source_confirmed: 12, date_confirmed: 5, recurring_estimate: 2, recheck: 0, stale: -18 }[item.confidenceStatus] || 0;
   if (item.price === "free") score += 4;
   if (String(item.reservation).includes("불필요")) score += 4;
+  if (!item.venueName) score -= 8;
+  if (!item.address) score -= 12;
 
   if (item.startDate) {
     const hoursUntilStart = (new Date(item.startDate).getTime() - Date.now()) / 3600000;
@@ -1129,6 +1135,7 @@ function searchFields(item) {
 
   return [
     { text: normalizeSearchText(item.name), weight: 60 },
+    { text: normalizeSearchText(`${item.venueName} ${item.address}`), weight: 52 },
     { text: normalizeSearchText(item.city), weight: 45 },
     { text: normalizeSearchText(categoryText), weight: 30 },
     { text: normalizeSearchText(detailText), weight: 12 }
@@ -1306,7 +1313,7 @@ function isSharedPlanMode() {
   return Boolean(sharedPlanToken || state.sharedPlanError);
 }
 
-function filteredOutings() {
+function filteredOutings({ ignoreSfVenue = false } = {}) {
   if (state.sharedPlan) return state.sharedPlan.items;
   if (state.sharedPlanLoading || state.sharedPlanError) return [];
   if (state.savedOnly) {
@@ -1363,7 +1370,65 @@ function filteredOutings() {
     });
   }
 
-  return result.map(({ item }) => item);
+  const items = result.map(({ item }) => item);
+  if (ignoreSfVenue || state.sfVenue === "all") return items;
+  return items.filter((item) => item.city === "San Francisco" && item.venueName === state.sfVenue);
+}
+
+function sfBranchContext(items) {
+  if (state.sharedPlan || state.savedOnly || !items.length) return null;
+  const sfItems = items.filter((item) =>
+    item.city === "San Francisco"
+    && item.sourceKey === "san-francisco-library-family-events"
+    && item.venueName
+  );
+  const counts = new Map();
+  sfItems.forEach((item) => counts.set(item.venueName, (counts.get(item.venueName) || 0) + 1));
+  const options = [...counts.entries()]
+    .map(([venueName, count]) => ({ venueName, count }))
+    .toSorted((left, right) => left.venueName.localeCompare(right.venueName, "en"));
+  const sfDominant = state.region === "sf" || sfItems.length >= items.length * 0.6;
+  if (sfItems.length < 8 || options.length < 2 || !sfDominant) return null;
+  return { count: sfItems.length, options };
+}
+
+function renderSfBranchControl(context) {
+  if (!context) return;
+  const control = document.createElement("section");
+  control.className = "sf-branch-control";
+  control.setAttribute("aria-label", "San Francisco 브랜치별 보기");
+  control.innerHTML = `
+    <label for="sfBranchSelect"><span>SF 브랜치</span><strong>지점별로 결과를 좁혀보세요.</strong></label>
+    <select id="sfBranchSelect">
+      <option value="all">모든 SF 브랜치 (${context.count})</option>
+      ${context.options.map((option) => `<option value="${escapeHtml(option.venueName)}" ${state.sfVenue === option.venueName ? "selected" : ""}>${escapeHtml(option.venueName)} (${option.count})</option>`).join("")}
+    </select>
+  `;
+  control.querySelector("#sfBranchSelect").addEventListener("change", (event) => {
+    state.sfVenue = event.target.value;
+    state.selectedId = null;
+    render();
+  });
+  cardsEl.append(control);
+}
+
+function compactAddress(address, venueName = "") {
+  const parts = String(address || "").split(",").map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 2 || !venueName) return parts[0] || "";
+  const first = normalizeSearchText(parts[0]);
+  const venue = normalizeSearchText(venueName);
+  return first.includes(venue) || venue.includes(first) ? parts[1] : parts[0];
+}
+
+function cardLocationMarkup(item, distance) {
+  const venue = item.venueName
+    ? `<strong class="card-venue">${escapeHtml(item.venueName)}</strong>`
+    : `<strong class="card-venue is-pending">세부 위치 확인 중</strong>`;
+  const address = compactAddress(item.address, item.venueName);
+  const locationLine = address
+    ? `<span>${escapeHtml(address)} · ${distance.toFixed(1)} mi</span>`
+    : `<span>${escapeHtml(item.city)} · ${distance.toFixed(1)} mi</span><small>세부 위치 확인 중</small>`;
+  return `<span class="card-location">${venue}<span class="card-address">${locationLine}</span></span>`;
 }
 
 function createOutingCard(item, planIssues = []) {
@@ -1384,7 +1449,7 @@ function createOutingCard(item, planIssues = []) {
       <span class="card-content">
         <span class="time-row"><span class="schedule-label"><span class="outing-kind">${escapeHtml(outingKindLabel(item))}</span><span class="card-time">${escapeHtml(displayTimeLabel(item))}</span></span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
         <h3>${escapeHtml(item.name)}</h3>
-        <span class="card-place"><span>${escapeHtml(item.city)}</span><span>${distance.toFixed(1)} mi</span><span>${escapeHtml(typeLabel(item.type))}</span></span>
+        ${cardLocationMarkup(item, distance)}
         <span class="essentials"><span class="essential"><small>연령</small>${escapeHtml(item.age)}</span><span class="essential"><small>환경</small>${item.setting === "indoor" ? "실내" : "야외"}</span><span class="essential"><small>비용</small>${priceLabel(item.price)}</span><span class="essential"><small>예약</small>${escapeHtml(cardReservationLabel(item.reservation))}</span></span>
         ${reasonMarkup}
         ${issueMarkup}
@@ -1840,7 +1905,7 @@ function leaveSharedPlan(openSaved = false) {
   window.location.assign(url.toString());
 }
 
-function renderCards(items) {
+function renderCards(items, branchContext = null) {
   cardsEl.innerHTML = "";
 
   if (state.sharedPlanLoading) {
@@ -1897,6 +1962,8 @@ function renderCards(items) {
     });
     return;
   }
+
+  renderSfBranchControl(branchContext);
 
   const groupedDiscovery = ["today", "weekend"].includes(state.date)
     && state.sort === "recommended"
@@ -1957,7 +2024,14 @@ function selectMapItem(id) {
 }
 
 function render() {
-  const items = filteredOutings();
+  const baseItems = filteredOutings({ ignoreSfVenue: true });
+  const branchContext = sfBranchContext(baseItems);
+  if (!branchContext || (state.sfVenue !== "all" && !branchContext.options.some((option) => option.venueName === state.sfVenue))) {
+    state.sfVenue = "all";
+  }
+  const items = state.sfVenue === "all"
+    ? baseItems
+    : baseItems.filter((item) => item.city === "San Francisco" && item.venueName === state.sfVenue);
   const sharedMode = isSharedPlanMode();
   syncMobileMoment();
   const summaries = {
@@ -2024,7 +2098,7 @@ function render() {
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", String(active));
   });
-  renderCards(items);
+  renderCards(items, branchContext);
   if (!sharedMode) renderMap(items);
 }
 
@@ -2107,7 +2181,7 @@ async function shareOuting(item) {
   const shareUrl = deepLinkUrl(publicPageUrl(), item.id);
   const shareData = {
     title: item.name,
-    text: `${item.name}\n${item.timeLabel}\n${item.city}`,
+    text: `${item.name}\n${item.timeLabel}\n${item.venueName || item.city}${item.address ? `\n${item.address}` : ""}`,
     url: shareUrl
   };
   try {
@@ -2141,6 +2215,20 @@ function amenityRow(label, amenity) {
   return `<div class="note-row ${status}"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(amenity?.text || "확인되지 않음")}</span></div>`;
 }
 
+function detailLocationMarkup(item) {
+  const venue = item.venueName || "세부 위치 확인 중";
+  const address = item.address || "세부 위치 확인 중";
+  const copyAction = item.address
+    ? '<button class="secondary-action detail-copy-address" id="copyAddress" type="button">주소 복사</button>'
+    : "";
+  return `
+    <section class="detail-location" aria-labelledby="detailLocationTitle">
+      <div><small id="detailLocationTitle">장소</small><strong>${escapeHtml(venue)}</strong><span class="${item.address ? "" : "is-pending"}">${escapeHtml(address)}</span></div>
+      ${copyAction}
+    </section>
+  `;
+}
+
 function openDetail(id) {
   const item = findOutingById(id);
   if (!item) return;
@@ -2151,7 +2239,12 @@ function openDetail(id) {
   const trust = trustStatus(item);
   const distance = distanceFor(item);
   const detailUrl = deepLinkUrl(publicPageUrl(), item.id);
-  const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address || `${item.name}, ${item.city}, CA`)}`;
+  const directions = item.address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`
+    : "";
+  const directionsAction = directions
+    ? `<a class="primary-action decision-directions" href="${escapeHtml(directions)}" target="_blank" rel="noopener noreferrer">길찾기</a>`
+    : '<button class="secondary-action decision-directions" type="button" disabled>길찾기 준비 중</button>';
   const sourceAction = item.source
     ? `<a class="secondary-action decision-source" href="${escapeHtml(item.source)}" target="_blank" rel="noopener noreferrer">${trust.key === "verified" || trust.key === "source-confirmed" ? "공식 정보 보기" : "공식 일정 확인"}</a>`
     : "";
@@ -2171,6 +2264,7 @@ function openDetail(id) {
     <figure class="detail-visual"><img src="${itemImage(item)}" alt="${escapeHtml(itemImageKind(item) === "actual" ? item.image?.alt || item.name : "")}" /><figcaption>${imageCaption}</figcaption></figure>
     <article class="detail-body">
       <div class="detail-title"><p class="detail-category">${escapeHtml(typeLabel(item.type))}, ${escapeHtml(item.city)}</p><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.why)}</p></div>
+      ${detailLocationMarkup(item)}
       <div class="decision-grid">
         <div class="decision-item"><small>언제</small><strong>${escapeHtml(displayTimeLabel(item))}</strong></div><div class="decision-item"><small>거리</small><strong>${distance.toFixed(1)} mi</strong></div><div class="decision-item"><small>연령</small><strong>${escapeHtml(item.age)}</strong></div><div class="decision-item"><small>환경</small><strong>${item.setting === "indoor" ? "실내" : "야외"}</strong></div><div class="decision-item"><small>비용</small><strong>${priceLabel(item.price)}</strong></div><div class="decision-item"><small>예약</small><strong>${escapeHtml(item.reservation)}</strong></div>
       </div>
@@ -2180,13 +2274,17 @@ function openDetail(id) {
       </div>
       <section class="nearby-alternatives" aria-labelledby="nearbyTitle"><h3 id="nearbyTitle">가까운 대안</h3><div class="alternative-list">${alternativesMarkup}</div></section>
       <div class="detail-actions">
-        <a class="primary-action decision-directions" href="${escapeHtml(directions)}" target="_blank" rel="noopener noreferrer">길찾기</a>${sourceAction}${calendarAction}<button class="secondary-action decision-share" type="button" id="shareDetail">공유</button><button class="secondary-action decision-save" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
+        ${directionsAction}${sourceAction}${calendarAction}<button class="secondary-action decision-share" type="button" id="shareDetail">공유</button><button class="secondary-action decision-save" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
       </div>
     </article>
   `;
 
   detailBody.querySelector("#saveDetail").addEventListener("click", () => { toggleSaved(id); openDetail(id); });
   detailBody.querySelector("#shareDetail").addEventListener("click", () => shareOuting(item));
+  detailBody.querySelector("#copyAddress")?.addEventListener("click", async () => {
+    await copyText(item.address);
+    showToast("주소를 복사했어요.");
+  });
   detailBody.querySelector("#calendarDetail")?.addEventListener("click", () => showToast("캘린더 추가 화면을 열고 있어요."));
   detailBody.querySelectorAll("[data-alternative-id]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -2375,6 +2473,7 @@ function resetFilters() {
   state.reservation = "all";
   state.bathroomKnown = false;
   state.strollerKnown = false;
+  state.sfVenue = "all";
   state.search = "";
   document.querySelector("#dateFilter").value = "today";
   document.querySelector("#distanceFilter").value = "10";

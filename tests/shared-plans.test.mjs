@@ -71,6 +71,7 @@ function outing(id, name) {
     sourceName: "City of Redwood City",
     updated: "공식 출처 자동 확인",
     why: "가족이 함께 참여하기 좋아요.",
+    venueName: "Downtown Library",
     address: "1044 Middlefield Road, Redwood City, CA",
     confidenceStatus: "source_confirmed",
     notes: { parking: "주변 주차", bathroom: "건물 내", stroller: "접근 가능" },
@@ -110,6 +111,7 @@ test("shared plan links separate viewing, editing, and family responses", async 
   const viewed = await viewResponse.json();
   assert.equal(viewed.canEdit, false);
   assert.equal(viewed.items.length, 2);
+  assert.equal(viewed.items[0].venueName, "Downtown Library");
   assert.equal(viewed.editToken, undefined);
 
   const editResponse = await handleSharedPlanRequest(
