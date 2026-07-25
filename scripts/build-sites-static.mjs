@@ -25,6 +25,10 @@ const files = {
     path: "evergreen-outings.js",
     contentType: "application/javascript; charset=utf-8",
   },
+  "/park-expansion.js": {
+    path: "park-expansion.js",
+    contentType: "application/javascript; charset=utf-8",
+  },
   "/styles.css": {
     path: "styles.css",
     contentType: "text/css; charset=utf-8",

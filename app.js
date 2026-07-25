@@ -387,18 +387,26 @@ function ageRangeFromLabel(label) {
 }
 
 const officialSourceHosts = new Set([
+  "alamedaca.gov",
   "bayareadiscoverymuseum.org",
+  "belmont.gov",
+  "berkeleyca.gov",
   "bibliocommons.com",
   "burlingame.org",
   "campbellca.gov",
   "cdm.org",
+  "ci.millbrae.ca.us",
+  "cityoflarkspur.org",
   "cityofpaloalto.org",
   "cityofsanmateo.org",
+  "cityofsancarlos.org",
   "creativity.org",
   "curiodyssey.org",
   "cupertino.gov",
+  "dalycity.org",
   "ebparks.org",
   "fairyland.org",
+  "fostercity.org",
   "gateway.bibliocommons.com",
   "grpg.org",
   "happyhollow.org",
@@ -407,8 +415,10 @@ const officialSourceHosts = new Set([
   "libcal.com",
   "lindsaywildlife.org",
   "losgatosca.gov",
+  "marincounty.gov",
   "menlopark.gov",
   "mountainview.gov",
+  "oaklandca.gov",
   "oaklandzoo.org",
   "paloalto.gov",
   "paloaltozoo.org",
@@ -416,6 +426,7 @@ const officialSourceHosts = new Set([
   "randallmuseum.org",
   "redwoodcity.org",
   "sanjoseca.gov",
+  "santaclaracounty.gov",
   "santaclaraca.gov",
   "sccld.org",
   "sclibrary.org",
@@ -425,6 +436,7 @@ const officialSourceHosts = new Set([
   "smcgov.org",
   "smcl.org",
   "ssfca.gov",
+  "ssf.net",
   "sunnyvale.ca.gov",
   "traintown.com",
   "visithalfmoonbay.org"
@@ -443,11 +455,11 @@ const regionLabels = {
 
 function regionForCity(city) {
   const normalizedCity = String(city || "").toLowerCase();
-  if (["san mateo", "south san francisco", "san carlos", "palo alto", "menlo park", "half moon bay", "redwood city", "burlingame", "belmont", "foster city", "millbrae"].some((name) => normalizedCity.includes(name))) return "peninsula";
+  if (["san mateo", "south san francisco", "san carlos", "palo alto", "menlo park", "half moon bay", "redwood city", "burlingame", "belmont", "foster city", "millbrae", "daly city"].some((name) => normalizedCity.includes(name))) return "peninsula";
   if (normalizedCity.includes("san francisco")) return "sf";
   if (["san jose", "cupertino", "santa clara", "sunnyvale", "mountain view", "campbell", "los gatos", "milpitas"].some((name) => normalizedCity.includes(name))) return "south-bay";
   if (["oakland", "berkeley", "walnut creek", "fremont", "hayward", "alameda", "concord", "pleasanton", "richmond"].some((name) => normalizedCity.includes(name))) return "east-bay";
-  if (["sausalito", "sonoma", "marin", "novato", "san rafael", "napa", "petaluma"].some((name) => normalizedCity.includes(name))) return "north-bay";
+  if (["sausalito", "sonoma", "marin", "novato", "san rafael", "napa", "petaluma", "greenbrae", "larkspur"].some((name) => normalizedCity.includes(name))) return "north-bay";
   return "other";
 }
 

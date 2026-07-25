@@ -4,6 +4,7 @@ import Script from "next/script";
 
 const source = readFileSync(join(process.cwd(), "index.html"), "utf8");
 const evergreenScript = readFileSync(join(process.cwd(), "evergreen-outings.js"), "utf8");
+const parkExpansionScript = readFileSync(join(process.cwd(), "park-expansion.js"), "utf8");
 const planningScript = readFileSync(join(process.cwd(), "planning.js"), "utf8");
 const appScript = readFileSync(join(process.cwd(), "app.js"), "utf8");
 const appMarkup = source
@@ -18,6 +19,11 @@ export default function Home() {
         id="little-weekends-evergreen"
         strategy="afterInteractive"
         dangerouslySetInnerHTML={{ __html: evergreenScript }}
+      />
+      <Script
+        id="little-weekends-park-expansion"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{ __html: parkExpansionScript }}
       />
       <Script
         id="little-weekends-planning"

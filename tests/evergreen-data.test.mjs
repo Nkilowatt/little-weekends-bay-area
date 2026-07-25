@@ -7,16 +7,21 @@ const root = new URL("../", import.meta.url);
 
 test("curated evergreen catalog covers the core peninsula library baseline", async () => {
   const script = await readFile(new URL("evergreen-outings.js", root), "utf8");
+  const parkExpansionScript = await readFile(new URL("park-expansion.js", root), "utf8");
   const context = { window: {} };
   vm.runInNewContext(script, context);
+  vm.runInNewContext(parkExpansionScript, context);
   const catalog = context.window.LITTLE_WEEKENDS_EVERGREEN;
+  const parks = catalog.filter((item) => item.type === "park");
 
-  assert.ok(catalog.length >= 57);
+  assert.ok(catalog.length >= 128);
+  assert.ok(parks.length >= 91);
   assert.equal(new Set(catalog.map((item) => item.id)).size, catalog.length);
+  assert.equal(new Set(parks.map((item) => `${item.name}|${item.city}`)).size, parks.length);
   assert.ok(catalog.every((item) => item.confidenceStatus === "human_verified"));
   assert.ok(catalog.every((item) => item.lastReviewedAt >= "2026-07-12" && item.lastReviewedAt <= "2026-07-25"));
   assert.ok(catalog.every((item) => new URL(item.source).protocol === "https:"));
-  assert.ok(new Set(catalog.map((item) => item.city)).size >= 8);
+  assert.ok(new Set(parks.map((item) => item.city)).size >= 26);
   ["San Francisco", "Belmont", "Foster City", "San Carlos", "Millbrae", "Burlingame", "Palo Alto", "Menlo Park", "Mountain View", "Sunnyvale", "Cupertino", "Santa Clara", "Campbell", "Los Gatos"].forEach((city) => {
     assert.ok(catalog.some((item) => item.city === city));
   });
@@ -42,7 +47,15 @@ test("curated evergreen catalog covers the core peninsula library baseline", asy
   ["San Mateo", "Menlo Park", "Mountain View", "Sunnyvale", "Cupertino", "Santa Clara", "Campbell", "Los Gatos"].forEach((city) => {
     assert.ok(catalog.some((item) => item.city === city && item.type === "park"));
   });
-  assert.ok(catalog.filter((item) => item.type === "park").every((item) => item.address && item.location));
+  ["San Francisco", "San Mateo", "Redwood City", "Menlo Park", "Palo Alto", "Mountain View", "Sunnyvale", "Cupertino", "Santa Clara", "Campbell", "Los Gatos", "San Jose", "Oakland", "Berkeley"].forEach((city) => {
+    assert.ok(parks.filter((item) => item.city === city).length >= 5, `${city} should have at least five parks`);
+  });
+  assert.ok(parks.every((item) => item.address && item.location));
+  assert.ok(parks.every((item) => item.location.lat >= 37.18 && item.location.lat <= 38.30));
+  assert.ok(parks.every((item) => item.location.lng >= -122.65 && item.location.lng <= -121.70));
+  assert.ok(parks.every((item) => item.why));
+  assert.ok(parks.filter((item) => item.placeFeatures?.length).length >= 71);
+  assert.ok(parks.every((item) => item.notes?.parking && item.notes?.bathroom && item.notes?.stroller));
 });
 
 test("client rendering has output escaping and an official-source allowlist", async () => {
@@ -51,6 +64,9 @@ test("client rendering has output escaping and an official-source allowlist", as
   assert.match(script, /function escapeHtml\(value\)/);
   assert.match(script, /function safeSourceUrl\(value\)/);
   assert.match(script, /officialSourceHosts/);
+  ["alamedaca.gov", "belmont.gov", "berkeleyca.gov", "cityoflarkspur.org", "cityofsancarlos.org", "dalycity.org", "fostercity.org", "marincounty.gov", "oaklandca.gov", "santaclaracounty.gov", "ssf.net"].forEach((host) => {
+    assert.ok(script.includes(`"${host}"`), `${host} should be an allowed official source`);
+  });
   assert.match(script, /escapeHtml\(item\.name\)/);
   assert.match(script, /sourceAction = item\.source/);
   assert.match(script, /outings = \[\.\.\.staticOutings, \.\.\.catalogEvergreenOutings\]/);

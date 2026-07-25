@@ -31,7 +31,8 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /id="sharePlanDialog"/);
-  assert.match(html, /evergreen-outings\.js\?v=8/);
+  assert.match(html, /evergreen-outings\.js\?v=9/);
+  assert.match(html, /park-expansion\.js\?v=1/);
   assert.match(html, /styles\.css\?v=26/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
@@ -120,6 +121,7 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(worker, /pathname === "\/api\/outings"/);
   assert.match(worker, /handleCalendarRequest/);
   assert.match(worker, /"\/evergreen-outings\.js"/);
+  assert.match(worker, /"\/park-expansion\.js"/);
   assert.match(worker, /"\/planning\.js"/);
   assert.match(worker, /handleSharedPlanRequest/);
   assert.match(worker, /connect-src 'self'/);
