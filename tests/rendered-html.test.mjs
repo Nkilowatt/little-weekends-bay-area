@@ -23,6 +23,7 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /data-location-key="campbell"/);
   assert.match(html, /data-location-key="los-gatos"/);
   assert.match(html, /data-date="today"[\s\S]*data-date="tomorrow"[\s\S]*data-date="weekend"/);
+  assert.match(html, /data-discovery="places"[\s\S]*행사 없어도 갈 곳/);
   assert.match(html, /value="tomorrow">내일/);
   assert.match(html, /id="regionFilter"/);
   assert.match(html, /id="timeFilter"/);
@@ -30,12 +31,12 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /id="sharePlanDialog"/);
-  assert.match(html, /evergreen-outings\.js\?v=7/);
-  assert.match(html, /styles\.css\?v=25/);
+  assert.match(html, /evergreen-outings\.js\?v=8/);
+  assert.match(html, /styles\.css\?v=26/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=3/);
-  assert.match(html, /app\.js\?v=29/);
+  assert.match(html, /app\.js\?v=30/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
@@ -77,7 +78,12 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /X-Plan-Edit-Token/);
   assert.match(script, /emptyExpandDistance/);
   assert.match(script, /오늘 열리는 일정/);
+  assert.match(script, /내일 열리는 일정/);
   assert.match(script, /이번 주말에만 열리는 일정/);
+  assert.match(script, /행사 없어도 갈 수 있는 가까운 곳/);
+  assert.match(script, /state\.discoveryMode = "places"/);
+  assert.match(script, /function placeFeatureLabels\(item\)/);
+  assert.match(script, /시간표 없이 떠나는 나들이/);
   assert.match(script, /itemImageCaption\(item\)/);
   assert.match(script, /amenityRow\("기저귀 교환대"/);
   assert.match(script, /isOutingCurrent\(item\)/);

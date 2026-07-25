@@ -11,10 +11,10 @@ test("curated evergreen catalog covers the core peninsula library baseline", asy
   vm.runInNewContext(script, context);
   const catalog = context.window.LITTLE_WEEKENDS_EVERGREEN;
 
-  assert.ok(catalog.length >= 48);
+  assert.ok(catalog.length >= 57);
   assert.equal(new Set(catalog.map((item) => item.id)).size, catalog.length);
   assert.ok(catalog.every((item) => item.confidenceStatus === "human_verified"));
-  assert.ok(catalog.every((item) => item.lastReviewedAt >= "2026-07-12" && item.lastReviewedAt <= "2026-07-17"));
+  assert.ok(catalog.every((item) => item.lastReviewedAt >= "2026-07-12" && item.lastReviewedAt <= "2026-07-25"));
   assert.ok(catalog.every((item) => new URL(item.source).protocol === "https:"));
   assert.ok(new Set(catalog.map((item) => item.city)).size >= 8);
   ["San Francisco", "Belmont", "Foster City", "San Carlos", "Millbrae", "Burlingame", "Palo Alto", "Menlo Park", "Mountain View", "Sunnyvale", "Cupertino", "Santa Clara", "Campbell", "Los Gatos"].forEach((city) => {
@@ -26,6 +26,23 @@ test("curated evergreen catalog covers the core peninsula library baseline", asy
   ["sunnyvale-public-library-family-place", "sunnyvale-magical-bridge-playground"].forEach((id) => {
     assert.ok(catalog.some((item) => item.id === id));
   });
+  [
+    "san-mateo-beresford-park-playground",
+    "san-mateo-indian-springs-playground",
+    "san-mateo-lakeshore-park-playground",
+    "menlo-park-nealon-all-abilities-playground",
+    "mountain-view-rengstorff-magical-bridge",
+    "cupertino-jollyman-inclusive-playground",
+    "santa-clara-central-park-magical-bridge",
+    "campbell-john-d-morgan-playgrounds",
+    "los-gatos-oak-meadow-park-playground",
+  ].forEach((id) => {
+    assert.ok(catalog.some((item) => item.id === id));
+  });
+  ["San Mateo", "Menlo Park", "Mountain View", "Sunnyvale", "Cupertino", "Santa Clara", "Campbell", "Los Gatos"].forEach((city) => {
+    assert.ok(catalog.some((item) => item.city === city && item.type === "park"));
+  });
+  assert.ok(catalog.filter((item) => item.type === "park").every((item) => item.address && item.location));
 });
 
 test("client rendering has output escaping and an official-source allowlist", async () => {

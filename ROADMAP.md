@@ -11,7 +11,7 @@ OpenAI Sites is now the primary service. Time-trust recovery and mobile decision
 ### P0.5 Stabilization Completed
 
 - Results default to the inclusive 12-47 month range.
-- 48 human-reviewed evergreen places cover San Francisco, Peninsula, South Bay, East Bay, and North Bay.
+- 57 human-reviewed evergreen places cover San Francisco, Peninsula, South Bay, East Bay, and North Bay.
 - Scheduled events carry an end time so completed programs leave today's results.
 - Source health requires a recent successful sync and active future events for every source.
 - Partial syncs are shown honestly and stale-source events are downgraded to recheck.

@@ -48,7 +48,7 @@ The current basemap is intentionally lightweight:
 - Distances, distance filtering, map origin, and nearest sorting recalculate from the selected location.
 - Recommended sorting scores age specificity, distance, time, source confidence, cost, and reservation burden while pushing repeated series below unique options.
 - Trust is structured as `human_verified`, `source_confirmed`, `recheck`, or `stale`; automatic source parsing is not presented as human verification.
-- The evergreen catalog contains 48 human-reviewed places across five Bay Area regions.
+- The evergreen catalog contains 57 human-reviewed places across five Bay Area regions.
 - Automatic events include `endAt`; API and client checks remove completed programs. Missing end times use 90 minutes, date-only events remain through the Pacific calendar day, and the visible list is re-evaluated on tab return and every 60 seconds.
 - Redwood City 11:59 PM placeholder endings are normalized to 120 minutes for music, performances, and movies or 90 minutes for other single programs. `SOURCE_DATA_REVISION` is 7 so existing D1 rows are refreshed for the expanded source set.
 - Source status is current only when that source has a recent successful sync and active future events. Partial coverage is shown as `partial`, and stale-source events become `recheck`.
@@ -164,7 +164,7 @@ Imported text is normalized and escaped before HTML rendering. Official source l
 
 ## Important Data Note
 
-The service combines automatically collected official events with 48 human-reviewed evergreen places. Automatic source parsing is not the same as human verification. Before a broader launch:
+The service combines automatically collected official events with 57 human-reviewed evergreen places. Automatic source parsing is not the same as human verification. Before a broader launch:
 
 - Every public event needs an official source URL.
 - Every public event needs freshness metadata.
