@@ -654,7 +654,8 @@ const state = {
   locationKey: storedLocationKey,
   expandedGroups: new Set(),
   sfVenue: "all",
-  discoveryMode: "mixed"
+  discoveryMode: "mixed",
+  filterOpen: false
 };
 
 const {
@@ -729,6 +730,8 @@ const sharePlanBody = document.querySelector("#sharePlanBody");
 const mobileSearchMedia = window.matchMedia("(max-width: 768px)");
 const mobileMomentEl = document.querySelector("#mobileMoment");
 const mobileMomentImageEl = document.querySelector("#mobileMomentImage");
+const filterPanelEl = document.querySelector("#filterPanel");
+const filterButtonEl = document.querySelector("#filterButton");
 
 const mobileMomentScenes = Object.freeze([
   {
@@ -2100,6 +2103,17 @@ function renderMap(items) {
   });
 }
 
+function syncFilterPanel() {
+  filterPanelEl.hidden = !state.filterOpen;
+  filterButtonEl.setAttribute("aria-expanded", String(state.filterOpen));
+}
+
+function setFilterPanelOpen(open, { restoreFocus = false } = {}) {
+  state.filterOpen = Boolean(open);
+  syncFilterPanel();
+  if (restoreFocus) filterButtonEl.focus();
+}
+
 function selectMapItem(id) {
   state.selectedId = id;
   const item = outings.find((outing) => outing.id === id);
@@ -2178,8 +2192,8 @@ function render() {
   if (sharedMode) syncStatusEl.textContent = state.sharedPlan ? `${planUpdatedLabel(state.sharedPlan.updatedAt)} 업데이트` : "공유 계획 확인 중";
   const visibleView = sharedMode || state.savedOnly ? "list" : state.view;
   document.querySelector(".toolbar").hidden = sharedMode || state.savedOnly;
-  document.querySelector("#filterPanel").hidden = true;
-  document.querySelector("#filterButton").setAttribute("aria-expanded", "false");
+  if (sharedMode || state.savedOnly) state.filterOpen = false;
+  syncFilterPanel();
   document.querySelector(".section-heading").hidden = sharedMode || state.savedOnly;
   contentGrid.className = `content-grid is-${visibleView}${sharedMode || state.savedOnly ? " is-plan" : ""}${sharedMode ? " is-shared-plan" : ""}`;
   document.querySelectorAll("[data-view]").forEach((button) => {
@@ -2193,7 +2207,15 @@ function render() {
     button.setAttribute("aria-pressed", String(active));
   });
   renderCards(items, branchContext);
-  if (!sharedMode) renderMap(items);
+  const shouldRenderMap = visibleView === "map" || visibleView === "split";
+  if (!sharedMode && shouldRenderMap) {
+    renderMap(items);
+  } else {
+    mapEl.replaceChildren();
+    const mapPreview = document.querySelector("#mapPreview");
+    mapPreview.hidden = true;
+    mapPreview.replaceChildren();
+  }
 }
 
 async function loadAutomaticOutings() {
@@ -2399,6 +2421,7 @@ function openDetail(id) {
 
 document.querySelectorAll("[data-date]").forEach((button) => {
   button.addEventListener("click", () => {
+    setFilterPanelOpen(false);
     document.querySelectorAll(".quick-card").forEach((item) => item.classList.remove("is-active"));
     button.classList.add("is-active");
     state.discoveryMode = "mixed";
@@ -2437,6 +2460,7 @@ document.querySelectorAll("[data-date]").forEach((button) => {
 
 document.querySelectorAll("[data-setting], [data-price], [data-distance]").forEach((button) => {
   button.addEventListener("click", () => {
+    setFilterPanelOpen(false);
     const [key] = ["setting", "price", "distance"].filter((name) => button.dataset[name]);
     document.querySelectorAll(".quick-card").forEach((item) => item.classList.remove("is-active"));
     button.classList.add("is-active");
@@ -2452,6 +2476,7 @@ document.querySelectorAll("[data-setting], [data-price], [data-distance]").forEa
 });
 
 document.querySelector("[data-discovery='places']").addEventListener("click", (event) => {
+  setFilterPanelOpen(false);
   document.querySelectorAll(".quick-card").forEach((item) => item.classList.remove("is-active"));
   event.currentTarget.classList.add("is-active");
   state.savedOnly = false;
@@ -2471,6 +2496,7 @@ document.querySelector("[data-discovery='places']").addEventListener("click", (e
 
 document.querySelectorAll("[data-view]").forEach((button) => {
   button.addEventListener("click", () => {
+    setFilterPanelOpen(false);
     document.querySelectorAll("[data-view]").forEach((item) => item.classList.remove("is-active"));
     document.querySelectorAll("[data-view]").forEach((item) => item.setAttribute("aria-pressed", "false"));
     button.classList.add("is-active");
@@ -2483,6 +2509,7 @@ document.querySelectorAll("[data-view]").forEach((button) => {
 
 document.querySelectorAll("[data-mobile-action]").forEach((button) => {
   button.addEventListener("click", () => {
+    setFilterPanelOpen(false);
     const action = button.dataset.mobileAction;
     if (action === "home") {
       state.savedOnly = false;
@@ -2578,6 +2605,7 @@ document.querySelector("#searchInput").addEventListener("input", (event) => {
 });
 
 document.querySelector("#saveToggle").addEventListener("click", () => {
+  setFilterPanelOpen(false);
   if (isSharedPlanMode()) {
     leaveSharedPlan(true);
     return;
@@ -2622,12 +2650,24 @@ function resetFilters() {
 }
 
 document.querySelector("#resetFilters").addEventListener("click", resetFilters);
-document.querySelector("#filterButton").addEventListener("click", () => { const panel = document.querySelector("#filterPanel"); panel.hidden = !panel.hidden; document.querySelector("#filterButton").setAttribute("aria-expanded", String(!panel.hidden)); });
-document.querySelector("#closeFilters").addEventListener("click", () => { document.querySelector("#filterPanel").hidden = true; document.querySelector("#filterButton").setAttribute("aria-expanded", "false"); });
-document.querySelector("#applyFilters").addEventListener("click", () => { document.querySelector("#filterPanel").hidden = true; document.querySelector("#filterButton").setAttribute("aria-expanded", "false"); document.querySelector("#cards").scrollIntoView({ behavior: "smooth", block: "start" }); });
-document.querySelector("#searchToggle").addEventListener("click", () => { const panel = document.querySelector("#searchPanel"); panel.hidden = !panel.hidden; state.mobileSection = panel.hidden ? "home" : "search"; document.querySelector("#searchToggle").setAttribute("aria-expanded", String(!panel.hidden)); render(); if (!panel.hidden) document.querySelector("#searchInput").focus(); });
+filterButtonEl.addEventListener("click", () => setFilterPanelOpen(!state.filterOpen));
+document.querySelector("#closeFilters").addEventListener("click", () => setFilterPanelOpen(false, { restoreFocus: true }));
+document.querySelector("#applyFilters").addEventListener("click", () => {
+  setFilterPanelOpen(false, { restoreFocus: true });
+  document.querySelector("#cards").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+document.querySelector("#searchToggle").addEventListener("click", () => {
+  const panel = document.querySelector("#searchPanel");
+  panel.hidden = !panel.hidden;
+  if (!panel.hidden) setFilterPanelOpen(false);
+  state.mobileSection = panel.hidden ? "home" : "search";
+  document.querySelector("#searchToggle").setAttribute("aria-expanded", String(!panel.hidden));
+  render();
+  if (!panel.hidden) document.querySelector("#searchInput").focus();
+});
 
 document.querySelector("#locationButton").addEventListener("click", () => {
+  setFilterPanelOpen(false);
   if (!locationDialog.open) locationDialog.showModal();
 });
 

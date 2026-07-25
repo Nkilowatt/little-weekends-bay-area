@@ -33,11 +33,11 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="sharePlanDialog"/);
   assert.match(html, /evergreen-outings\.js\?v=9/);
   assert.match(html, /park-expansion\.js\?v=1/);
-  assert.match(html, /styles\.css\?v=26/);
+  assert.match(html, /styles\.css\?v=27/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=3/);
-  assert.match(html, /app\.js\?v=30/);
+  assert.match(html, /app\.js\?v=31/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
@@ -92,6 +92,13 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /function stableMomentIndex\(value\)/);
   assert.match(script, /function mobileMomentScene\(\)/);
   assert.match(script, /function syncMobileMoment\(\)/);
+  assert.match(script, /filterOpen: false/);
+  assert.match(script, /function setFilterPanelOpen\(open, \{ restoreFocus = false \} = \{\}\)/);
+  assert.match(script, /const shouldRenderMap = visibleView === "map" \|\| visibleView === "split"/);
+  const renderSource = script.slice(script.indexOf("function render()"), script.indexOf("async function loadAutomaticOutings()"));
+  assert.doesNotMatch(renderSource, /filterPanelEl\.hidden = true/);
+  assert.match(renderSource, /if \(!sharedMode && shouldRenderMap\)/);
+  assert.match(renderSource, /mapEl\.replaceChildren\(\)/);
   assert.equal((script.match(/assets\/mobile-moments\/[a-z-]+\.jpg/g) || []).length, 9);
   assert.doesNotMatch(script, /mobileMomentTitleEl/);
 });
@@ -206,4 +213,5 @@ test("typography scale and Korean wrapping remain intentionally readable", async
   assert.match(css, /word-break:\s*keep-all/);
   assert.match(css, /overflow-wrap:\s*break-word/);
   assert.match(css, /\.toast \{[^}]*white-space:\s*normal/);
+  assert.match(css, /@media \(max-width:\s*768px\)[\s\S]*?\.map-canvas\s*\{[^}]*aspect-ratio:\s*auto[^}]*height:\s*65dvh[^}]*width:\s*100%/);
 });
