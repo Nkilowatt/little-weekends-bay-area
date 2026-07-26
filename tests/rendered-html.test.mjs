@@ -31,13 +31,13 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /id="sharePlanDialog"/);
-  assert.match(html, /evergreen-outings\.js\?v=9/);
-  assert.match(html, /park-expansion\.js\?v=1/);
+  assert.match(html, /evergreen-outings\.js\?v=10/);
+  assert.match(html, /park-expansion\.js\?v=2/);
   assert.match(html, /styles\.css\?v=27/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=3/);
-  assert.match(html, /app\.js\?v=31/);
+  assert.match(html, /app\.js\?v=32/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
@@ -84,6 +84,8 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /행사 없어도 갈 수 있는 가까운 곳/);
   assert.match(script, /state\.discoveryMode = "places"/);
   assert.match(script, /function placeFeatureLabels\(item\)/);
+  assert.match(script, /return detail \? "출발 전 공식 운영시간 확인" : ""/);
+  assert.match(script, /const timeMarkup = timeLabel \? `<span class="card-time">/);
   assert.match(script, /시간표 없이 떠나는 나들이/);
   assert.match(script, /itemImageCaption\(item\)/);
   assert.match(script, /amenityRow\("기저귀 교환대"/);

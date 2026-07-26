@@ -13,6 +13,7 @@ test("curated evergreen catalog covers the core peninsula library baseline", asy
   vm.runInNewContext(parkExpansionScript, context);
   const catalog = context.window.LITTLE_WEEKENDS_EVERGREEN;
   const parks = catalog.filter((item) => item.type === "park");
+  const unverifiedHours = catalog.filter((item) => item.timeLabel === "운영시간 확인");
 
   assert.ok(catalog.length >= 128);
   assert.ok(parks.length >= 91);
@@ -56,6 +57,9 @@ test("curated evergreen catalog covers the core peninsula library baseline", asy
   assert.ok(parks.every((item) => item.why));
   assert.ok(parks.filter((item) => item.placeFeatures?.length).length >= 71);
   assert.ok(parks.every((item) => item.notes?.parking && item.notes?.bathroom && item.notes?.stroller));
+  assert.ok(unverifiedHours.length <= 24, `too many places still lack verified hours: ${unverifiedHours.length}`);
+  assert.ok(catalog.some((item) => item.id === "mountain-view-cuesta-park" && item.timeLabel === "매일 6 AM-일몰 30분 후"));
+  assert.ok(catalog.some((item) => item.id === "belmont-library-family-place" && item.timeLabel.includes("월-목 10 AM-8 PM")));
 });
 
 test("client rendering has output escaping and an official-source allowlist", async () => {

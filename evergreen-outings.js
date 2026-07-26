@@ -1549,3 +1549,55 @@ window.LITTLE_WEEKENDS_EVERGREEN = [
     location: { lat: 37.2357047, lng: -121.9750376 }
   }
 ];
+
+(() => {
+  const verifiedHoursById = {
+    "badm-evergreen": "수-월 10 AM-4 PM",
+    "presidio-outpost": "4-10월 9:30 AM-6 PM · 11-3월 5 PM까지",
+    "koret-childrens-quarter": "매일 5 AM-자정",
+    "san-francisco-zoo": "매일 10 AM-5 PM",
+    "happy-hollow": "매일 10 AM-5 PM",
+    "emma-prusch-farm": "매일 8:30 AM-일몰",
+    "oakland-zoo": "입장 9:30 AM-4 PM · 6 PM 폐장",
+    "lindsay-wildlife": "화-일 10 AM-5 PM",
+    "belmont-library-family-place": "월-목 10 AM-8 PM · 금-일 10 AM-5 PM",
+    "foster-city-library-family-place": "월-목 10 AM-8 PM · 금-일 10 AM-5 PM",
+    "san-carlos-library-family-place": "월-목 10 AM-8 PM · 금-일 10 AM-5 PM",
+    "millbrae-library-family-place": "월-목 10 AM-8 PM · 금-일 10 AM-5 PM",
+    "palo-alto-childrens-library": "화-토 10 AM-6 PM · 일·월 휴관",
+    "palo-alto-mitchell-park-library": "월-목 10 AM-9 PM · 금-일 10 AM-6 PM",
+    "palo-alto-rinconada-library": "목 12-8 PM · 그 외 매일 10 AM-6 PM",
+    "palo-alto-downtown-library": "화-토 10 AM-6 PM · 일·월 휴관",
+    "palo-alto-college-terrace-library": "화-토 10 AM-6 PM · 일·월 휴관",
+    "menlo-park-library-family-place": "월-수 12-8 PM · 목-일 10 AM-6 PM",
+    "belle-haven-library-family-place": "월-수 12-8 PM · 목-일 10 AM-6 PM",
+    "mountain-view-public-library-family-place": "월-목 10 AM-9 PM · 금·토 10 AM-6 PM · 일 12-6 PM",
+    "cupertino-library-family-place": "월-금 10 AM-9 PM · 주말 10 AM-6:30 PM",
+    "santa-clara-central-park-library-family-place": "월 10-6 · 화-목 10-7 · 금 10-6 · 토 10-5 · 일 1-5",
+    "santa-clara-northside-library-family-place": "월·수·금 10-6 · 화·목 10-7 · 토 10-4 · 일 휴관",
+    "santa-clara-mission-library-family-place": "월·수-금 9-5 · 화 11-7 · 토 9-4 · 일 휴관",
+    "campbell-library-family-place": "월-수 10 AM-9 PM · 목-일 10 AM-6 PM",
+    "los-gatos-library-family-place": "매일 10 AM-6 PM",
+    "sunnyvale-public-library-family-place": "월-목 10 AM-9 PM · 금·토 10 AM-6 PM · 일 1-6 PM",
+    "sfpl-main-library-family-place": "월 9-6 · 화-목 9-8 · 금·일 12-6 · 토 10-6",
+    "sfpl-mission-bay-library-family-place": "월·화·목·토 10-6 · 수 11-8 · 금 1-6 · 일 1-5",
+    "sfpl-noe-valley-library-family-place": "월 11-6 · 화 10-8 · 수 12-8 · 목·토 10-6 · 금 1-6 · 일 1-5",
+    "sfpl-glen-park-library-family-place": "월·화·토 10-6 · 수 12-8 · 목 10-7 · 금 1-6 · 일 1-5",
+    "sfpl-richmond-library-family-place": "월·토 10-6 · 화-목 10-8 · 금 1-6 · 일 1-5",
+    "sfpl-sunset-library-family-place": "월·토 10-6 · 화-목 10-8 · 금 1-6 · 일 1-5",
+    "santa-clara-central-park-magical-bridge": "매일 6 AM-일몰 30분 후",
+    "campbell-john-d-morgan-playgrounds": "일출-일몰 30분 후",
+    "los-gatos-oak-meadow-park-playground": "일출-일몰 30분 후",
+  };
+
+  window.LITTLE_WEEKENDS_EVERGREEN = window.LITTLE_WEEKENDS_EVERGREEN.map((item) => {
+    const verifiedHours = verifiedHoursById[item.id];
+    if (!verifiedHours) return item;
+    return {
+      ...item,
+      timeLabel: verifiedHours,
+      updated: "7월 25일 공식 운영시간 확인",
+      lastReviewedAt: "2026-07-25",
+    };
+  });
+})();

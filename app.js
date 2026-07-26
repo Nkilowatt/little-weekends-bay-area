@@ -1296,8 +1296,10 @@ function outingKindLabel(item) {
   return "시간 지정 일정";
 }
 
-function displayTimeLabel(item) {
-  if (!item.startDate && item.timeLabel === "운영시간 확인") return "운영시간 확인";
+function displayTimeLabel(item, { detail = false } = {}) {
+  if (!item.startDate && item.timeLabel === "운영시간 확인") {
+    return detail ? "출발 전 공식 운영시간 확인" : "";
+  }
   return item.timeLabel;
 }
 
@@ -1487,6 +1489,8 @@ function cardEssentialsMarkup(item) {
 function createOutingCard(item, planIssues = []) {
     const trust = trustStatus(item);
     const distance = distanceFor(item);
+    const timeLabel = displayTimeLabel(item);
+    const timeMarkup = timeLabel ? `<span class="card-time">${escapeHtml(timeLabel)}</span>` : "";
     const reasons = recommendationReasons(item);
     const reasonMarkup = reasons.length
       ? `<span class="recommendation-cues" aria-label="추천 이유">${reasons.map((reason) => `<span>${escapeHtml(reason)}</span>`).join("")}</span>`
@@ -1504,7 +1508,7 @@ function createOutingCard(item, planIssues = []) {
       <button class="card-open" type="button" aria-label="${escapeHtml(item.name)} 상세 보기"></button>
       <span class="card-media"><span class="card-image"><img src="${itemImage(item)}" alt="${escapeHtml(itemImageKind(item) === "actual" ? item.image?.alt || item.name : "")}" loading="lazy" /></span><small>${itemImageCaption(item)}</small></span>
       <span class="card-content">
-        <span class="time-row"><span class="schedule-label"><span class="outing-kind">${escapeHtml(outingKindLabel(item))}</span><span class="card-time">${escapeHtml(displayTimeLabel(item))}</span></span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
+        <span class="time-row"><span class="schedule-label"><span class="outing-kind">${escapeHtml(outingKindLabel(item))}</span>${timeMarkup}</span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
         <h3>${escapeHtml(item.name)}</h3>
         ${cardLocationMarkup(item, distance)}
         <span class="essentials">${cardEssentialsMarkup(item)}</span>
@@ -2121,7 +2125,7 @@ function selectMapItem(id) {
   const trust = trustStatus(item);
   const distance = distanceFor(item);
   preview.hidden = false;
-  preview.innerHTML = `<button type="button" aria-label="${escapeHtml(item.name)} 상세 보기"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.timeLabel)}, ${distance.toFixed(1)} mi<br />${escapeHtml(trust.short)}</span></button>`;
+  preview.innerHTML = `<button type="button" aria-label="${escapeHtml(item.name)} 상세 보기"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(displayTimeLabel(item, { detail: true }))}, ${distance.toFixed(1)} mi<br />${escapeHtml(trust.short)}</span></button>`;
   preview.querySelector("button").addEventListener("click", () => openDetail(id));
   renderMap(filteredOutings());
 }
@@ -2297,7 +2301,7 @@ async function shareOuting(item) {
   const shareUrl = deepLinkUrl(publicPageUrl(), item.id);
   const shareData = {
     title: item.name,
-    text: `${item.name}\n${item.timeLabel}\n${item.venueName || item.city}${item.address ? `\n${item.address}` : ""}`,
+    text: `${item.name}\n${displayTimeLabel(item, { detail: true })}\n${item.venueName || item.city}${item.address ? `\n${item.address}` : ""}`,
     url: shareUrl
   };
   try {
@@ -2374,7 +2378,7 @@ function openDetail(id) {
     : "";
   const decisionMarkup = item.startDate
     ? `<div class="decision-item"><small>언제</small><strong>${escapeHtml(displayTimeLabel(item))}</strong></div><div class="decision-item"><small>거리</small><strong>${distance.toFixed(1)} mi</strong></div><div class="decision-item"><small>연령</small><strong>${escapeHtml(item.age)}</strong></div><div class="decision-item"><small>환경</small><strong>${item.setting === "indoor" ? "실내" : "야외"}</strong></div><div class="decision-item"><small>비용</small><strong>${priceLabel(item.price)}</strong></div><div class="decision-item"><small>예약</small><strong>${escapeHtml(item.reservation)}</strong></div>`
-    : `<div class="decision-item"><small>운영</small><strong>${escapeHtml(displayTimeLabel(item))}</strong></div><div class="decision-item"><small>거리</small><strong>${distance.toFixed(1)} mi</strong></div><div class="decision-item"><small>연령</small><strong>${escapeHtml(item.age)}</strong></div><div class="decision-item"><small>환경</small><strong>${item.setting === "indoor" ? "실내" : "야외"}</strong></div><div class="decision-item"><small>비용</small><strong>${priceLabel(item.price)}</strong></div><div class="decision-item"><small>방문</small><strong>${escapeHtml(item.reservation)}</strong></div>`;
+    : `<div class="decision-item"><small>운영</small><strong>${escapeHtml(displayTimeLabel(item, { detail: true }))}</strong></div><div class="decision-item"><small>거리</small><strong>${distance.toFixed(1)} mi</strong></div><div class="decision-item"><small>연령</small><strong>${escapeHtml(item.age)}</strong></div><div class="decision-item"><small>환경</small><strong>${item.setting === "indoor" ? "실내" : "야외"}</strong></div><div class="decision-item"><small>비용</small><strong>${priceLabel(item.price)}</strong></div><div class="decision-item"><small>방문</small><strong>${escapeHtml(item.reservation)}</strong></div>`;
   const alternatives = nearbyAlternatives(item);
   const alternativesMarkup = alternatives.map((alternative) => {
     const nearbyDistance = alternative.location && item.location ? distanceBetweenMiles(item.location, alternative.location) : distanceFor(alternative);

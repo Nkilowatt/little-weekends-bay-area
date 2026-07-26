@@ -41,6 +41,29 @@
     paid: "공원 주차는 유료이며 최신 요금을 출발 전에 확인하세요.",
   };
 
+  const hoursBySource = {
+    sf: "매일 5 AM-자정",
+    redwoodCity: "일출-일몰",
+    paloAlto: "매일 8 AM-일몰",
+    mountainView: "매일 6 AM-일몰 30분 후",
+    sunnyvale: "일출-일몰",
+    santaClara: "매일 6 AM-일몰 30분 후",
+    campbell: "일출-일몰 30분 후",
+    losGatos: "일출-일몰 30분 후",
+    vasona: "매일 8 AM-일몰",
+    santaClaraCounty: "매일 8 AM-일몰",
+    sanJose: "일출-일몰 1시간 후",
+    oakland: "일출-일몰 · 일부 6 AM-9 PM",
+    burlingame: "일출-일몰",
+    fosterBoothbay: "매일 9 AM-해질녘",
+    fosterEdgewater: "매일 9 AM-해질녘",
+    belmontTwinPines: "일출 30분 전-일몰 30분 후",
+    belmontAlexander: "일출 30분 전-일몰 30분 후",
+    berkeley: "매일 6 AM-10 PM",
+    alameda: "일출-일몰",
+    marin: "일출-일몰",
+  };
+
   const records = [
     // San Francisco
     ["sf-argonne-playground", "Argonne Playground", "San Francisco", "18th Avenue & Geary Boulevard, San Francisco, CA 94121", 37.7794183, -122.4777096, "sf", "작은 아이 구역과 큰아이 구역이 나뉘어 있어 형제자매와 함께 가기 좋아요.", ["연령별 놀이 구역", "피크닉", "화장실"], true, "street", true],
@@ -170,7 +193,7 @@
       type: "park",
       setting: "outdoor",
       dateBucket: "anytime",
-      timeLabel: "운영시간 확인",
+      timeLabel: hoursBySource[sourceKey] || "운영시간 확인",
       city,
       age: "1-8세·가족",
       minAgeMonths: 12,
