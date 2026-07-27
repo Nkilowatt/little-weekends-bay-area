@@ -109,6 +109,31 @@ h1, h2 { text-wrap: balance; }
 }
 .skip-link:focus { top: 12px; }
 
+.site-footer {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.72rem;
+  gap: 18px;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: 6px 24px 28px;
+}
+.site-footer nav { display: flex; gap: 14px; }
+.site-footer a { color: inherit; text-underline-offset: 3px; }
+
+.legal-page .site-header { position: static; }
+.legal-shell { margin: 0 auto; max-width: 760px; padding: 48px 24px 72px; }
+.legal-shell > a { color: var(--accent); font-size: 0.82rem; font-weight: 800; }
+.legal-shell h1 { font-family: var(--font-display); font-size: clamp(2.2rem, 8vw, 4.4rem); font-weight: 400; margin: 24px 0 8px; }
+.legal-updated { color: var(--muted); margin-bottom: 42px; }
+.legal-section { border-top: 1px solid var(--line); padding: 26px 0 8px; }
+.legal-section h2 { font-size: 1.15rem; margin-bottom: 12px; }
+.legal-section p, .legal-section li { color: var(--muted); line-height: 1.75; }
+.legal-section ul { padding-left: 22px; }
+.legal-section a { color: var(--accent); text-underline-offset: 3px; }
+
 .site-header {
   background: color-mix(in srgb, var(--bg) 96%, transparent);
   border-bottom: 1px solid var(--line);
@@ -559,7 +584,9 @@ h1, h2 { text-wrap: balance; }
 .card-media { align-self: stretch; display: block; min-width: 0; }
 .card-image { background: var(--surface-muted); border-radius: var(--radius-card); display: block; min-width: 0; overflow: hidden; position: relative; }
 .card-image img { height: 100%; object-fit: cover; transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1); width: 100%; }
+.card-image img.is-streetview { background: #111; object-fit: contain; }
 .outing-card:hover .card-image img { transform: scale(1.035); }
+.outing-card:hover .card-image img.is-streetview { transform: none; }
 .image-kind-badge {
   align-items: center;
   backdrop-filter: blur(8px);
@@ -572,15 +599,26 @@ h1, h2 { text-wrap: balance; }
   font-weight: 850;
   left: 8px;
   line-height: 1;
+  max-width: calc(100% - 16px);
   min-height: 25px;
+  overflow: hidden;
   padding: 0 9px;
   pointer-events: none;
   position: absolute;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+  text-overflow: ellipsis;
+  white-space: nowrap;
   z-index: 2;
 }
 .image-kind-badge.is-context { background: rgba(18, 35, 42, 0.78); }
 .image-kind-badge.is-actual { background: rgba(15, 94, 67, 0.9); }
+.image-kind-badge.is-google {
+  font-family: var(--font-ui);
+  font-size: max(12px, 0.66rem);
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: normal;
+}
 .card-content { display: flex; flex-direction: column; min-width: 0; padding: 2px 8px 2px 0; }
 .time-row { align-items: center; display: flex; gap: 10px; justify-content: space-between; }
 .schedule-label { display: grid; gap: 3px; min-width: 0; }
@@ -759,6 +797,7 @@ h1, h2 { text-wrap: balance; }
 .detail-visual { margin: 0; }
 .detail-image { position: relative; }
 .detail-visual img { aspect-ratio: 16 / 7; object-fit: cover; width: 100%; }
+.detail-visual img.is-streetview { background: #111; object-fit: contain; }
 .detail-image .image-kind-badge { bottom: 12px; left: 14px; }
 .detail-visual figcaption { background: var(--surface-strong); color: var(--muted); font-size: 0.77rem; padding: 8px 22px; }
 .detail-visual figcaption a {
@@ -942,6 +981,9 @@ h1, h2 { text-wrap: balance; }
   .location-button { padding: 0 9px; }
   .saved-button { padding: 0 8px 0 11px; }
   .page-shell { padding: 8px 16px 92px; }
+  .site-footer { align-items: flex-start; flex-direction: column; padding: 8px 16px 88px; }
+  .legal-shell { padding: 34px 18px 56px; }
+  .legal-page .site-footer { padding-bottom: 28px; }
   .hero { display: block; min-height: 0; padding: 10px 0 9px; }
   .hero-media, .hero-description, .hero-action { display: none; }
   .hero-copy { min-height: 0; padding: 0; }

@@ -84,13 +84,19 @@ function sanitizeSnapshot(item) {
       stroller: safeAmenity(amenities.stroller, notes.stroller),
       changingTable: safeAmenity(amenities.changingTable, notes.changingTable),
     },
-    image: /^assets\/photos\/[a-z0-9-]+\.webp$/i.test(String(item?.image?.src || ""))
+    image: /^assets\/(?:photos|places)\/[a-z0-9-]+\.(?:webp|jpe?g)$/i.test(String(item?.image?.src || ""))
       ? {
         src: item.image.src,
         kind: item.image.kind === "actual" ? "actual" : "context",
         alt: safeText(item.image.alt, 180),
+        creator: safeText(item.image.creator, 120),
         credit: safeText(item.image.credit, 180),
+        license: safeText(item.image.license, 80),
+        licenseUrl: safeText(item.image.licenseUrl, 500),
         sourceUrl: safeText(item.image.sourceUrl, 500),
+        verifiedAt: /^\d{4}-\d{2}-\d{2}$/.test(String(item.image.verifiedAt || ""))
+          ? item.image.verifiedAt
+          : "",
       }
       : null,
     location: latitude === null || longitude === null ? null : { lat: latitude, lng: longitude },

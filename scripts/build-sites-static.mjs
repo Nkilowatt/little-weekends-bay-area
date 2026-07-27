@@ -1,6 +1,7 @@
 import { copyFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import vm from "node:vm";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -11,6 +12,14 @@ const files = {
   },
   "/index.html": {
     path: "index.html",
+    contentType: "text/html; charset=utf-8",
+  },
+  "/terms.html": {
+    path: "terms.html",
+    contentType: "text/html; charset=utf-8",
+  },
+  "/privacy.html": {
+    path: "privacy.html",
     contentType: "text/html; charset=utf-8",
   },
   "/app.js": {
@@ -142,14 +151,39 @@ const files = {
   },
 };
 
-for (const filename of await readdir(join(root, "public/assets/places"))) {
+for (const filename of await readdir(join(root, "assets/places"))) {
   if (!/^[a-z0-9-]+\.webp$/i.test(filename)) continue;
   files[`/assets/places/${filename}`] = {
-    path: `public/assets/places/${filename}`,
+    path: `assets/places/${filename}`,
     contentType: "image/webp",
     binary: true,
   };
 }
+
+const catalogContext = { window: {} };
+vm.runInNewContext(await readFile(join(root, "evergreen-outings.js"), "utf8"), catalogContext);
+vm.runInNewContext(await readFile(join(root, "park-expansion.js"), "utf8"), catalogContext);
+const placeImageCatalog = Object.fromEntries(
+  (catalogContext.window.LITTLE_WEEKENDS_EVERGREEN || [])
+    .filter((place) => (
+      /^[a-z0-9-]{1,220}$/i.test(String(place.id || ""))
+      && place.name
+      && Number.isFinite(Number(place.location?.lat))
+      && Number.isFinite(Number(place.location?.lng))
+    ))
+    .map((place) => [
+      place.id,
+      {
+        name: String(place.name).slice(0, 180),
+        city: String(place.city || "Bay Area").slice(0, 100),
+        address: String(place.address || "").slice(0, 220),
+        location: {
+          lat: Number(place.location.lat),
+          lng: Number(place.location.lng),
+        },
+      },
+    ]),
+);
 
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
@@ -177,9 +211,11 @@ const entries = Object.fromEntries(
 
 const workerSource = `import { handleCalendarRequest } from "./calendar.js";
 import { getOutingsResponse, refreshOutings } from "./event-sync.js";
+import { handlePlaceImageRequest } from "./place-images.js";
 import { handleSharedPlanRequest } from "./shared-plans.js";
 
 const entries = ${JSON.stringify(entries)};
+const placeImageCatalog = ${JSON.stringify(placeImageCatalog)};
 const securityHeaders = ${JSON.stringify(securityHeaders)};
 
 function headers(contentType) {
@@ -194,6 +230,8 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname.endsWith("/") && url.pathname !== "/" ? url.pathname.slice(0, -1) : url.pathname;
     if (pathname === "/api/outings") return getOutingsResponse(request, env, context);
+    const placeImageResponse = await handlePlaceImageRequest(request, env, placeImageCatalog);
+    if (placeImageResponse) return placeImageResponse;
     const calendarResponse = handleCalendarRequest(request);
     if (calendarResponse) return calendarResponse;
     const sharedPlanResponse = await handleSharedPlanRequest(request, env);
@@ -227,6 +265,7 @@ await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, workerSource, "utf8");
 await copyFile(join(root, "worker/calendar.js"), join(root, "dist/server/calendar.js"));
 await copyFile(join(root, "worker/event-sync.js"), join(root, "dist/server/event-sync.js"));
+await copyFile(join(root, "worker/place-images.js"), join(root, "dist/server/place-images.js"));
 await copyFile(join(root, "worker/shared-plans.js"), join(root, "dist/server/shared-plans.js"));
 const hostingOutputPath = join(root, "dist/.openai/hosting.json");
 await mkdir(dirname(hostingOutputPath), { recursive: true });

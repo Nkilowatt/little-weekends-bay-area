@@ -32,14 +32,16 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /id="sharePlanDialog"/);
+  assert.match(html, /href="terms\.html">이용약관/);
+  assert.match(html, /href="privacy\.html">개인정보처리방침/);
   assert.match(html, /evergreen-outings\.js\?v=10/);
   assert.match(html, /park-expansion\.js\?v=2/);
   assert.match(html, /place-images\.js\?v=1/);
-  assert.match(html, /styles\.css\?v=29/);
+  assert.match(html, /styles\.css\?v=30/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=3/);
-  assert.match(html, /app\.js\?v=34/);
+  assert.match(html, /app\.js\?v=35/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
@@ -92,8 +94,13 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /itemImageCaption\(item\)/);
   assert.match(script, /function registeredPlaceImage\(item\)/);
   assert.match(script, /function itemImageAttribution\(item\)/);
+  assert.match(script, /function bindOutingImageFailure\(imageElement, item\)/);
+  assert.match(script, /function observeRemotePlaceImage\(imageElement, item\)/);
+  assert.match(script, /function scheduleRemotePlaceImage\(item\)/);
+  assert.match(script, /Google Maps 거리뷰/);
+  assert.match(script, /data-outing-image-id/);
   assert.ok(script.includes("assets\\/(?:photos|places)"));
-  assert.match(script, /image-kind-badge is-\$\{imageKind\}/);
+  assert.match(script, /function itemImageBadgeClass\(item\)/);
   assert.match(script, /원본 보기/);
   assert.match(script, /이 장소의 실제 사진이 아닙니다\. 활동 유형을 보여주는 예시 이미지입니다\./);
   assert.match(script, /amenityRow\("기저귀 교환대"/);
@@ -131,9 +138,11 @@ test("event date buckets retain Pacific-day semantics", () => {
 test("Sites build contains the event API and security policy", async () => {
   const worker = await readFile(new URL("dist/server/index.js", root), "utf8");
   const eventSync = await readFile(new URL("dist/server/event-sync.js", root), "utf8");
+  const placeImages = await readFile(new URL("dist/server/place-images.js", root), "utf8");
   const sharedPlans = await readFile(new URL("dist/server/shared-plans.js", root), "utf8");
   const migration = await readFile(new URL("drizzle/0003_shared_plans.sql", root), "utf8");
   const locationMigration = await readFile(new URL("drizzle/0004_event_location.sql", root), "utf8");
+  const placeImageMigration = await readFile(new URL("drizzle/0005_place_image_sources.sql", root), "utf8");
 
   assert.match(worker, /pathname === "\/api\/outings"/);
   assert.match(worker, /handleCalendarRequest/);
@@ -142,6 +151,8 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(worker, /"\/place-images\.js"/);
   assert.match(worker, /"\/planning\.js"/);
   assert.match(worker, /handleSharedPlanRequest/);
+  assert.match(worker, /handlePlaceImageRequest/);
+  assert.match(worker, /placeImageCatalog/);
   assert.match(worker, /connect-src 'self'/);
   assert.match(eventSync, /min_age_months/);
   assert.match(eventSync, /confidence_status/);
@@ -155,10 +166,16 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(eventSync, /events\.length \? "public, max-age=300/);
   assert.match(sharedPlans, /shared_plan_responses/);
   assert.match(sharedPlans, /x-plan-edit-token/);
+  assert.match(sharedPlans, /photos\|places/);
+  assert.match(placeImages, /places:searchText/);
+  assert.match(placeImages, /mode === "streetview"/);
+  assert.match(placeImages, /GOOGLE_MAPS_API_KEY/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS shared_plans/);
   assert.match(migration, /FOREIGN KEY \(plan_token, item_id\)/);
   assert.match(locationMigration, /ADD COLUMN venue_name/);
   assert.match(locationMigration, /ADD COLUMN address/);
+  assert.match(placeImageMigration, /CREATE TABLE IF NOT EXISTS `place_image_sources`/);
+  assert.match(placeImageMigration, /google_place_id/);
 });
 
 test("Sites build serves both Korean webfonts", async () => {
@@ -173,6 +190,18 @@ test("Sites build serves both Korean webfonts", async () => {
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("content-type"), "font/woff2");
     assert.ok((await response.arrayBuffer()).byteLength > 100_000);
+  }
+});
+
+test("Sites build serves public terms and privacy pages for map content", async () => {
+  const { default: worker } = await import(new URL("../dist/server/index.js", import.meta.url));
+  for (const route of ["/terms.html", "/privacy.html"]) {
+    const response = await worker.fetch(new Request(`https://little-weekends.test${route}`), {}, {});
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("content-type"), "text/html; charset=utf-8");
+    const html = await response.text();
+    assert.match(html, /Google/);
+    assert.match(html, /styles\.css\?v=30/);
   }
 });
 
@@ -233,6 +262,8 @@ test("typography scale and Korean wrapping remain intentionally readable", async
   assert.match(css, /\.image-kind-badge\.is-context\s*\{[^}]*background:/);
   assert.match(css, /\.image-kind-badge\.is-actual\s*\{[^}]*background:/);
   assert.match(css, /\.detail-visual figcaption a\s*\{[^}]*text-underline-offset:/);
+  assert.match(css, /\.card-image img\.is-streetview\s*\{[^}]*object-fit:\s*contain/);
+  assert.match(css, /\.detail-visual img\.is-streetview\s*\{[^}]*object-fit:\s*contain/);
   assert.match(css, /--font-ui:\s*system-ui/);
   assert.match(css, /\.hero h1\s*\{[^}]*font-family:\s*var\(--font-display\)/);
   assert.match(css, /@media \(max-width:\s*768px\)[\s\S]*?\.hero h1\s*\{[^}]*font-family:\s*var\(--font-display-compact\)/);

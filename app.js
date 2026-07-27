@@ -678,6 +678,40 @@ const catalogEvergreenOutings = Array.isArray(window.LITTLE_WEEKENDS_EVERGREEN)
   : [];
 const evergreenOutings = [...staticOutings.filter((item) => evergreenIds.has(item.id)), ...catalogEvergreenOutings];
 outings = [...staticOutings, ...catalogEvergreenOutings];
+const catalogPlaceIds = new Set(catalogEvergreenOutings.map((item) => item.id));
+const catalogPlaceIdByNameCity = new Map();
+const catalogPlaceIdByAddress = new Map();
+
+catalogEvergreenOutings.forEach((item) => {
+  const nameKey = `${placeImageLookupKey(item.name)}|${placeImageLookupKey(item.city)}`;
+  const addressKey = placeImageLookupKey(item.address);
+  if (nameKey !== "|" && !catalogPlaceIdByNameCity.has(nameKey)) catalogPlaceIdByNameCity.set(nameKey, item.id);
+  if (addressKey && !catalogPlaceIdByAddress.has(addressKey)) catalogPlaceIdByAddress.set(addressKey, item.id);
+});
+
+function remotePlaceIdFor(item) {
+  if (catalogPlaceIds.has(item?.id)) return item.id;
+  const cityKey = placeImageLookupKey(item?.city);
+  for (const name of [item?.venueName, item?.name]) {
+    const match = catalogPlaceIdByNameCity.get(`${placeImageLookupKey(name)}|${cityKey}`);
+    if (match) return match;
+  }
+  return catalogPlaceIdByAddress.get(placeImageLookupKey(item?.address)) || null;
+}
+
+const placeImageRequests = new Map();
+const unavailablePlaceImages = new Set();
+let placeImageProviderStatusPromise = null;
+const remotePlaceImageObserver = "IntersectionObserver" in window
+  ? new IntersectionObserver((entries, observer) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      observer.unobserve(entry.target);
+      const item = findOutingById(entry.target.dataset.outingImageId);
+      if (item) scheduleRemotePlaceImage(item);
+    });
+  }, { rootMargin: "320px 0px" })
+  : null;
 
 const mapBounds = {
   north: 38.2033,
@@ -1103,8 +1137,7 @@ function typeInitial(type) {
   }[type] || "장소";
 }
 
-function itemImage(item) {
-  if (item.image?.src) return item.image.src;
+function categoryFallbackImage(item) {
   const imageContext = `${item.name || ""} ${item.why || ""} ${item.sourceName || ""} ${item.source || ""}`.toLowerCase();
 
   if (/bubble|버블|discovery museum/.test(imageContext)) return "assets/photos/bubble-play.webp";
@@ -1124,31 +1157,234 @@ function itemImage(item) {
   return "assets/photos/bay-family-hero.webp";
 }
 
+function effectiveItemImage(item) {
+  if (item.image?.src && !item.localImageFailed) return item.image;
+  if (item.remoteImage?.src && !item.remoteImageFailed) return item.remoteImage;
+  return null;
+}
+
+function itemImage(item, { detail = false } = {}) {
+  const image = effectiveItemImage(item);
+  if (!image) return categoryFallbackImage(item);
+  return detail && image.detailSrc ? image.detailSrc : image.src;
+}
+
 function itemImageKind(item) {
-  return item.image?.kind === "actual" ? "actual" : "context";
+  return effectiveItemImage(item)?.kind === "actual" ? "actual" : "context";
 }
 
 function itemImageCaption(item) {
+  const image = effectiveItemImage(item);
+  if (image?.provider === "google_places") {
+    const creator = safeText(image.creator, "", 28);
+    return creator ? `Google Maps · ${creator}` : "Google Maps";
+  }
+  if (image?.provider === "streetview") return "Google Maps 거리뷰";
   return itemImageKind(item) === "actual" ? "실제 장소" : "활동 예시";
 }
 
+function itemImageAlt(item) {
+  return itemImageKind(item) === "actual" ? effectiveItemImage(item)?.alt || item.name : "";
+}
+
+function itemImageClass(item) {
+  const provider = effectiveItemImage(item)?.provider;
+  return provider === "streetview" ? "is-streetview" : provider === "google_places" ? "is-google-place" : "";
+}
+
+function itemImageBadgeClass(item) {
+  return `image-kind-badge is-${itemImageKind(item)}${effectiveItemImage(item)?.provider ? " is-google" : ""}`;
+}
+
 function itemImageAttribution(item) {
-  if (itemImageKind(item) !== "actual") {
+  const image = effectiveItemImage(item);
+  if (!image || itemImageKind(item) !== "actual") {
     return "이 장소의 실제 사진이 아닙니다. 활동 유형을 보여주는 예시 이미지입니다.";
   }
 
-  const credit = item.image?.credit || item.image?.creator;
-  const license = item.image?.license;
+  if (image.provider === "google_places") {
+    const parts = [
+      image.creator && image.creatorUrl
+        ? `촬영: <a href="${escapeHtml(image.creatorUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(image.creator)}</a>`
+        : image.creator
+          ? `촬영: ${escapeHtml(image.creator)}`
+          : "장소 사진: Google Maps"
+    ];
+    if (image.sourceUrl) {
+      parts.push(`<a href="${escapeHtml(image.sourceUrl)}" target="_blank" rel="noopener noreferrer"><span translate="no">Google Maps</span>에서 원본 보기</a>`);
+    }
+    if (image.reportUrl) {
+      parts.push(`<a href="${escapeHtml(image.reportUrl)}" target="_blank" rel="noopener noreferrer">사진 신고</a>`);
+    }
+    return parts.join(" · ");
+  }
+
+  if (image.provider === "streetview") {
+    const parts = [`${escapeHtml(image.credit || "Google Maps")} 거리뷰`];
+    if (image.capturedAt) parts.push(`${escapeHtml(image.capturedAt)} 촬영`);
+    if (image.sourceUrl) {
+      parts.push(`<a href="${escapeHtml(image.sourceUrl)}" target="_blank" rel="noopener noreferrer"><span translate="no">Google Maps</span>에서 위치 보기</a>`);
+    }
+    return parts.join(" · ");
+  }
+
+  const credit = image.credit || image.creator;
+  const license = image.license;
   const parts = [credit ? `사진: ${escapeHtml(credit)}` : "실제 장소 사진"];
-  if (license && item.image?.licenseUrl) {
-    parts.push(`<a href="${escapeHtml(item.image.licenseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(license)}</a>`);
+  if (license && image.licenseUrl) {
+    parts.push(`<a href="${escapeHtml(image.licenseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(license)}</a>`);
   } else if (license) {
     parts.push(escapeHtml(license));
   }
-  if (item.image?.sourceUrl) {
-    parts.push(`<a href="${escapeHtml(item.image.sourceUrl)}" target="_blank" rel="noopener noreferrer">원본 보기</a>`);
+  if (image.sourceUrl) {
+    parts.push(`<a href="${escapeHtml(image.sourceUrl)}" target="_blank" rel="noopener noreferrer">원본 보기</a>`);
   }
   return parts.join(" · ");
+}
+
+function safeSameOriginPlaceImageUrl(value) {
+  try {
+    if (!/^https?:$/.test(window.location.protocol)) return null;
+    const url = new URL(String(value || ""), window.location.origin);
+    return url.origin === window.location.origin && url.pathname === "/api/place-image"
+      ? `${url.pathname}${url.search}`
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeGoogleMetadataUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    const hostname = url.hostname.toLowerCase();
+    const allowed = hostname === "google.com"
+      || hostname.endsWith(".google.com")
+      || hostname === "googleusercontent.com"
+      || hostname.endsWith(".googleusercontent.com");
+    return url.protocol === "https:" && allowed ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizedRemotePlaceImage(value) {
+  if (!value || !["google_places", "streetview"].includes(value.provider)) return null;
+  const src = safeSameOriginPlaceImageUrl(value.src);
+  if (!src) return null;
+  const detailSrc = safeSameOriginPlaceImageUrl(value.detailSrc) || src;
+  return {
+    src,
+    detailSrc,
+    kind: "actual",
+    provider: value.provider,
+    label: safeText(value.label, value.provider === "streetview" ? "Google Maps 거리뷰" : "Google Maps", 80),
+    alt: safeText(value.alt, "", 180),
+    creator: safeText(value.creator, "", 120),
+    credit: safeText(value.credit, value.provider === "streetview" ? "Google Maps" : "", 180),
+    creatorUrl: safeGoogleMetadataUrl(value.creatorUrl),
+    sourceUrl: safeGoogleMetadataUrl(value.sourceUrl),
+    reportUrl: safeGoogleMetadataUrl(value.reportUrl),
+    capturedAt: /^\d{4}(?:-\d{2})?$/.test(String(value.capturedAt || "")) ? value.capturedAt : ""
+  };
+}
+
+async function placeImageProviderAvailable() {
+  if (!/^https?:$/.test(window.location.protocol)) return false;
+  if (!placeImageProviderStatusPromise) {
+    placeImageProviderStatusPromise = fetch("/api/place-image?mode=status", {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    })
+      .then(async (response) => response.ok && Boolean((await response.json()).configured))
+      .catch(() => false);
+  }
+  return placeImageProviderStatusPromise;
+}
+
+function refreshRenderedPlaceImage(item) {
+  document.querySelectorAll("[data-outing-image-id]").forEach((imageElement) => {
+    if (imageElement.dataset.outingImageId !== item.id) return;
+    const detail = imageElement.dataset.imageLayout === "detail";
+    imageElement.src = itemImage(item, { detail });
+    imageElement.alt = itemImageAlt(item);
+    imageElement.className = itemImageClass(item);
+    const badge = imageElement.closest(".card-image, .detail-image")?.querySelector(".image-kind-badge");
+    if (badge) {
+      badge.className = itemImageBadgeClass(item);
+      badge.textContent = itemImageCaption(item);
+      if (effectiveItemImage(item)?.provider) badge.setAttribute("translate", "no");
+      else badge.removeAttribute("translate");
+    }
+  });
+  if (state.selectedId === item.id && detailDialog.open) openDetail(item.id);
+}
+
+async function loadRemotePlaceImage(item) {
+  const placeId = remotePlaceIdFor(item);
+  if (!placeId || unavailablePlaceImages.has(placeId) || effectiveItemImage(item)) return;
+  if (!(await placeImageProviderAvailable())) return;
+
+  if (!placeImageRequests.has(placeId)) {
+    placeImageRequests.set(placeId, fetch(`/api/place-image?id=${encodeURIComponent(placeId)}`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("PLACE_IMAGE_UNAVAILABLE");
+        const payload = await response.json();
+        const image = normalizedRemotePlaceImage(payload.image);
+        if (!image) unavailablePlaceImages.add(placeId);
+        return image;
+      })
+      .catch(() => {
+        unavailablePlaceImages.add(placeId);
+        return null;
+      }));
+  }
+
+  const image = await placeImageRequests.get(placeId);
+  if (!image || effectiveItemImage(item)) return;
+  item.remoteImage = image;
+  item.remoteImageFailed = false;
+  refreshRenderedPlaceImage(item);
+}
+
+function scheduleRemotePlaceImage(item) {
+  if (!effectiveItemImage(item) && remotePlaceIdFor(item)) void loadRemotePlaceImage(item);
+}
+
+function observeRemotePlaceImage(imageElement, item) {
+  if (effectiveItemImage(item) || !remotePlaceIdFor(item)) return;
+  if (remotePlaceImageObserver) {
+    remotePlaceImageObserver.observe(imageElement);
+  } else {
+    scheduleRemotePlaceImage(item);
+  }
+}
+
+function bindOutingImageFailure(imageElement, item) {
+  imageElement.addEventListener("error", () => {
+    const failed = effectiveItemImage(item);
+    if (failed === item.image) item.localImageFailed = true;
+    if (failed === item.remoteImage) item.remoteImageFailed = true;
+    const fallback = categoryFallbackImage(item);
+    const currentPath = imageElement.getAttribute("src") || "";
+    if (currentPath === fallback) {
+      imageElement.hidden = true;
+      return;
+    }
+    imageElement.hidden = false;
+    imageElement.src = fallback;
+    imageElement.alt = "";
+    imageElement.className = "";
+    const badge = imageElement.closest(".card-image, .detail-image")?.querySelector(".image-kind-badge");
+    if (badge) {
+      badge.className = "image-kind-badge is-context";
+      badge.textContent = "활동 예시";
+    }
+    scheduleRemotePlaceImage(item);
+  });
 }
 
 const searchAliasGroups = [
@@ -1565,7 +1801,6 @@ function cardEssentialsMarkup(item) {
 function createOutingCard(item, planIssues = []) {
     const trust = trustStatus(item);
     const distance = distanceFor(item);
-    const imageKind = itemImageKind(item);
     const timeLabel = displayTimeLabel(item);
     const timeMarkup = timeLabel ? `<span class="card-time">${escapeHtml(timeLabel)}</span>` : "";
     const reasons = recommendationReasons(item);
@@ -1583,7 +1818,7 @@ function createOutingCard(item, planIssues = []) {
     card.className = `outing-card${state.selectedId === item.id ? " is-selected" : ""}`;
     card.innerHTML = `
       <button class="card-open" type="button" aria-label="${escapeHtml(item.name)} 상세 보기"></button>
-      <span class="card-media"><span class="card-image"><img src="${itemImage(item)}" alt="${escapeHtml(imageKind === "actual" ? item.image?.alt || item.name : "")}" loading="lazy" /><span class="image-kind-badge is-${imageKind}">${itemImageCaption(item)}</span></span></span>
+      <span class="card-media"><span class="card-image"><img src="${itemImage(item)}" alt="${escapeHtml(itemImageAlt(item))}" class="${itemImageClass(item)}" data-outing-image-id="${escapeHtml(item.id)}" data-image-layout="card" loading="lazy" /><span class="${itemImageBadgeClass(item)}"${effectiveItemImage(item)?.provider ? ' translate="no"' : ""}>${escapeHtml(itemImageCaption(item))}</span></span></span>
       <span class="card-content">
         <span class="time-row"><span class="schedule-label"><span class="outing-kind">${escapeHtml(outingKindLabel(item))}</span>${timeMarkup}</span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
         <h3>${escapeHtml(item.name)}</h3>
@@ -1601,6 +1836,9 @@ function createOutingCard(item, planIssues = []) {
       openDetail(item.id);
       render();
     });
+    const imageElement = card.querySelector("[data-outing-image-id]");
+    bindOutingImageFailure(imageElement, item);
+    observeRemotePlaceImage(imageElement, item);
     const saveControl = card.querySelector("[data-save-card]");
     const saveFromCard = (event) => { event.preventDefault(); toggleSaved(item.id); };
     saveControl.addEventListener("click", saveFromCard);
@@ -2208,6 +2446,7 @@ function selectMapItem(id) {
 }
 
 function render() {
+  remotePlaceImageObserver?.disconnect();
   const baseItems = filteredOutings({ ignoreSfVenue: true });
   const branchContext = sfBranchContext(baseItems);
   if (!branchContext || (state.sfVenue !== "all" && !branchContext.options.some((option) => option.venueName === state.sfVenue))) {
@@ -2461,10 +2700,9 @@ function openDetail(id) {
     const nearbyDistance = alternative.location && item.location ? distanceBetweenMiles(item.location, alternative.location) : distanceFor(alternative);
     return `<button class="alternative-button" data-alternative-id="${escapeHtml(alternative.id)}" type="button"><span><strong>${escapeHtml(alternative.name)}</strong><small>${escapeHtml(alternative.city)} · ${nearbyDistance.toFixed(1)} mi</small></span><b>보기</b></button>`;
   }).join("");
-  const imageKind = itemImageKind(item);
   const imageCaption = itemImageAttribution(item);
   detailBody.innerHTML = `
-    <figure class="detail-visual"><div class="detail-image"><img src="${itemImage(item)}" alt="${escapeHtml(imageKind === "actual" ? item.image?.alt || item.name : "")}" /><span class="image-kind-badge is-${imageKind}">${itemImageCaption(item)}</span></div><figcaption>${imageCaption}</figcaption></figure>
+    <figure class="detail-visual"><div class="detail-image"><img src="${itemImage(item, { detail: true })}" alt="${escapeHtml(itemImageAlt(item))}" class="${itemImageClass(item)}" data-outing-image-id="${escapeHtml(item.id)}" data-image-layout="detail" /><span class="${itemImageBadgeClass(item)}"${effectiveItemImage(item)?.provider ? ' translate="no"' : ""}>${escapeHtml(itemImageCaption(item))}</span></div><figcaption>${imageCaption}</figcaption></figure>
     <article class="detail-body">
       <div class="detail-title"><p class="detail-category">${escapeHtml(typeLabel(item.type))}, ${escapeHtml(item.city)}</p><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.why)}</p></div>
       ${detailLocationMarkup(item)}
@@ -2481,6 +2719,8 @@ function openDetail(id) {
     </article>
   `;
 
+  bindOutingImageFailure(detailBody.querySelector("[data-outing-image-id]"), item);
+  scheduleRemotePlaceImage(item);
   detailBody.querySelector("#saveDetail").addEventListener("click", () => { toggleSaved(id); openDetail(id); });
   detailBody.querySelector("#shareDetail").addEventListener("click", () => shareOuting(item));
   detailBody.querySelector("#copyAddress")?.addEventListener("click", async () => {

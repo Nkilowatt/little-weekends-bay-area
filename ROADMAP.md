@@ -6,7 +6,7 @@ This roadmap is organized as small, handoff-friendly tasks for future chat sessi
 
 ## Now
 
-OpenAI Sites is now the primary service. Time-trust recovery, mobile decision-speed work, and the first verified actual-place photography bundle are complete locally; the next product gates are expanding photo coverage, deployment verification, and parent testing.
+OpenAI Sites is now the primary service. Time-trust recovery, mobile decision-speed work, and a tiered actual-place photography system are complete locally; the next product gates are enabling the Google provider, deployment verification, and parent testing.
 
 ### P0.5 Stabilization Completed
 
@@ -30,6 +30,8 @@ OpenAI Sites is now the primary service. Time-trust recovery, mobile decision-sp
 - Activity-example imagery and confirmed/unknown amenity states prevent stock imagery or missing logistics from being mistaken for verified facts.
 - Fourteen named destinations use manually matched Wikimedia Commons photos with creator, reusable-license, and original-source attribution; all other places retain the clearly labeled category fallback.
 - Actual photos match by curated place ID first and exact venue alias second, avoiding fuzzy matches between similarly named branches or parks.
+- Curated licensed photos now fall through to server-side Google Places photos, then Street View, and finally the labeled category image.
+- Remote requests are lazy-loaded near the viewport, matched against catalog coordinates and addresses, and store only the Google Place ID in D1.
 
 ### Time Trust Recovery Completed
 

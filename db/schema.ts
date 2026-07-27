@@ -61,3 +61,15 @@ export const sharedPlanResponses = sqliteTable("shared_plan_responses", {
   response: text("response").notNull(),
   updatedAt: text("updated_at").notNull(),
 }, (table) => [primaryKey({ columns: [table.planToken, table.itemId, table.participantId] })]);
+
+export const placeImageSources = sqliteTable("place_image_sources", {
+  placeKey: text("place_key").primaryKey(),
+  googlePlaceId: text("google_place_id"),
+  matchStatus: text("match_status").notNull(),
+  matchedName: text("matched_name"),
+  matchedAddress: text("matched_address"),
+  matchedLatitude: real("matched_latitude"),
+  matchedLongitude: real("matched_longitude"),
+  distanceMeters: real("distance_meters"),
+  checkedAt: text("checked_at").notNull(),
+});

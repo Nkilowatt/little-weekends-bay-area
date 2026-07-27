@@ -48,7 +48,7 @@ test("verified place-image registry is complete, licensed, and catalog-linked", 
     assert.equal(image.verifiedAt, "2026-07-26");
     assert.ok(Array.isArray(image.aliases) && image.aliases.length >= 1);
 
-    const file = await stat(new URL(`public/${image.src}`, root));
+    const file = await stat(new URL(image.src, root));
     assert.ok(file.size > 40_000, `${image.src} should contain an optimized production photo`);
   }
 });
