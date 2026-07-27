@@ -1,12 +1,12 @@
 # Roadmap
 
-Last updated: 2026-07-17
+Last updated: 2026-07-26
 
 This roadmap is organized as small, handoff-friendly tasks for future chat sessions.
 
 ## Now
 
-OpenAI Sites is now the primary service. Time-trust recovery and mobile decision-speed work are complete locally; the next product gates are licensed actual-place photography, deployment verification, and parent testing.
+OpenAI Sites is now the primary service. Time-trust recovery, mobile decision-speed work, and the first verified actual-place photography bundle are complete locally; the next product gates are expanding photo coverage, deployment verification, and parent testing.
 
 ### P0.5 Stabilization Completed
 
@@ -28,6 +28,8 @@ OpenAI Sites is now the primary service. Time-trust recovery and mobile decision
 - Today and weekend results separate scheduled events from flexible places and progressively reveal groups after five items.
 - Mobile search is always visible, the hero is compact through 768px, and detail actions prioritize directions and official information.
 - Activity-example imagery and confirmed/unknown amenity states prevent stock imagery or missing logistics from being mistaken for verified facts.
+- Fourteen named destinations use manually matched Wikimedia Commons photos with creator, reusable-license, and original-source attribution; all other places retain the clearly labeled category fallback.
+- Actual photos match by curated place ID first and exact venue alias second, avoiding fuzzy matches between similarly named branches or parks.
 
 ### Time Trust Recovery Completed
 
@@ -35,7 +37,7 @@ OpenAI Sites is now the primary service. Time-trust recovery and mobile decision
 - API and client time guards remove ended events, retain date-only events through the Pacific day, and re-evaluate visible results on focus and every 60 seconds.
 - Source data revision 7 forces existing D1 events through the corrected parser and expanded 28-source coverage.
 - Palo Alto, Menlo Park, Mountain View, Sunnyvale, Cupertino, Santa Clara, Campbell, Los Gatos, and San Francisco now have dedicated official library or city-family feeds plus human-reviewed library destinations.
-- The regression suite contains 32 passing Node tests covering parser normalization, API omission, client status, grouping, imagery, amenity rendering, and regional source coverage.
+- The regression suite contains 40 passing Node tests covering parser normalization, API omission, client status, grouping, licensed place imagery, amenity rendering, and regional source coverage.
 
 ### 0. Primary Deployment And Git Reconciliation
 

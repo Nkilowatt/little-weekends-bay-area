@@ -556,11 +556,31 @@ h1, h2 { text-wrap: balance; }
 }
 .card-open { background: transparent; border: 0; inset: 0; position: absolute; z-index: 1; }
 .card-open:focus-visible { outline: 0; }
-.card-media { align-self: stretch; display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; }
-.card-media > small { color: var(--muted); font-size: 0.68rem; font-weight: 750; padding-top: 5px; }
-.card-image { background: var(--surface-muted); border-radius: var(--radius-card); display: block; min-width: 0; overflow: hidden; }
+.card-media { align-self: stretch; display: block; min-width: 0; }
+.card-image { background: var(--surface-muted); border-radius: var(--radius-card); display: block; min-width: 0; overflow: hidden; position: relative; }
 .card-image img { height: 100%; object-fit: cover; transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1); width: 100%; }
 .outing-card:hover .card-image img { transform: scale(1.035); }
+.image-kind-badge {
+  align-items: center;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-pill);
+  bottom: 8px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.66rem;
+  font-weight: 850;
+  left: 8px;
+  line-height: 1;
+  min-height: 25px;
+  padding: 0 9px;
+  pointer-events: none;
+  position: absolute;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+  z-index: 2;
+}
+.image-kind-badge.is-context { background: rgba(18, 35, 42, 0.78); }
+.image-kind-badge.is-actual { background: rgba(15, 94, 67, 0.9); }
 .card-content { display: flex; flex-direction: column; min-width: 0; padding: 2px 8px 2px 0; }
 .time-row { align-items: center; display: flex; gap: 10px; justify-content: space-between; }
 .schedule-label { display: grid; gap: 3px; min-width: 0; }
@@ -737,8 +757,17 @@ h1, h2 { text-wrap: balance; }
   z-index: 2;
 }
 .detail-visual { margin: 0; }
+.detail-image { position: relative; }
 .detail-visual img { aspect-ratio: 16 / 7; object-fit: cover; width: 100%; }
+.detail-image .image-kind-badge { bottom: 12px; left: 14px; }
 .detail-visual figcaption { background: var(--surface-strong); color: var(--muted); font-size: 0.77rem; padding: 8px 22px; }
+.detail-visual figcaption a {
+  color: inherit;
+  font-weight: 750;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 2px;
+}
+.detail-visual figcaption a:hover { color: var(--text); }
 .detail-body { padding: 24px; }
 .detail-title { margin-bottom: 18px; }
 .detail-title .detail-category { color: var(--accent); font-size: 0.84rem; font-weight: 850; margin-bottom: 7px; }

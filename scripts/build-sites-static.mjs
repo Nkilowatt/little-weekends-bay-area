@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,6 +27,10 @@ const files = {
   },
   "/park-expansion.js": {
     path: "park-expansion.js",
+    contentType: "application/javascript; charset=utf-8",
+  },
+  "/place-images.js": {
+    path: "place-images.js",
     contentType: "application/javascript; charset=utf-8",
   },
   "/styles.css": {
@@ -137,6 +141,15 @@ const files = {
     binary: true,
   },
 };
+
+for (const filename of await readdir(join(root, "public/assets/places"))) {
+  if (!/^[a-z0-9-]+\.webp$/i.test(filename)) continue;
+  files[`/assets/places/${filename}`] = {
+    path: `public/assets/places/${filename}`,
+    contentType: "image/webp",
+    binary: true,
+  };
+}
 
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",

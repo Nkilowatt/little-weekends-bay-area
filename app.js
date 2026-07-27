@@ -445,6 +445,7 @@ const outingTypes = new Set(["storytime", "park", "indoor", "museum", "seasonal"
 const outingSettings = new Set(["indoor", "outdoor"]);
 const outingPrices = new Set(["free", "paid", "check"]);
 const confidenceStatuses = new Set(["human_verified", "source_confirmed", "date_confirmed", "recurring_estimate", "recheck", "stale"]);
+const imageMetadataHosts = new Set(["commons.wikimedia.org", "creativecommons.org"]);
 const regionLabels = {
   sf: "San Francisco",
   peninsula: "Peninsula",
@@ -511,6 +512,51 @@ function safeSourceUrl(value) {
   }
 }
 
+function safeImageMetadataUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    return url.protocol === "https:" && imageMetadataHosts.has(hostname) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+function placeImageLookupKey(value) {
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9가-힣]+/g, " ")
+    .trim();
+}
+
+const placeImageRegistry = window.LITTLE_WEEKENDS_PLACE_IMAGES
+  && typeof window.LITTLE_WEEKENDS_PLACE_IMAGES === "object"
+  ? window.LITTLE_WEEKENDS_PLACE_IMAGES
+  : {};
+const placeImageAliases = new Map();
+
+Object.entries(placeImageRegistry).forEach(([id, image]) => {
+  [id, ...(Array.isArray(image.aliases) ? image.aliases : [])].forEach((alias) => {
+    const key = placeImageLookupKey(alias);
+    if (key && !placeImageAliases.has(key)) placeImageAliases.set(key, image);
+  });
+});
+
+function registeredPlaceImage(item) {
+  const directMatch = placeImageRegistry[String(item?.id || "")];
+  if (directMatch) return directMatch;
+
+  const aliases = [item?.venueName, item?.name, item?.sourceName];
+  for (const alias of aliases) {
+    const match = placeImageAliases.get(placeImageLookupKey(alias));
+    if (match) return match;
+  }
+  return null;
+}
+
 function inferredConfidenceStatus(item) {
   if (item.confidenceStatus) return item.confidenceStatus;
   if (String(item.updated).includes("자동")) return "source_confirmed";
@@ -539,8 +585,13 @@ function normalizeOuting(item) {
     stroller: normalizedAmenity(rawAmenities.stroller, notes.stroller),
     changingTable: normalizedAmenity(rawAmenities.changingTable, notes.changingTable)
   };
-  const suppliedImage = item.image || {};
-  const imageSrc = /^assets\/photos\/[a-z0-9-]+\.webp$/i.test(String(suppliedImage.src || "")) ? suppliedImage.src : "";
+  const candidateImage = item.image || {};
+  const suppliedImage = /^assets\/(?:photos|places)\/[a-z0-9-]+\.(?:webp|jpe?g)$/i.test(String(candidateImage.src || ""))
+    ? candidateImage
+    : registeredPlaceImage(item) || {};
+  const imageSrc = /^assets\/(?:photos|places)\/[a-z0-9-]+\.(?:webp|jpe?g)$/i.test(String(suppliedImage.src || ""))
+    ? suppliedImage.src
+    : "";
   return {
     ...item,
     id: safeText(item.id, "unknown", 180),
@@ -575,8 +626,14 @@ function normalizeOuting(item) {
       src: imageSrc,
       kind: suppliedImage.kind === "actual" ? "actual" : "context",
       alt: safeText(suppliedImage.alt, "", 180),
+      creator: safeText(suppliedImage.creator, "", 120),
       credit: safeText(suppliedImage.credit, "", 180),
-      sourceUrl: safeSourceUrl(suppliedImage.sourceUrl)
+      license: safeText(suppliedImage.license, "", 80),
+      licenseUrl: safeImageMetadataUrl(suppliedImage.licenseUrl),
+      sourceUrl: safeImageMetadataUrl(suppliedImage.sourceUrl),
+      verifiedAt: /^\d{4}-\d{2}-\d{2}$/.test(String(suppliedImage.verifiedAt || ""))
+        ? suppliedImage.verifiedAt
+        : ""
     } : null,
     bathroomKnown: amenities.bathroom.status === "confirmed",
     strollerKnown: amenities.stroller.status === "confirmed",
@@ -1075,6 +1132,25 @@ function itemImageCaption(item) {
   return itemImageKind(item) === "actual" ? "실제 장소" : "활동 예시";
 }
 
+function itemImageAttribution(item) {
+  if (itemImageKind(item) !== "actual") {
+    return "이 장소의 실제 사진이 아닙니다. 활동 유형을 보여주는 예시 이미지입니다.";
+  }
+
+  const credit = item.image?.credit || item.image?.creator;
+  const license = item.image?.license;
+  const parts = [credit ? `사진: ${escapeHtml(credit)}` : "실제 장소 사진"];
+  if (license && item.image?.licenseUrl) {
+    parts.push(`<a href="${escapeHtml(item.image.licenseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(license)}</a>`);
+  } else if (license) {
+    parts.push(escapeHtml(license));
+  }
+  if (item.image?.sourceUrl) {
+    parts.push(`<a href="${escapeHtml(item.image.sourceUrl)}" target="_blank" rel="noopener noreferrer">원본 보기</a>`);
+  }
+  return parts.join(" · ");
+}
+
 const searchAliasGroups = [
   ["storytime", "스토리타임", "스토리", "동화", "책읽기", "책", "이야기"],
   ["park", "공원", "놀이터", "야외놀이"],
@@ -1489,6 +1565,7 @@ function cardEssentialsMarkup(item) {
 function createOutingCard(item, planIssues = []) {
     const trust = trustStatus(item);
     const distance = distanceFor(item);
+    const imageKind = itemImageKind(item);
     const timeLabel = displayTimeLabel(item);
     const timeMarkup = timeLabel ? `<span class="card-time">${escapeHtml(timeLabel)}</span>` : "";
     const reasons = recommendationReasons(item);
@@ -1506,7 +1583,7 @@ function createOutingCard(item, planIssues = []) {
     card.className = `outing-card${state.selectedId === item.id ? " is-selected" : ""}`;
     card.innerHTML = `
       <button class="card-open" type="button" aria-label="${escapeHtml(item.name)} 상세 보기"></button>
-      <span class="card-media"><span class="card-image"><img src="${itemImage(item)}" alt="${escapeHtml(itemImageKind(item) === "actual" ? item.image?.alt || item.name : "")}" loading="lazy" /></span><small>${itemImageCaption(item)}</small></span>
+      <span class="card-media"><span class="card-image"><img src="${itemImage(item)}" alt="${escapeHtml(imageKind === "actual" ? item.image?.alt || item.name : "")}" loading="lazy" /><span class="image-kind-badge is-${imageKind}">${itemImageCaption(item)}</span></span></span>
       <span class="card-content">
         <span class="time-row"><span class="schedule-label"><span class="outing-kind">${escapeHtml(outingKindLabel(item))}</span>${timeMarkup}</span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
         <h3>${escapeHtml(item.name)}</h3>
@@ -2384,11 +2461,10 @@ function openDetail(id) {
     const nearbyDistance = alternative.location && item.location ? distanceBetweenMiles(item.location, alternative.location) : distanceFor(alternative);
     return `<button class="alternative-button" data-alternative-id="${escapeHtml(alternative.id)}" type="button"><span><strong>${escapeHtml(alternative.name)}</strong><small>${escapeHtml(alternative.city)} · ${nearbyDistance.toFixed(1)} mi</small></span><b>보기</b></button>`;
   }).join("");
-  const imageCaption = itemImageKind(item) === "actual"
-    ? `실제 장소 사진${item.image?.credit ? ` · ${escapeHtml(item.image.credit)}` : ""}`
-    : "활동 유형을 보여주는 예시 이미지입니다.";
+  const imageKind = itemImageKind(item);
+  const imageCaption = itemImageAttribution(item);
   detailBody.innerHTML = `
-    <figure class="detail-visual"><img src="${itemImage(item)}" alt="${escapeHtml(itemImageKind(item) === "actual" ? item.image?.alt || item.name : "")}" /><figcaption>${imageCaption}</figcaption></figure>
+    <figure class="detail-visual"><div class="detail-image"><img src="${itemImage(item)}" alt="${escapeHtml(imageKind === "actual" ? item.image?.alt || item.name : "")}" /><span class="image-kind-badge is-${imageKind}">${itemImageCaption(item)}</span></div><figcaption>${imageCaption}</figcaption></figure>
     <article class="detail-body">
       <div class="detail-title"><p class="detail-category">${escapeHtml(typeLabel(item.type))}, ${escapeHtml(item.city)}</p><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.why)}</p></div>
       ${detailLocationMarkup(item)}
