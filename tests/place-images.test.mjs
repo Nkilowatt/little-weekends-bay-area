@@ -31,13 +31,13 @@ test("verified place-image registry is complete, licensed, and catalog-linked", 
   const entries = Object.entries(images);
   const catalogIds = new Set(catalog.map((item) => item.id));
 
-  assert.equal(entries.length, 14);
+  assert.equal(entries.length, 30);
   assert.equal(new Set(entries.map(([, image]) => image.src)).size, entries.length);
 
   for (const [id, image] of entries) {
     assert.ok(catalogIds.has(id), `${id} must refer to a curated catalog place`);
     assert.equal(image.kind, "actual");
-    assert.match(image.src, /^assets\/places\/[a-z0-9-]+\.webp$/);
+    assert.match(image.src, /^assets\/places\/[a-z0-9-]+\.(?:jpe?g|webp)$/);
     assert.ok(image.alt.length >= 8);
     assert.ok(image.creator);
     assert.ok(image.credit);
@@ -45,7 +45,7 @@ test("verified place-image registry is complete, licensed, and catalog-linked", 
     assert.match(image.licenseUrl, /^https:\/\/creativecommons\.org\//);
     assert.match(image.sourceUrl, /^https:\/\/commons\.wikimedia\.org\/wiki\/File:/);
     assert.ok(Number.isInteger(image.commonsPageId));
-    assert.equal(image.verifiedAt, "2026-07-26");
+    assert.match(image.verifiedAt, /^\d{4}-\d{2}-\d{2}$/);
     assert.ok(Array.isArray(image.aliases) && image.aliases.length >= 1);
 
     const file = await stat(new URL(image.src, root));

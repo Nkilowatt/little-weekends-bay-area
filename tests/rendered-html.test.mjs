@@ -249,7 +249,10 @@ test("Sites build serves every verified place photo", async () => {
   for (const image of Object.values(context.window.LITTLE_WEEKENDS_PLACE_IMAGES)) {
     const response = await worker.fetch(new Request(`https://little-weekends.test/${image.src}`), {}, {});
     assert.equal(response.status, 200);
-    assert.equal(response.headers.get("content-type"), "image/webp");
+    assert.equal(
+      response.headers.get("content-type"),
+      image.src.endsWith(".webp") ? "image/webp" : "image/jpeg",
+    );
     assert.ok((await response.arrayBuffer()).byteLength > 40_000);
   }
 });

@@ -151,11 +151,18 @@ const files = {
   },
 };
 
+const placeImageContentTypes = {
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
+  ".webp": "image/webp",
+};
+
 for (const filename of await readdir(join(root, "assets/places"))) {
-  if (!/^[a-z0-9-]+\.webp$/i.test(filename)) continue;
+  const extension = filename.slice(filename.lastIndexOf(".")).toLowerCase();
+  if (!/^[a-z0-9-]+\.(?:jpe?g|webp)$/i.test(filename)) continue;
   files[`/assets/places/${filename}`] = {
     path: `assets/places/${filename}`,
-    contentType: "image/webp",
+    contentType: placeImageContentTypes[extension],
     binary: true,
   };
 }
