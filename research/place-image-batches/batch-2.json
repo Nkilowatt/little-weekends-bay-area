@@ -1,0 +1,354 @@
+[
+  {
+    "placeId": "badm-evergreen",
+    "placeName": "Bay Area Discovery Museum",
+    "status": "verified",
+    "src": "assets/places/badm-evergreen.jpg",
+    "alt": "언덕에서 내려다본 Bay Area Discovery Museum 캠퍼스와 금문 해협",
+    "creator": "Sarbjit Bahga",
+    "credit": "Sarbjit Bahga · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Bay_Area_Discovery_Museum.jpg",
+    "commonsPageId": 71082682,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Bay Area Discovery Museum",
+      "Bay Area Discovery Museum at Fort Baker",
+      "BADM"
+    ],
+    "matchEvidence": [
+      "Commons 파일명은 Bay Area Discovery Museum을 정확히 명시하고 설명은 Sausalito, California의 박물관이라고 확인한다.",
+      "Commons 분류가 Museums in Marin County, California로 지역을 재확인한다.",
+      "사진에서 포트 베이커의 붉은 지붕 박물관 캠퍼스와 해안 위치를 함께 알아볼 수 있다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "presidio-outpost",
+    "placeName": "Presidio Tunnel Tops Outpost",
+    "status": "verified",
+    "src": "assets/places/presidio-outpost.jpg",
+    "alt": "새 식재 구역 너머로 보이는 Presidio Tunnel Tops Outpost 탐험 놀이터와 금문교",
+    "creator": "btwashburn",
+    "credit": "btwashburn · Flickr via Openverse · resized and compressed",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+    "sourceUrl": "https://www.flickr.com/photos/21608680@N00/52248266484",
+    "commonsPageId": null,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Presidio Tunnel Tops Outpost",
+      "The Outpost",
+      "Outpost exploration area",
+      "Presidio Tunnel Tops"
+    ],
+    "matchEvidence": [
+      "원본 Flickr 제목이 'New plantings and the Outpost exploration area'이고 설명이 Presidio Tunnel Tops를 명시한다.",
+      "원본 Flickr 지오태그가 San Francisco County를 확인한다.",
+      "사진에 Outpost의 자연형 놀이 구조물과 바위 탐험 구역이 넓게 보이고 어린이가 주 피사체가 아니다.",
+      "Openverse에서 발견한 뒤 원본 Flickr 페이지의 라이선스 링크를 CC BY 2.0으로 재확인했다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "koret-childrens-quarter",
+    "placeName": "Koret Children’s Quarter",
+    "status": "verified",
+    "src": "assets/places/koret-childrens-quarter.jpg",
+    "alt": "Koret Children’s Quarter 안에 있는 Golden Gate Park Carousel의 원형 건물 외관",
+    "creator": "Daderot",
+    "credit": "Daderot · Wikimedia Commons · resized and compressed",
+    "license": "CC0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Carousel,_Golden_Gate_Park_-_San_Francisco,_CA_-_1.jpg",
+    "commonsPageId": 143596071,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Koret Children’s Quarter",
+      "Koret Children's Quarter",
+      "Children's Playground at Golden Gate Park",
+      "Golden Gate Park Children's Playground",
+      "Golden Gate Park Carousel"
+    ],
+    "matchEvidence": [
+      "Commons 설명이 Golden Gate Park Carousel과 San Francisco를 함께 명시한다.",
+      "Commons의 Golden Gate Park Carousel 항목 주소 320 Bowling Green Drive가 카탈로그 주소와 정확히 같다.",
+      "회전목마는 Koret Children’s Quarter의 대표 시설이며 사진은 사람이 없는 건물 외관을 선명하게 보여준다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "sfpl-mission-bay-library-family-place",
+    "placeName": "Mission Bay Branch Library",
+    "status": "verified",
+    "src": "assets/places/sfpl-mission-bay-library-family-place.jpg",
+    "alt": "4번가 모퉁이에서 본 Mission Bay Branch Library 외관과 입구",
+    "creator": "Eric E Castro",
+    "credit": "Eric E Castro · Wikimedia Commons · resized and compressed",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Mission_Bay_Branch_(4505708037).jpg",
+    "commonsPageId": 64748397,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Mission Bay Branch Library",
+      "Mission Bay Library",
+      "San Francisco Public Library Mission Bay Branch"
+    ],
+    "matchEvidence": [
+      "Commons 파일명과 설명이 Mission Bay Branch를 정확히 명시한다.",
+      "Commons 분류가 San Francisco Public Library - Mission Bay Branch로 도시와 지점을 확인한다.",
+      "Commons 촬영 좌표 37.775633,-122.393510이 카탈로그 좌표에서 약 58 m 떨어져 있다.",
+      "사진에서 도서관 외관과 SAN FRANCISCO PUBLIC LIBRARY 표지가 선명하게 보인다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "sfpl-noe-valley-library-family-place",
+    "placeName": "Noe Valley Branch Library",
+    "status": "verified",
+    "src": "assets/places/sfpl-noe-valley-library-family-place.jpg",
+    "alt": "장식 문양과 지점명이 보이는 Noe Valley Branch Library 정문",
+    "creator": "Eric E Castro",
+    "credit": "Eric E Castro · Wikimedia Commons · resized and compressed",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Noe_Valley_Branch_Library_(4487190741).jpg",
+    "commonsPageId": 64749466,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Noe Valley Branch Library",
+      "Noe Valley Library",
+      "San Francisco Public Library Noe Valley Branch"
+    ],
+    "matchEvidence": [
+      "Commons 설명이 San Francisco Public Library, Noe Valley Branch의 외관이라고 명시한다.",
+      "Commons 촬영 좌표 37.750629,-122.435717이 카탈로그 좌표에서 약 79 m 떨어져 있다.",
+      "사진에서 NOE VALLEY BRANCH LIBRARY 표지와 역사적 정문 장식이 선명하게 보인다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "sfpl-glen-park-library-family-place",
+    "placeName": "Glen Park Branch Library",
+    "status": "verified",
+    "src": "assets/places/sfpl-glen-park-library-family-place.jpg",
+    "alt": "길 건너에서 본 Glen Park Branch Library 정면 입구",
+    "creator": "Eric E Castro",
+    "credit": "Eric E Castro · Wikimedia Commons · resized and compressed",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Glen_Park_Branch_Library_(27459485380).jpg",
+    "commonsPageId": 64748327,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Glen Park Branch Library",
+      "Glen Park Library",
+      "San Francisco Public Library Glen Park Branch"
+    ],
+    "matchEvidence": [
+      "Commons 파일명과 설명이 Glen Park Branch Library를 정확히 명시한다.",
+      "Commons 분류가 San Francisco Public Library - Glen Park Branch로 도시와 지점을 확인한다.",
+      "사진에서 GLEN PARK LIBRARY 표지와 현재 정면 출입구가 함께 보인다.",
+      "2002년 Chenery Street의 이전 지점 사진은 별도로 확인해 제외했다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "sfpl-richmond-library-family-place",
+    "placeName": "Richmond Branch Library",
+    "status": "verified",
+    "src": "assets/places/sfpl-richmond-library-family-place.jpg",
+    "alt": "진입로와 야자수가 보이는 Richmond Branch Library 정면 외관",
+    "creator": "Oort1",
+    "credit": "Oort1 · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Carnegie_Richmond_Branch_Library.jpg",
+    "commonsPageId": 33684613,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Richmond Branch Library",
+      "Richmond Library",
+      "Carnegie Richmond Branch Library",
+      "San Francisco Public Library Richmond Branch"
+    ],
+    "matchEvidence": [
+      "Commons 설명이 San Francisco Public Library 시스템의 Carnegie Richmond Branch Library라고 명시한다.",
+      "Commons 촬영 좌표 37.781872,-122.468173이 카탈로그 좌표에서 약 2 m 떨어져 있다.",
+      "사진에서 역사적 도서관 건물과 중앙 출입구가 정면으로 보인다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "sfpl-sunset-library-family-place",
+    "placeName": "Sunset Branch Library",
+    "status": "verified",
+    "src": "assets/places/sfpl-sunset-library-family-place.jpg",
+    "alt": "18번가에서 본 Sunset Branch Library 정면과 중앙 입구",
+    "creator": "Eric E Castro",
+    "credit": "Eric E Castro · Wikimedia Commons · resized and compressed",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sunset_Branch_Library_(4504043356).jpg",
+    "commonsPageId": 64748456,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Sunset Branch Library",
+      "Sunset Library",
+      "San Francisco Public Library Sunset Branch"
+    ],
+    "matchEvidence": [
+      "Commons 파일명과 설명이 Sunset Branch Library를 정확히 명시한다.",
+      "Commons 분류가 San Francisco Public Library - Sunset Branch로 도시와 지점을 확인한다.",
+      "Commons 촬영 좌표 37.763454,-122.476594가 카탈로그 좌표에서 약 28 m 떨어져 있다.",
+      "사진에서 SUNSET BRANCH SAN FRANCISCO PUBLIC LIBRARY 문구와 중앙 입구가 선명하게 보인다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "sf-argonne-playground",
+    "placeName": "Argonne Playground",
+    "status": "verified",
+    "src": "assets/places/sf-argonne-playground.jpg",
+    "alt": "ARGONNE PLAYGROUND 입구 표지와 뒤편 운동장",
+    "creator": "Ragesoss",
+    "credit": "Ragesoss · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Argonne_Playground.jpg",
+    "commonsPageId": 76222997,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Argonne Playground",
+      "Argonne Park"
+    ],
+    "matchEvidence": [
+      "Commons 파일명과 설명이 Argonne Playground를 정확히 명시한다.",
+      "Commons 촬영 좌표 37.779820,-122.477302가 카탈로그 좌표에서 약 57 m 떨어져 있다.",
+      "사진에 ARGONNE PLAYGROUND 입구 표지와 시설이 함께 보여 장소를 즉시 식별할 수 있다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "sf-excelsior-playground",
+    "placeName": "Excelsior Playground",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Excelsior Playground",
+      "Excelsior Park"
+    ],
+    "matchEvidence": [
+      "Wikidata Q49487808의 장소명과 좌표 37.720278,-122.433889가 카탈로그와 일치하지만 P18 이미지는 없다.",
+      "Commons 이름 검색 후보 16장과 반경 500 m 이미지형 후보 16장을 모두 화면으로 검수했다.",
+      "Openverse 정확한 장소명과 태그형 검색에는 결과가 없었다."
+    ],
+    "rejectionReason": "검색 후보는 Excelsior 동네의 주택·거리·버스와 지도, 전자기기 등으로 모두 놀이터와 무관했다. 입구·놀이 시설·대표 시설을 식별할 수 있는 사진이 없어 전부 제외했다."
+  },
+  {
+    "placeId": "sf-rochambeau-playground",
+    "placeName": "Rochambeau Playground",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Rochambeau Playground",
+      "Rochambeau Park"
+    ],
+    "matchEvidence": [
+      "Wikidata Q49552361의 장소명과 좌표 37.785000,-122.484722가 카탈로그와 일치하지만 P18 이미지는 없다.",
+      "Commons 정확한 장소명 검색과 반경 500 m 이미지형 결과 35장을 화면으로 검수했다.",
+      "Openverse 정확한 장소명과 태그형 검색에는 결과가 없었다."
+    ],
+    "rejectionReason": "근접 결과는 Legion of Honor 전시물, 인근 주택·영화관·식물 사진뿐이었다. Rochambeau Playground의 입구나 놀이 시설을 식별할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "greenbrae-hal-brown-park",
+    "placeName": "Hal Brown Park at Creekside",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Hal Brown Park at Creekside",
+      "Hal Brown Park",
+      "Creekside Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons 정확한 장소명 검색과 반경 500 m 이미지형 결과 3장을 화면으로 검수했다.",
+      "Wikidata P18과 Openverse 정확한 장소명·Creekside 별칭·태그형 검색을 완료했다."
+    ],
+    "rejectionReason": "근접 결과는 Marin Catholic 경기장과 MarinHealth 병원 사진뿐이었다. Hal Brown Park의 입구·놀이터·Creekside 대표 시설을 식별할 수 있는 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "larkspur-piper-park",
+    "placeName": "Piper Park",
+    "status": "verified",
+    "src": "assets/places/larkspur-piper-park.jpg",
+    "alt": "도로 옆 PIPER PARK 입구 표지와 테니스 시설",
+    "creator": "E bailey",
+    "credit": "E bailey · Wikimedia Commons · resized and compressed",
+    "license": "CC0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Piper_Park,_Larkspur,_CA_Sept_2025.jpg",
+    "commonsPageId": 174392835,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Piper Park",
+      "Piper Park Larkspur"
+    ],
+    "matchEvidence": [
+      "Commons 파일명과 설명이 Larkspur, California의 Piper Park 입구를 정확히 명시한다.",
+      "Commons 촬영 좌표 37.937732,-122.531305가 카탈로그 좌표에서 약 366 m이며 같은 공원 진입로 구간이다.",
+      "사진에서 PIPER PARK 표지와 대표 체육 시설을 함께 알아볼 수 있다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "san-rafael-pueblo-park",
+    "placeName": "Pueblo Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Pueblo Park",
+      "Pueblo Park San Rafael"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons 정확한 장소명 검색과 반경 500 m 이미지형 결과 3장을 화면으로 검수했다.",
+      "Wikidata의 Pueblo Park 동명 항목은 New Mexico의 다른 장소였고 San Rafael 지점의 P18 항목은 찾지 못했다.",
+      "Openverse 정확한 장소명과 태그형 검색에는 결과가 없었다."
+    ],
+    "rejectionReason": "동명 Wikidata 후보는 다른 주의 공원이었고, 근접 Commons 결과는 인물 사진과 버섯 사진뿐이었다. San Rafael의 Pueblo Park를 식별할 수 없어 모두 제외했다."
+  }
+]
