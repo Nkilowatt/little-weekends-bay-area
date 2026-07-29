@@ -1,0 +1,379 @@
+[
+  {
+    "placeId": "redwood-city-downtown-library",
+    "placeName": "Redwood City Downtown Library Family Place",
+    "status": "verified",
+    "src": "assets/places/redwood-city-downtown-library.jpg",
+    "alt": "광장에서 정면으로 본 Redwood City Main Downtown Library의 아치형 입구",
+    "creator": "BrokenSphere",
+    "credit": "BrokenSphere · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Redwood_City_Main_Downtown_Library_front.JPG",
+    "commonsPageId": 8779298,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Redwood City Downtown Library",
+      "Redwood City Main Downtown Library",
+      "Redwood City Public Library Main"
+    ],
+    "matchEvidence": [
+      "Commons 파일 설명이 Redwood City, California의 Main Downtown Library라고 정확히 명시한다.",
+      "Commons 전용 카테고리의 주소 1044 Middlefield Road가 카탈로그 주소와 일치한다.",
+      "전용 카테고리의 허용 라이선스 후보 11장을 직접 비교하고 정면 아치형 출입구가 가장 분명한 사진을 선택했다.",
+      "Commons 원본 페이지에서 BrokenSphere의 CC BY-SA 3.0 라이선스를 확인했다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "redwood-city-magical-bridge",
+    "placeName": "Magical Bridge Playground at Red Morton Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Magical Bridge Playground at Red Morton Park",
+      "Redwood City Magical Bridge Playground",
+      "Red Morton Park Magical Bridge"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 Magical Bridge·Red Morton Park·Redwood City 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 사진과 Wikidata P18을 확인했다.",
+      "Openverse에서 장소명·공원명·도시 조합을 검색하고 원본 출처를 검토했다."
+    ],
+    "rejectionReason": "허용 소스에서 포용형 놀이터 구조물, 입구, 표지 또는 Red Morton Park 내 위치를 식별할 수 있는 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "san-mateo-beresford-park-playground",
+    "placeName": "Beresford Park Playground",
+    "status": "verified",
+    "src": "assets/places/san-mateo-beresford-park-playground.jpg",
+    "alt": "Beresford Park의 목재 타워와 로프 놀이 구조물을 중심으로 본 놀이터 전경",
+    "creator": "mliu92",
+    "credit": "mliu92 · Wikimedia Commons · resized, cropped, and compressed",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Beresford_Park,_San_Mateo._After_the_Cub_Scout_meeting._(40181564422).jpg",
+    "commonsPageId": 67863631,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Beresford Park Playground",
+      "Beresford Park",
+      "San Mateo Beresford Park"
+    ],
+    "matchEvidence": [
+      "Commons 파일명과 설명이 San Mateo의 Beresford Park를 정확히 명시한다.",
+      "촬영 좌표 37.537577, -122.314978이 카탈로그 좌표에서 약 92 m로 일치한다.",
+      "두 정확 일치 후보를 직접 비교했으며 선택 사진은 놀이터의 목재 타워·로프·산책 동선을 넓게 보여준다.",
+      "사람은 작게 배경에만 있고 장소 시설이 사진의 명확한 주 피사체다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "san-mateo-indian-springs-playground",
+    "placeName": "Indian Springs Park Playground",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Indian_Springs_Park,_San_Mateo.jpg",
+    "commonsPageId": 134891415,
+    "verifiedAt": null,
+    "aliases": [
+      "Indian Springs Park Playground",
+      "Indian Springs Park",
+      "San Mateo Indian Springs Park"
+    ],
+    "matchEvidence": [
+      "Commons 네 파일의 설명이 San Mateo, California의 Indian Springs Park라고 명시한다.",
+      "네 촬영 좌표가 카탈로그 좌표에서 약 58~109 m로 일치한다.",
+      "Commons 원본과 Openverse의 중복 원본을 포함한 모든 후보를 직접 확인했다."
+    ],
+    "rejectionReason": "정확한 장소 사진이지만 계단, 보도, 수목이 있는 진입로만 보이고 놀이터·입구 표지·대표 시설을 식별할 수 없다. 단순 계단과 풍경 기준에 해당해 사용하지 않았다."
+  },
+  {
+    "placeId": "san-mateo-lakeshore-park-playground",
+    "placeName": "Lakeshore Park Playground",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Lakeshore Park Playground",
+      "Lakeshore Park San Mateo",
+      "San Mateo Lakeshore Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·San Mateo·Marina Court 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m와 Wikidata P18을 확인했다.",
+      "Openverse 장소명·주소 검색 결과를 원본 페이지 기준으로 검토했다."
+    ],
+    "rejectionReason": "다른 지역의 동명 장소 외에 정확한 San Mateo 공원 사진이 없었다. 놀이터·입구·대표 시설을 확인할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "san-mateo-laurie-meadows-park",
+    "placeName": "Laurie Meadows Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Laurie Meadows Park",
+      "Laurie Meadows Park San Mateo",
+      "San Mateo Laurie Meadows Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·San Mateo·Laurie Meadows 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m와 Wikidata P18을 확인했다.",
+      "Openverse 장소명·주소 검색을 완료했다."
+    ],
+    "rejectionReason": "좌표 검색의 결과는 공원 밖 사진이었고, 놀이터·입구·대표 시설을 식별할 수 있는 정확 일치 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "san-mateo-mariners-island-park",
+    "placeName": "Mariners Island Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Mariners Island Park",
+      "Mariner's Island Park",
+      "San Mateo Mariners Island Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 장소명·San Mateo·Shoal Drive 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과 26개와 Wikidata P18을 확인했다.",
+      "Openverse 장소명·주소 검색 결과를 검토했다."
+    ],
+    "rejectionReason": "근접 결과는 선글라스 상품, 상업시설, 거리 사진 등 공원과 무관했다. 놀이터·입구·대표 시설을 확인할 수 있는 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "redwood-city-maddux-park",
+    "placeName": "Maddux Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Maddux Park",
+      "Maddux Park Redwood City",
+      "Redwood City Maddux Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Redwood City·Maddux Drive 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m와 Wikidata P18을 확인했다.",
+      "Openverse 장소명·주소 검색의 원본 출처를 검토했다."
+    ],
+    "rejectionReason": "검색 결과는 Greg Maddux 인물, Maryland의 부동산 자료 등 동명·유사어 자료였고 Redwood City 공원 사진은 없었다."
+  },
+  {
+    "placeId": "redwood-city-andrew-spinas-park",
+    "placeName": "Andrew Spinas Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Andrew Spinas Park",
+      "Spinas Park",
+      "Andrew Spinas Park Redwood City"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Redwood City·2nd Avenue·Bay Road 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과 16개와 Wikidata P18을 확인했다.",
+      "Openverse 장소명·주소 검색을 완료했다."
+    ],
+    "rejectionReason": "근접 결과는 Stanford 의료시설과 인물 촬영 사진으로 공원과 무관했다. 놀이터·입구·대표 시설을 확인할 수 있는 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "redwood-city-marlin-park",
+    "placeName": "Marlin Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Marlin_Park,_Redwood_Shores_-_Mapillary_(BfaZGd61UYoWrFh5jWWSLw).jpg",
+    "commonsPageId": 89246920,
+    "verifiedAt": null,
+    "aliases": [
+      "Marlin Park",
+      "Marlin Park Redwood Shores",
+      "Redwood City Marlin Park"
+    ],
+    "matchEvidence": [
+      "Commons 설명이 Marlin Park, Redwood Shores라고 명시한다.",
+      "촬영 좌표가 카탈로그 공원 중심에서 약 41 m로 일치한다.",
+      "Mapillary 원본의 CC BY-SA 4.0 라이선스와 저작자 crabkilla를 확인하고 사진을 직접 검토했다."
+    ],
+    "rejectionReason": "360도 도로 사진으로 주차 차량과 주택가가 대부분이며 공원 놀이터·입구·표지·대표 시설이 보이지 않는다. 장소 정체성을 알아보기 어려워 사용하지 않았다."
+  },
+  {
+    "placeId": "redwood-city-stafford-park",
+    "placeName": "Stafford Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Stafford Park",
+      "Stafford Park Redwood City",
+      "Redwood City Stafford Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Redwood City·King Street·Hopkins Avenue 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과를 확인했다.",
+      "Openverse 장소명·주소 검색과 Wikidata 검색을 수행했다."
+    ],
+    "rejectionReason": "동명 공원은 다른 지역이었고 근접 결과는 공원 밖 사진이었다. 놀이터·입구·대표 시설을 식별할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "foster-city-boothbay-park",
+    "placeName": "Boothbay Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Boothbay Park",
+      "Boothbay Park Foster City",
+      "Foster City Boothbay Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Foster City·Boothbay Avenue 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m와 Wikidata P18을 확인했다.",
+      "Openverse 장소명·주소 검색 결과를 원본 출처 기준으로 검토했다."
+    ],
+    "rejectionReason": "검색 결과는 Maine의 Boothbay 등 다른 지역 또는 주변 시설이었다. Foster City 공원의 놀이터·입구·대표 시설 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "foster-city-edgewater-park",
+    "placeName": "Edgewater Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Edgewater Park",
+      "Edgewater Park Foster City",
+      "Foster City Edgewater Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Foster City·Edgewater Boulevard 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m와 Wikidata P18을 확인했다.",
+      "Openverse 장소명·주소 검색 결과의 도시와 좌표를 대조했다."
+    ],
+    "rejectionReason": "동명 결과는 다른 도시였고 근접 결과는 약 192 m 거리의 Lucky 식료품점 내부 사진이었다. 공원 시설을 확인할 수 있는 정확 일치 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "belmont-twin-pines-park",
+    "placeName": "Twin Pines Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Hungarian_Heritage_Festival_in_Belmont,_California_(14_May_2022)_-_1.jpg",
+    "commonsPageId": 118234365,
+    "verifiedAt": null,
+    "aliases": [
+      "Twin Pines Park",
+      "Twin Pines Park Belmont",
+      "Belmont Twin Pines Park"
+    ],
+    "matchEvidence": [
+      "Commons 설명과 좌표가 Belmont의 Twin Pines Park에서 열린 2022 Hungarian Heritage Festival임을 확인한다.",
+      "Commons 원본 페이지에서 Suiren2022의 CC BY-SA 4.0 라이선스를 확인했다.",
+      "감사 상위 후보 10장과 좌표 검색 결과를 직접 검토했다."
+    ],
+    "rejectionReason": "후보는 모두 축제 참가자·판매 부스·군중이 주 피사체인 행사 사진이다. 평소 공원의 놀이터·입구·대표 시설을 이해하는 데 부적합해 사용하지 않았다."
+  },
+  {
+    "placeId": "belmont-alexander-park",
+    "placeName": "Alexander Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Alexander Park",
+      "Alexander Park Belmont",
+      "Belmont Alexander Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Belmont·Yorkshire Way 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과 10개와 Wikidata P18을 확인했다.",
+      "동명 후보의 도시·국가·좌표를 원본 페이지에서 대조했다."
+    ],
+    "rejectionReason": "검색 후보는 러시아 Tsarskoye Selo, Washington의 Chehalis, 인물 Mason Alexander Park 등 다른 장소였다. Belmont의 장소명·도시·주소 또는 좌표 중 두 가지 이상이 일치하는 사진이 없었다."
+  }
+]
