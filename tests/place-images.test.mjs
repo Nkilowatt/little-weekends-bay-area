@@ -31,7 +31,7 @@ test("verified place-image registry is complete, licensed, and catalog-linked", 
   const entries = Object.entries(images);
   const catalogIds = new Set(catalog.map((item) => item.id));
 
-  assert.equal(entries.length, 30);
+  assert.equal(entries.length, 61);
   assert.equal(new Set(entries.map(([, image]) => image.src)).size, entries.length);
 
   for (const [id, image] of entries) {
@@ -43,8 +43,13 @@ test("verified place-image registry is complete, licensed, and catalog-linked", 
     assert.ok(image.credit);
     assert.match(image.license, /^(?:CC0|CC BY(?:-SA)? [234]\.0)$/);
     assert.match(image.licenseUrl, /^https:\/\/creativecommons\.org\//);
-    assert.match(image.sourceUrl, /^https:\/\/commons\.wikimedia\.org\/wiki\/File:/);
-    assert.ok(Number.isInteger(image.commonsPageId));
+    if (/^https:\/\/commons\.wikimedia\.org\/wiki\/File:/.test(image.sourceUrl)) {
+      assert.ok(Number.isInteger(image.commonsPageId));
+    } else {
+      assert.match(image.sourceUrl, /^https:\/\/www\.flickr\.com\/photos\//);
+      assert.match(image.credit, /Openverse/);
+      assert.equal(image.commonsPageId, null);
+    }
     assert.match(image.verifiedAt, /^\d{4}-\d{2}-\d{2}$/);
     assert.ok(Array.isArray(image.aliases) && image.aliases.length >= 1);
 
