@@ -480,8 +480,8 @@ h1, h2 { text-wrap: balance; }
   display: grid;
   gap: 28px;
   grid-template-columns: minmax(0, 1fr) auto;
-  margin-top: 42px;
-  padding: 24px 26px;
+  margin-top: 40px;
+  padding: 24px;
 }
 .feedback-invite h3 {
   font-family: var(--font-ui);
@@ -489,7 +489,7 @@ h1, h2 { text-wrap: balance; }
   font-weight: 780;
   letter-spacing: -0.02em;
   line-height: 1.28;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -510,7 +510,7 @@ h1, h2 { text-wrap: balance; }
   font-weight: 850;
   justify-content: center;
   min-height: 46px;
-  padding: 0 18px;
+  padding: 0 16px;
   white-space: nowrap;
 }
 .feedback-open-button:focus-visible,
@@ -1062,7 +1062,7 @@ h1, h2 { text-wrap: balance; }
   line-height: 1.55;
   margin-bottom: 0;
 }
-#feedbackForm { display: grid; gap: 18px; margin-top: 24px; }
+#feedbackForm { display: grid; gap: 16px; margin-top: 24px; }
 .feedback-types { border: 0; margin: 0; min-width: 0; padding: 0; }
 .feedback-types legend,
 .feedback-field > label {
@@ -1070,7 +1070,7 @@ h1, h2 { text-wrap: balance; }
   display: block;
   font-size: 0.84rem;
   font-weight: 850;
-  margin-bottom: 7px;
+  margin-bottom: 8px;
 }
 .feedback-types > div {
   display: grid;
@@ -1084,9 +1084,9 @@ h1, h2 { text-wrap: balance; }
   border-radius: var(--radius-control);
   cursor: pointer;
   display: flex;
-  gap: 9px;
+  gap: 8px;
   min-height: 46px;
-  padding: 8px 11px;
+  padding: 8px 12px;
 }
 .feedback-types input {
   accent-color: var(--accent);
@@ -1116,7 +1116,7 @@ h1, h2 { text-wrap: balance; }
   line-height: 1.5;
   outline: 2px solid transparent;
   outline-offset: 1px;
-  padding: 10px 40px 10px 12px;
+  padding: 8px 40px 8px 12px;
   width: 100%;
 }
 .feedback-field input { min-height: 46px; }
@@ -1142,7 +1142,7 @@ h1, h2 { text-wrap: balance; }
   color: var(--muted);
   font-size: 0.74rem;
   line-height: 1.4;
-  margin: 5px 0 0;
+  margin: 4px 0 0;
   min-height: 1.4em;
 }
 .feedback-helper.is-error { color: var(--error); font-weight: 750; }
@@ -1150,7 +1150,7 @@ h1, h2 { text-wrap: balance; }
   color: var(--muted);
   font-size: 0.74rem;
   line-height: 1.5;
-  margin: -2px 0 0;
+  margin: 0;
 }
 .feedback-privacy a { color: inherit; text-underline-offset: 3px; }
 .feedback-status {
@@ -1164,9 +1164,9 @@ h1, h2 { text-wrap: balance; }
 .feedback-actions {
   border-top: 1px solid var(--line);
   display: flex;
-  gap: 9px;
+  gap: 8px;
   justify-content: flex-end;
-  padding-top: 18px;
+  padding-top: 16px;
 }
 .feedback-submit[data-state="loading"] .feedback-submit-label::before {
   animation: feedback-spin 800ms linear infinite;
@@ -1194,7 +1194,7 @@ h1, h2 { text-wrap: balance; }
   background: var(--success-soft);
   border-radius: var(--radius-control);
   color: var(--ink);
-  padding: 30px;
+  padding: 32px;
 }
 .feedback-success-view .primary-action { margin-top: 20px; }
 .feedback-honeypot {
@@ -1314,7 +1314,7 @@ h1, h2 { text-wrap: balance; }
   .filter-actions { background: var(--surface); bottom: 0; display: grid; grid-template-columns: 0.85fr 1.15fr; margin: 0 -14px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); position: sticky; }
   .filter-actions .primary-action, .filter-actions .secondary-action { min-height: 44px; padding: 0 12px; }
   .content-grid.is-list .cards { grid-template-columns: 1fr; }
-  .feedback-invite { align-items: stretch; gap: 18px; grid-template-columns: 1fr; margin-top: 30px; padding: 20px; }
+  .feedback-invite { align-items: stretch; gap: 16px; grid-template-columns: 1fr; margin-top: 32px; padding: 20px; }
   .feedback-open-button { width: 100%; }
   .sf-branch-control { align-items: stretch; gap: 10px; grid-template-columns: 1fr; padding: 14px 0; }
   .sf-branch-control select { min-height: 46px; }
@@ -1385,7 +1385,7 @@ h1, h2 { text-wrap: balance; }
   .feedback-types label { min-height: 44px; }
   .feedback-field textarea { min-height: 112px; }
   .feedback-actions { display: grid; grid-template-columns: 0.85fr 1.15fr; }
-  .feedback-success-view { padding: 24px 18px; }
+  .feedback-success-view { padding: 24px 20px; }
   .feedback-success-view .primary-action { width: 100%; }
   .mobile-nav {
     align-items: stretch;
