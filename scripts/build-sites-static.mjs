@@ -218,6 +218,7 @@ const entries = Object.fromEntries(
 
 const workerSource = `import { handleCalendarRequest } from "./calendar.js";
 import { getOutingsResponse, refreshOutings } from "./event-sync.js";
+import { handleFeedbackRequest } from "./feedback.js";
 import { handlePlaceImageRequest } from "./place-images.js";
 import { handleSharedPlanRequest } from "./shared-plans.js";
 
@@ -241,6 +242,8 @@ export default {
     if (placeImageResponse) return placeImageResponse;
     const calendarResponse = handleCalendarRequest(request);
     if (calendarResponse) return calendarResponse;
+    const feedbackResponse = await handleFeedbackRequest(request, env);
+    if (feedbackResponse) return feedbackResponse;
     const sharedPlanResponse = await handleSharedPlanRequest(request, env);
     if (sharedPlanResponse) return sharedPlanResponse;
     const entry = entries[pathname];
@@ -272,6 +275,7 @@ await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, workerSource, "utf8");
 await copyFile(join(root, "worker/calendar.js"), join(root, "dist/server/calendar.js"));
 await copyFile(join(root, "worker/event-sync.js"), join(root, "dist/server/event-sync.js"));
+await copyFile(join(root, "worker/feedback.js"), join(root, "dist/server/feedback.js"));
 await copyFile(join(root, "worker/place-images.js"), join(root, "dist/server/place-images.js"));
 await copyFile(join(root, "worker/shared-plans.js"), join(root, "dist/server/shared-plans.js"));
 const hostingOutputPath = join(root, "dist/.openai/hosting.json");

@@ -1,4 +1,4 @@
-import { integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const events = sqliteTable("events", {
   id: text("id").primaryKey(),
@@ -73,3 +73,16 @@ export const placeImageSources = sqliteTable("place_image_sources", {
   distanceMeters: real("distance_meters"),
   checkedAt: text("checked_at").notNull(),
 });
+
+export const feedbackSubmissions = sqliteTable("feedback_submissions", {
+  id: text("id").primaryKey(),
+  requestId: text("request_id").notNull().unique(),
+  category: text("category").notNull(),
+  message: text("message").notNull(),
+  email: text("email"),
+  contextJson: text("context_json").notNull().default("{}"),
+  status: text("status").notNull().default("new"),
+  createdAt: text("created_at").notNull(),
+}, (table) => [
+  index("feedback_submissions_status_created_idx").on(table.status, table.createdAt),
+]);

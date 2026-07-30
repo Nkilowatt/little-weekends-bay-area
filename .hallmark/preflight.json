@@ -1,0 +1,15 @@
+{
+  "scannedAt": "2026-07-29",
+  "fontStack": "Local Yeon Sung and Lee Seoyun display faces with a Korean-capable system UI stack",
+  "palette": "Existing light and dark CSS custom properties in styles.css",
+  "motion": "Motion-cut project with CSS transitions and reduced-motion support; no motion library",
+  "spacing": "Existing compact 4px-derived spacing rhythm",
+  "framework": "Next.js 16 via vinext, with a static source page and Cloudflare Worker APIs",
+  "preserve": [
+    "font stack",
+    "palette",
+    "spacing rhythm",
+    "mobile bottom navigation",
+    "existing route and build architecture"
+  ]
+}

@@ -818,6 +818,11 @@ const detailBody = document.querySelector("#detailBody");
 const locationDialog = document.querySelector("#locationDialog");
 const sharePlanDialog = document.querySelector("#sharePlanDialog");
 const sharePlanBody = document.querySelector("#sharePlanBody");
+const feedbackDialog = document.querySelector("#feedbackDialog");
+const feedbackForm = document.querySelector("#feedbackForm");
+const feedbackSubmit = document.querySelector("#feedbackSubmit");
+const feedbackStatus = document.querySelector("#feedbackStatus");
+const feedbackSuccess = document.querySelector("#feedbackSuccess");
 const mobileSearchMedia = window.matchMedia("(max-width: 768px)");
 const mobileMomentEl = document.querySelector("#mobileMoment");
 const mobileMomentImageEl = document.querySelector("#mobileMomentImage");
@@ -1098,6 +1103,151 @@ function showToast(message, action = null) {
   toast.classList.add("is-visible");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 2200);
+}
+
+const feedbackFieldDefaults = new Map([
+  ["feedbackMessage", "5–1,200자로 적어주세요."],
+  ["feedbackEmail", "답변이 필요할 때만 남겨주세요."]
+]);
+const feedbackTouched = new Set();
+let currentFeedbackRequestId = "";
+
+function createFeedbackRequestId() {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
+  return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`;
+}
+
+function setFeedbackFieldState(field, error = "") {
+  const helper = document.querySelector(`#${field.getAttribute("aria-describedby")}`);
+  const wrapper = field.closest(".feedback-field");
+  const invalid = Boolean(error);
+  field.setAttribute("aria-invalid", String(invalid));
+  wrapper.classList.toggle("is-success", !invalid && feedbackTouched.has(field.id) && Boolean(field.value.trim()));
+  helper.textContent = error || feedbackFieldDefaults.get(field.id) || "";
+  helper.classList.toggle("is-error", invalid);
+  return !invalid;
+}
+
+function validateFeedbackField(field) {
+  if (field.id === "feedbackMessage") {
+    const length = field.value.trim().length;
+    if (!length) return setFeedbackFieldState(field, "의견 내용이 비어 있어요. 추가할 장소나 불편했던 점을 적어 주세요.");
+    if (length < 5) return setFeedbackFieldState(field, "내용이 너무 짧아요. 알아볼 수 있도록 5자 이상 적어 주세요.");
+    return setFeedbackFieldState(field);
+  }
+  if (field.id === "feedbackEmail" && field.value && !field.validity.valid) {
+    return setFeedbackFieldState(field, "이메일 주소 형식을 확인한 뒤 다시 적어 주세요.");
+  }
+  return setFeedbackFieldState(field);
+}
+
+function feedbackContext() {
+  return {
+    page: window.location.pathname,
+    locationKey: state.locationKey,
+    locationName: selectedLocation().name,
+    outingId: state.selectedId || pendingOutingId || "",
+    sharedPlan: Boolean(sharedPlanToken),
+    filters: {
+      date: state.date,
+      distance: state.distance,
+      region: state.region,
+      age: state.age,
+      type: state.type,
+      setting: state.setting,
+      price: state.price,
+      time: state.time,
+      reservation: state.reservation,
+      discoveryMode: state.discoveryMode
+    }
+  };
+}
+
+function setFeedbackBackgroundInert(inert) {
+  [document.querySelector(".site-header"), document.querySelector("main"), document.querySelector(".site-footer"), document.querySelector(".mobile-nav")]
+    .filter(Boolean)
+    .forEach((element) => { element.inert = inert; });
+}
+
+function resetFeedbackView() {
+  feedbackForm.reset();
+  feedbackTouched.clear();
+  feedbackForm.closest(".feedback-form-view").hidden = false;
+  feedbackSuccess.hidden = true;
+  feedbackStatus.textContent = "";
+  feedbackSubmit.disabled = false;
+  feedbackSubmit.removeAttribute("data-state");
+  feedbackSubmit.querySelector(".feedback-submit-label").textContent = "의견 보내기";
+  feedbackForm.querySelectorAll(".feedback-field input, .feedback-field textarea").forEach((field) => {
+    field.setAttribute("aria-invalid", "false");
+    field.closest(".feedback-field").classList.remove("is-success");
+    const helper = document.querySelector(`#${field.getAttribute("aria-describedby")}`);
+    helper.textContent = feedbackFieldDefaults.get(field.id) || "";
+    helper.classList.remove("is-error");
+  });
+  currentFeedbackRequestId = createFeedbackRequestId();
+}
+
+function openFeedbackDialog() {
+  [detailDialog, locationDialog, sharePlanDialog].forEach((dialog) => {
+    if (dialog.open) dialog.close();
+  });
+  if (!currentFeedbackRequestId || !feedbackSuccess.hidden) resetFeedbackView();
+  setFeedbackBackgroundInert(true);
+  feedbackDialog.showModal();
+  window.setTimeout(() => feedbackForm.querySelector("input[name='category']:checked")?.focus(), 0);
+}
+
+async function submitFeedback(event) {
+  event.preventDefault();
+  const fields = [
+    feedbackForm.querySelector("#feedbackMessage"),
+    feedbackForm.querySelector("#feedbackEmail")
+  ];
+  fields.forEach((field) => feedbackTouched.add(field.id));
+  const valid = fields.map(validateFeedbackField).every(Boolean);
+  if (!valid) {
+    fields.find((field) => field.getAttribute("aria-invalid") === "true")?.focus();
+    return;
+  }
+
+  feedbackStatus.textContent = "";
+  feedbackSubmit.disabled = true;
+  feedbackSubmit.dataset.state = "loading";
+  feedbackSubmit.querySelector(".feedback-submit-label").textContent = "보내는 중";
+
+  const data = new FormData(feedbackForm);
+  try {
+    const response = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        requestId: currentFeedbackRequestId,
+        category: data.get("category"),
+        message: data.get("message"),
+        email: data.get("email"),
+        website: data.get("website"),
+        context: feedbackContext()
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "의견을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.");
+
+    feedbackSubmit.dataset.state = "success";
+    feedbackForm.closest(".feedback-form-view").hidden = true;
+    feedbackSuccess.hidden = false;
+    currentFeedbackRequestId = "";
+    if (feedbackDialog.open) feedbackSuccess.querySelector("button").focus();
+  } catch (error) {
+    feedbackSubmit.disabled = false;
+    feedbackSubmit.dataset.state = "error";
+    feedbackSubmit.querySelector(".feedback-submit-label").textContent = "다시 보내기";
+    feedbackStatus.textContent = error.message;
+  }
 }
 
 function syncResponsiveSearch() {
@@ -3011,6 +3161,26 @@ locationDialog.addEventListener("click", (event) => { if (event.target === locat
 
 document.querySelector("#closeSharePlanDialog").addEventListener("click", () => sharePlanDialog.close());
 sharePlanDialog.addEventListener("click", (event) => { if (event.target === sharePlanDialog) sharePlanDialog.close(); });
+
+document.querySelectorAll("[data-feedback-open]").forEach((button) => button.addEventListener("click", openFeedbackDialog));
+document.querySelectorAll("[data-feedback-close]").forEach((button) => button.addEventListener("click", () => feedbackDialog.close()));
+feedbackDialog.addEventListener("click", (event) => { if (event.target === feedbackDialog) feedbackDialog.close(); });
+feedbackDialog.addEventListener("close", () => setFeedbackBackgroundInert(false));
+feedbackForm.addEventListener("submit", submitFeedback);
+feedbackForm.querySelectorAll(".feedback-field input, .feedback-field textarea").forEach((field) => {
+  field.addEventListener("blur", () => {
+    feedbackTouched.add(field.id);
+    validateFeedbackField(field);
+  });
+  field.addEventListener("input", () => {
+    if (feedbackTouched.has(field.id)) validateFeedbackField(field);
+    if (feedbackSubmit.dataset.state === "error") {
+      feedbackSubmit.removeAttribute("data-state");
+      feedbackSubmit.querySelector(".feedback-submit-label").textContent = "의견 보내기";
+      feedbackStatus.textContent = "";
+    }
+  });
+});
 
 document.querySelector("#closeDialog").addEventListener("click", () => {
   detailDialog.close();

@@ -3,6 +3,7 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 import { handleCalendarRequest } from "./calendar.js";
 import { getOutingsResponse, refreshOutings } from "./event-sync.js";
+import { handleFeedbackRequest } from "./feedback.js";
 import { handleSharedPlanRequest } from "./shared-plans.js";
 
 interface Env {
@@ -49,6 +50,9 @@ const worker = {
 
     const calendarResponse = handleCalendarRequest(request);
     if (calendarResponse) return calendarResponse;
+
+    const feedbackResponse = await handleFeedbackRequest(request, env);
+    if (feedbackResponse) return feedbackResponse;
 
     const sharedPlanResponse = await handleSharedPlanRequest(request, env);
     if (sharedPlanResponse) return sharedPlanResponse;
