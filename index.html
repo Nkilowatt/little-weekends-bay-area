@@ -19,7 +19,7 @@
     <link rel="preload" as="image" href="assets/photos/bay-family-hero.webp" media="(min-width: 769px)" fetchpriority="high" />
     <link rel="preload" as="font" type="font/woff2" href="assets/fonts/yeon-sung-korean-400.woff2?v=1" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="assets/fonts/lee-seoyun-korean-400.woff2?v=1" crossorigin />
-    <link rel="stylesheet" href="styles.css?v=30" />
+    <link rel="stylesheet" href="styles.css?v=31" />
   </head>
   <body>
     <a class="skip-link" href="#cards">추천 목록으로 건너뛰기</a>
@@ -138,12 +138,21 @@
             <div class="map-preview" id="mapPreview" hidden></div>
           </aside>
         </section>
+
+        <section class="feedback-invite" id="feedback" aria-labelledby="feedbackInviteTitle">
+          <div>
+            <h3 id="feedbackInviteTitle">찾는 장소가 없었나요?</h3>
+            <p>추가했으면 하는 지역이나 장소, 잘못된 정보와 불편했던 점을 알려주세요.</p>
+          </div>
+          <button class="feedback-open-button" type="button" data-feedback-open>의견 남기기</button>
+        </section>
       </section>
     </main>
 
     <footer class="site-footer">
       <span>© 2026 Little Weekends</span>
       <nav aria-label="정책">
+        <button class="footer-feedback" type="button" data-feedback-open>의견 보내기</button>
         <a href="terms.html">이용약관</a>
         <a href="privacy.html">개인정보처리방침</a>
       </nav>
@@ -185,11 +194,66 @@
       <button class="dialog-close" id="closeSharePlanDialog" type="button" aria-label="공유 링크 닫기">닫기</button>
       <section class="share-plan-sheet" id="sharePlanBody" aria-live="polite"></section>
     </dialog>
+    <dialog class="feedback-dialog" id="feedbackDialog" aria-labelledby="feedbackTitle">
+      <button class="dialog-close" type="button" data-feedback-close aria-label="의견 보내기 닫기">닫기</button>
+      <section class="feedback-sheet">
+        <div class="feedback-form-view">
+          <header class="feedback-heading">
+            <h2 id="feedbackTitle">Little Weekends에 알려주세요</h2>
+            <p>30초면 충분해요. 선택한 지역과 필터는 함께 전달되지만 정확한 위치는 저장하지 않아요.</p>
+          </header>
+          <form id="feedbackForm" novalidate>
+            <fieldset class="feedback-types">
+              <legend>어떤 의견인가요?</legend>
+              <div>
+                <label><input type="radio" name="category" value="place_request" checked /><span>장소·지역 요청</span></label>
+                <label><input type="radio" name="category" value="improvement" /><span>불편한 점</span></label>
+                <label><input type="radio" name="category" value="correction" /><span>정보 수정</span></label>
+                <label><input type="radio" name="category" value="other" /><span>그 밖의 의견</span></label>
+              </div>
+            </fieldset>
+
+            <div class="feedback-field">
+              <label for="feedbackMessage">내용 <span>필수</span></label>
+              <textarea id="feedbackMessage" name="message" maxlength="1200" aria-required="true" aria-describedby="feedbackMessageHelp" placeholder="예: Fremont의 주말 스토리타임도 보고 싶어요."></textarea>
+              <p class="feedback-helper" id="feedbackMessageHelp">5–1,200자로 적어주세요.</p>
+            </div>
+
+            <div class="feedback-field">
+              <label for="feedbackEmail">답변받을 이메일 <span>선택</span></label>
+              <input id="feedbackEmail" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" aria-describedby="feedbackEmailHelp" placeholder="name@example.com" />
+              <p class="feedback-helper" id="feedbackEmailHelp">답변이 필요할 때만 남겨주세요.</p>
+            </div>
+
+            <div class="feedback-honeypot" aria-hidden="true">
+              <label for="feedbackWebsite">웹사이트</label>
+              <input id="feedbackWebsite" name="website" type="text" tabindex="-1" autocomplete="off" />
+            </div>
+
+            <p class="feedback-privacy">보낸 내용은 서비스 개선에 사용돼요. 자세한 내용은 <a href="privacy.html">개인정보처리방침</a>에서 확인할 수 있어요.</p>
+            <p class="feedback-status" id="feedbackStatus" role="status" aria-live="polite"></p>
+
+            <div class="feedback-actions">
+              <button class="secondary-action" type="button" data-feedback-close>취소</button>
+              <button class="primary-action feedback-submit" id="feedbackSubmit" type="submit">
+                <span class="feedback-submit-label">의견 보내기</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="feedback-success-view" id="feedbackSuccess" hidden>
+          <h2>의견을 잘 받았어요</h2>
+          <p>보내주신 내용을 다음 개선에 꼼꼼히 반영할게요.</p>
+          <button class="primary-action" type="button" data-feedback-close>닫기</button>
+        </div>
+      </section>
+    </dialog>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="evergreen-outings.js?v=10"></script>
     <script src="park-expansion.js?v=2"></script>
     <script src="place-images.js?v=2"></script>
     <script src="planning.js?v=3"></script>
-    <script src="app.js?v=35"></script>
+    <script src="app.js?v=36"></script>
   </body>
 </html>

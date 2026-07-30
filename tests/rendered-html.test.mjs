@@ -32,16 +32,23 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="bathroomFilter"/);
   assert.match(html, /id="strollerFilter"/);
   assert.match(html, /id="sharePlanDialog"/);
+  assert.match(html, /id="feedback"[\s\S]*data-feedback-open/);
+  assert.match(html, /id="feedbackDialog"/);
+  assert.match(html, /id="feedbackForm"/);
+  assert.match(html, /name="category" value="place_request"/);
+  assert.match(html, /id="feedbackMessage"/);
+  assert.match(html, /id="feedbackEmail"/);
+  assert.match(html, /class="footer-feedback"[\s\S]*의견 보내기/);
   assert.match(html, /href="terms\.html">이용약관/);
   assert.match(html, /href="privacy\.html">개인정보처리방침/);
   assert.match(html, /evergreen-outings\.js\?v=10/);
   assert.match(html, /park-expansion\.js\?v=2/);
   assert.match(html, /place-images\.js\?v=2/);
-  assert.match(html, /styles\.css\?v=30/);
+  assert.match(html, /styles\.css\?v=31/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=3/);
-  assert.match(html, /app\.js\?v=35/);
+  assert.match(html, /app\.js\?v=36/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
@@ -110,6 +117,10 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /function mobileMomentScene\(\)/);
   assert.match(script, /function syncMobileMoment\(\)/);
   assert.match(script, /filterOpen: false/);
+  assert.match(script, /function openFeedbackDialog\(\)/);
+  assert.match(script, /fetch\("\/api\/feedback"/);
+  assert.match(script, /function feedbackContext\(\)/);
+  assert.doesNotMatch(script, /context:[\s\S]{0,300}window\.location\.search/);
   assert.match(script, /function setFilterPanelOpen\(open, \{ restoreFocus = false \} = \{\}\)/);
   assert.match(script, /const shouldRenderMap = visibleView === "map" \|\| visibleView === "split"/);
   const renderSource = script.slice(script.indexOf("function render()"), script.indexOf("async function loadAutomaticOutings()"));
@@ -140,9 +151,11 @@ test("Sites build contains the event API and security policy", async () => {
   const eventSync = await readFile(new URL("dist/server/event-sync.js", root), "utf8");
   const placeImages = await readFile(new URL("dist/server/place-images.js", root), "utf8");
   const sharedPlans = await readFile(new URL("dist/server/shared-plans.js", root), "utf8");
+  const feedback = await readFile(new URL("dist/server/feedback.js", root), "utf8");
   const migration = await readFile(new URL("drizzle/0003_shared_plans.sql", root), "utf8");
   const locationMigration = await readFile(new URL("drizzle/0004_event_location.sql", root), "utf8");
   const placeImageMigration = await readFile(new URL("drizzle/0005_place_image_sources.sql", root), "utf8");
+  const feedbackMigration = await readFile(new URL("drizzle/0006_feedback_submissions.sql", root), "utf8");
 
   assert.match(worker, /pathname === "\/api\/outings"/);
   assert.match(worker, /handleCalendarRequest/);
@@ -151,6 +164,7 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(worker, /"\/place-images\.js"/);
   assert.match(worker, /"\/planning\.js"/);
   assert.match(worker, /handleSharedPlanRequest/);
+  assert.match(worker, /handleFeedbackRequest/);
   assert.match(worker, /handlePlaceImageRequest/);
   assert.match(worker, /placeImageCatalog/);
   assert.match(worker, /connect-src 'self'/);
@@ -170,12 +184,16 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(placeImages, /places:searchText/);
   assert.match(placeImages, /mode === "streetview"/);
   assert.match(placeImages, /GOOGLE_MAPS_API_KEY/);
+  assert.match(feedback, /feedback_submissions/);
+  assert.match(feedback, /ON CONFLICT\(request_id\) DO NOTHING/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS shared_plans/);
   assert.match(migration, /FOREIGN KEY \(plan_token, item_id\)/);
   assert.match(locationMigration, /ADD COLUMN venue_name/);
   assert.match(locationMigration, /ADD COLUMN address/);
   assert.match(placeImageMigration, /CREATE TABLE IF NOT EXISTS `place_image_sources`/);
   assert.match(placeImageMigration, /google_place_id/);
+  assert.match(feedbackMigration, /CREATE TABLE IF NOT EXISTS `feedback_submissions`/);
+  assert.match(feedbackMigration, /status_created_idx/);
 });
 
 test("Sites build serves both Korean webfonts", async () => {
@@ -201,7 +219,7 @@ test("Sites build serves public terms and privacy pages for map content", async 
     assert.equal(response.headers.get("content-type"), "text/html; charset=utf-8");
     const html = await response.text();
     assert.match(html, /Google/);
-    assert.match(html, /styles\.css\?v=30/);
+    assert.match(html, /styles\.css\?v=31/);
   }
 });
 
