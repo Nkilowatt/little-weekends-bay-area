@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   eventCountLooksAnomalous,
+  fetchSourceText,
   fosterCityLibraryRssUrls,
   oaklandLibraryRssUrls,
   paloAltoLibraryRssUrls,
@@ -538,6 +539,24 @@ test("source count anomaly guard catches parser collapses without flagging norma
   assert.equal(eventCountLooksAnomalous(40, 6), true);
   assert.equal(eventCountLooksAnomalous(40, 12), false);
   assert.equal(eventCountLooksAnomalous(7, 1), false);
+});
+
+test("official-source fetches retry a transient rate limit", async () => {
+  const originalFetch = globalThis.fetch;
+  let attempts = 0;
+  globalThis.fetch = async () => {
+    attempts += 1;
+    return attempts === 1
+      ? new Response("rate limited", { status: 429 })
+      : new Response("official calendar", { status: 200 });
+  };
+
+  try {
+    assert.equal(await fetchSourceText("https://example.test/calendar", {}), "official calendar");
+    assert.equal(attempts, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("museum-wide programs carry an end time instead of a six-hour grace window", () => {
