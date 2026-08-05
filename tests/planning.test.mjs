@@ -36,6 +36,29 @@ test("saved outings are grouped into useful planning windows", async () => {
   assert.deepEqual(Array.from(groups, (group) => group.items[0].id), ["today", "week", "weekend", "next", "later", "anytime"]);
 });
 
+test("recommended previews include nearby cities before repeating one city", async () => {
+  const { prioritizeCityCoverage } = await planningHelpers();
+  const entries = [
+    { item: { id: "sm-1", city: "San Mateo" } },
+    { item: { id: "sm-2", city: "San Mateo" } },
+    { item: { id: "sm-3", city: "San Mateo" } },
+    { item: { id: "burl-1", city: "Burlingame" } },
+    { item: { id: "burl-2", city: "Burlingame" } },
+    { item: { id: "foster-1", city: "Foster City" } },
+    { item: { id: "belmont-1", city: "Belmont" } }
+  ];
+
+  const result = prioritizeCityCoverage(entries);
+  const preview = Array.from(result.slice(0, 5), (entry) => entry.item);
+  const previewCities = preview.map((item) => item.city);
+  const cityPreviewCounts = [...new Set(previewCities)]
+    .map((city) => previewCities.filter((value) => value === city).length);
+
+  assert.ok(preview.some((item) => item.id === "foster-1"));
+  assert.ok(Math.max(...cityPreviewCounts) <= 2);
+  assert.deepEqual(Array.from(result, (entry) => entry.item.id).toSorted(), entries.map((entry) => entry.item.id).toSorted());
+});
+
 test("plan warnings identify schedule and nap conflicts without inventing a time", async () => {
   const { detectPlanIssues } = await planningHelpers();
   const items = [

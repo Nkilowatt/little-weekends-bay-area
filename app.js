@@ -756,7 +756,8 @@ const {
   detectPlanIssues,
   groupSavedItems,
   isOutingCurrent,
-  outingTimeStatus
+  outingTimeStatus,
+  prioritizeCityCoverage
 } = window.LITTLE_WEEKENDS_PLANNING;
 
 const defaultNapWindow = { enabled: true, start: "13:00", end: "15:00" };
@@ -1040,7 +1041,7 @@ function diversifyRecommended(entries) {
     }
   });
 
-  return [...firstOfSeries, ...repeatedSeries];
+  return prioritizeCityCoverage([...firstOfSeries, ...repeatedSeries]);
 }
 
 function dateLabel() {
@@ -1549,6 +1550,7 @@ const searchAliasGroups = [
   ["toddler", "유아", "아이", "아기", "어린이", "키즈", "kids"],
   ["family", "가족", "패밀리"],
   ["san mateo", "sanmateo", "산마테오"],
+  ["foster city", "fostercity", "포스터시티", "포스터 시티"],
   ["south san francisco", "southsf", "ssf", "사우스샌프란시스코", "사우스에스에프"],
   ["san francisco", "sf", "샌프란시스코"],
   ["palo alto", "paloalto", "팔로알토"],
@@ -1915,7 +1917,7 @@ function cardLocationMarkup(item, distance) {
     : `<strong class="card-venue is-pending">세부 위치 확인 중</strong>`;
   const address = compactAddress(item.address, item.venueName);
   const locationLine = address
-    ? `<span>${escapeHtml(address)} · ${distance.toFixed(1)} mi</span>`
+    ? `<span>${escapeHtml(address)}, ${escapeHtml(item.city)} · ${distance.toFixed(1)} mi</span>`
     : `<span>${escapeHtml(item.city)} · ${distance.toFixed(1)} mi</span><small>세부 위치 확인 중</small>`;
   return `<span class="card-location">${venue}<span class="card-address">${locationLine}</span></span>`;
 }

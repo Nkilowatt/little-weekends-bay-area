@@ -47,8 +47,8 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /styles\.css\?v=31/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
-  assert.match(html, /planning\.js\?v=3/);
-  assert.match(html, /app\.js\?v=36/);
+  assert.match(html, /planning\.js\?v=4/);
+  assert.match(html, /app\.js\?v=37/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
@@ -60,6 +60,8 @@ test("client bundle includes decision filters, recovery actions, and detail alte
 
   assert.match(script, /function distanceFor\(item\)/);
   assert.match(script, /function recommendationScore\(item\)/);
+  assert.match(script, /prioritizeCityCoverage\(\[\.\.\.firstOfSeries, \.\.\.repeatedSeries\]\)/);
+  assert.match(script, /"foster city", "fostercity", "포스터시티"/);
   assert.match(script, /confidenceStatus === "source_confirmed"/);
   assert.match(script, /confidenceStatus === "recurring_estimate"/);
   assert.match(script, /confidenceStatus === "date_confirmed"/);

@@ -82,6 +82,25 @@
     return groups.filter((group) => group.items.length);
   }
 
+  function prioritizeCityCoverage(entries, limit = 5, maxPerCity = 2) {
+    const featured = [];
+    const remaining = [];
+    const cityCounts = new Map();
+
+    entries.forEach((entry) => {
+      const city = String(entry?.item?.city || "Bay Area");
+      const cityCount = cityCounts.get(city) || 0;
+      if (featured.length < limit && cityCount < maxPerCity) {
+        featured.push(entry);
+        cityCounts.set(city, cityCount + 1);
+      } else {
+        remaining.push(entry);
+      }
+    });
+
+    return [...featured, ...remaining];
+  }
+
   function timeParts(value, timeZone = PACIFIC_TIME_ZONE) {
     const parts = new Intl.DateTimeFormat("en-US", {
       timeZone,
@@ -264,6 +283,7 @@
     effectiveEndTime,
     groupSavedItems,
     isOutingCurrent,
-    outingTimeStatus
+    outingTimeStatus,
+    prioritizeCityCoverage
   };
 })(typeof window === "object" ? window : globalThis);
