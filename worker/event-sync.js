@@ -1,6 +1,6 @@
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
 const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
-const SOURCE_DATA_REVISION = 8;
+const SOURCE_DATA_REVISION = 10;
 const FUTURE_WINDOW_DAYS = 45;
 const DEFAULT_EVENT_DURATION_MINUTES = 60;
 const LEGACY_EVENT_GRACE_MINUTES = 90;
@@ -9,15 +9,53 @@ const LEGACY_EVENT_GRACE_MINUTES = 90;
 // cannot leave a newly added source empty for several minutes.
 const REFRESH_ATTEMPT_COOLDOWN_MS = 30 * 1000;
 const REDWOOD_CITY_RSS_URL = "https://www.redwoodcity.org/Home/Components/RssFeeds/RssFeed/View?id=1";
+const REDWOOD_CITY_LIBRARY_RSS_URL = "https://www.redwoodcity.org/Home/Components/RssFeeds/RssFeed/View?id=4";
+const BIBLIOCOMMONS_RSS_BASE_URL = "https://gateway.bibliocommons.com/v2/libraries";
+const SMCL_CHILD_AUDIENCES = [
+  "564274cf4d0090f742000011", // Preschoolers (0-5)
+  "564274cf4d0090f742000012", // Children (6-11)
+  "564274cf4d0090f742000016", // All Ages
+];
+const SMCL_REGIONAL_LIBRARY_LOCATIONS = [
+  "1A", // Atherton
+  "1R", // Brisbane
+  "1E", // East Palo Alto
+  "1H", // Half Moon Bay and Coastside outreach
+  "1N", // North Fair Oaks
+  "1Z", // Pacifica Sanchez
+  "1P", // Pacifica Sharp Park
+  "1V", // Portola Valley
+  "1W", // Woodside
+];
+const PALO_ALTO_CHILD_AUDIENCES = [
+  "59a6e0705e7f62711a36e6ae", // Babies (under 2)
+  "59a6e0705e7f62711a36e6ad", // Toddlers (18 months to 3 years)
+  "59a6e0705e7f62711a36e6ac", // Pre-schoolers (3-5)
+  "59a6e0705e7f62711a36e6ab", // Kids (6-11)
+];
+const SCCL_CHILD_AUDIENCES = [
+  "5b28181c4727c7344c796675", // Kids: Babies
+  "5b28181c4727c7344c796676", // Kids: Toddlers
+  "5b28181c4727c7344c796677", // Kids: Preschoolers
+  "5b2a5dcb2c1d736b168c62ac", // Kids: Family Events
+];
+const SAN_JOSE_CHILD_AUDIENCES = [
+  "5d5f09306bb98139001cffcc", // Young Children, ages 0-5
+  "5d5f0926be771f2300369397", // Kids, ages 5-10
+];
+const OAKLAND_CHILD_AUDIENCES = [
+  "60b6b382db93b64200b4749d", // Babies
+  "60b6b397bf42783000f0fb2b", // Toddlers
+  "60b6b39e39528429008b3ae7", // Preschoolers
+  "60b6b3673fb00b370086120f", // Birth to 5
+  "6101cafe8d4f1f31003e6ef2", // Families
+];
 const PALO_ALTO_EVENTS_URL = "https://www.paloalto.gov/Events-Directory";
-const PALO_ALTO_LIBRARY_RSS_URL = "https://gateway.bibliocommons.com/v2/libraries/paloalto/rss/events";
 const MENLO_PARK_EVENTS_URL = "https://www.menlopark.gov/Events-directory";
 const MENLO_PARK_CHILDREN_URL = "https://www.menlopark.gov/Government/Departments/Library-and-Community-Services/Library/About-the-library/Childrens-services";
-const CUPERTINO_LIBRARY_RSS_URL = "https://gateway.bibliocommons.com/v2/libraries/sccl/rss/events?locations=CU";
 const CUPERTINO_EVENTS_URL = "https://www.cupertino.gov/Events-directory";
 const SANTA_CLARA_LIBRARY_RSS_URL = "https://www.santaclaraca.gov/Home/Components/RssFeeds/RssFeed/View?id=12";
 const SANTA_CLARA_EVENTS_RSS_URL = "https://www.santaclaraca.gov/Home/Components/RssFeeds/RssFeed/View?id=9";
-const CAMPBELL_LIBRARY_RSS_URL = "https://gateway.bibliocommons.com/v2/libraries/sccl/rss/events?locations=CA";
 const CAMPBELL_EVENTS_URL = "https://www.campbellca.gov/calendar.aspx";
 const LOS_GATOS_EVENTS_URL = "https://www.losgatosca.gov/calendar.aspx";
 const SUNNYVALE_LIBRARY_EVENTS_URL = "https://www.library.sunnyvale.ca.gov/events/kids-events";
@@ -40,6 +78,44 @@ const weekdayNames = {
   Saturdays: 6,
 };
 
+function bibliocommonsRssUrls(library, { location, audiences = [], pages = 3 } = {}) {
+  return Array.from({ length: pages }, (_, index) => {
+    const query = new URLSearchParams();
+    if (location) query.set("locations", location);
+    audiences.forEach((audience) => query.append("audiences", audience));
+    query.set("page", String(index + 1));
+    return `${BIBLIOCOMMONS_RSS_BASE_URL}/${library}/rss/events?${query}`;
+  });
+}
+
+function smclLibraryRssUrls(location, pages = 3) {
+  return bibliocommonsRssUrls("smcl", { location, audiences: SMCL_CHILD_AUDIENCES, pages });
+}
+
+function smclRegionalLibraryRssUrls() {
+  return SMCL_REGIONAL_LIBRARY_LOCATIONS.flatMap((location) => smclLibraryRssUrls(location, 2));
+}
+
+function fosterCityLibraryRssUrls() {
+  return smclLibraryRssUrls("1F");
+}
+
+function paloAltoLibraryRssUrls() {
+  return bibliocommonsRssUrls("paloalto", { audiences: PALO_ALTO_CHILD_AUDIENCES });
+}
+
+function santaClaraCountyLibraryRssUrls(location) {
+  return bibliocommonsRssUrls("sccl", { location, audiences: SCCL_CHILD_AUDIENCES });
+}
+
+function sanJoseLibraryRssUrls() {
+  return bibliocommonsRssUrls("sjpl", { audiences: SAN_JOSE_CHILD_AUDIENCES, pages: 6 });
+}
+
+function oaklandLibraryRssUrls() {
+  return bibliocommonsRssUrls("oaklandlibrary", { audiences: OAKLAND_CHILD_AUDIENCES, pages: 6 });
+}
+
 const sources = [
   {
     key: "san-mateo-library",
@@ -53,14 +129,18 @@ const sources = [
   },
   {
     key: "san-mateo-county-libraries",
-    url: "https://gateway.bibliocommons.com/v2/libraries/smcl/rss/events",
+    // Busy systemwide feeds expose only a couple of days even after audience
+    // filtering. Read two child-audience pages for each regional branch that
+    // does not already have its own dedicated source.
+    urls: smclRegionalLibraryRssUrls,
     accept: "application/rss+xml,application/xml,text/xml",
-    parse: parseSanMateoCountyLibraryEvents,
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "san-mateo-county-libraries", "San Mateo County Libraries", false),
   },
   {
     key: "san-mateo-city-events",
     url: sanMateoCityCalendarUrl,
     parse: parseSanMateoCityEvents,
+    emptyIsValid: (html) => /schema\.org\/Event|calendar/i.test(html),
   },
   {
     key: "curiodyssey-daily",
@@ -74,33 +154,39 @@ const sources = [
   },
   {
     key: "redwood-city-family-events",
-    url: REDWOOD_CITY_RSS_URL,
+    // The citywide feed is capped at 50 records and can be crowded out by
+    // recreation programs. The separate official Library feed keeps a full
+    // week of branch programs available as recurring-series anchors.
+    urls: () => [REDWOOD_CITY_RSS_URL, REDWOOD_CITY_LIBRARY_RSS_URL],
     accept: "application/rss+xml,application/xml,text/xml",
     parse: parseRedwoodCityEvents,
   },
   {
     key: "smcl-belmont-family-events",
-    url: "https://gateway.bibliocommons.com/v2/libraries/smcl/rss/events?locations=1B",
+    urls: () => smclLibraryRssUrls("1B"),
     accept: "application/rss+xml,application/xml,text/xml",
-    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "smcl-belmont-family-events"),
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "smcl-belmont-family-events", "San Mateo County Libraries", false),
   },
   {
     key: "smcl-foster-city-family-events",
-    url: "https://gateway.bibliocommons.com/v2/libraries/smcl/rss/events?locations=1F",
+    // BiblioCommons caps RSS responses at 25 records. Filtering to child and
+    // all-ages audiences and fetching three pages covers the 45-day window
+    // without letting adult programs consume the first page.
+    urls: fosterCityLibraryRssUrls,
     accept: "application/rss+xml,application/xml,text/xml",
-    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "smcl-foster-city-family-events"),
+    parse: parseFosterCityLibraryEvents,
   },
   {
     key: "smcl-san-carlos-family-events",
-    url: "https://gateway.bibliocommons.com/v2/libraries/smcl/rss/events?locations=1S",
+    urls: () => smclLibraryRssUrls("1S"),
     accept: "application/rss+xml,application/xml,text/xml",
-    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "smcl-san-carlos-family-events"),
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "smcl-san-carlos-family-events", "San Mateo County Libraries", false),
   },
   {
     key: "smcl-millbrae-family-events",
-    url: "https://gateway.bibliocommons.com/v2/libraries/smcl/rss/events?locations=1M",
+    urls: () => smclLibraryRssUrls("1M"),
     accept: "application/rss+xml,application/xml,text/xml",
-    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "smcl-millbrae-family-events"),
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "smcl-millbrae-family-events", "San Mateo County Libraries", false),
   },
   {
     key: "burlingame-library-family-events",
@@ -111,17 +197,19 @@ const sources = [
     key: "palo-alto-family-events",
     url: PALO_ALTO_EVENTS_URL,
     parse: parsePaloAltoFamilyEvents,
+    emptyIsValid: (html) => /list-item-container|Result\(s\) found/i.test(html),
   },
   {
     key: "palo-alto-library-family-events",
-    url: PALO_ALTO_LIBRARY_RSS_URL,
+    urls: paloAltoLibraryRssUrls,
     accept: "application/rss+xml,application/xml,text/xml",
-    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "palo-alto-library-family-events", "Palo Alto City Library"),
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "palo-alto-library-family-events", "Palo Alto City Library", false),
   },
   {
     key: "menlo-park-family-events",
     urls: () => [MENLO_PARK_EVENTS_URL, MENLO_PARK_CHILDREN_URL],
     parse: parseMenloParkFamilyEvents,
+    emptyIsValid: (html) => /list-item-container|Storytime schedule/i.test(html),
   },
   {
     key: "mountain-view-library-family-events",
@@ -144,19 +232,19 @@ const sources = [
   },
   {
     key: "cupertino-library-family-events",
-    url: CUPERTINO_LIBRARY_RSS_URL,
+    urls: () => santaClaraCountyLibraryRssUrls("CU"),
     accept: "application/rss+xml,application/xml,text/xml",
-    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "cupertino-library-family-events", "Santa Clara County Library District"),
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "cupertino-library-family-events", "Santa Clara County Library District", false),
   },
   {
     key: "cupertino-family-events",
     url: CUPERTINO_EVENTS_URL,
     parse: parseCupertinoFamilyEvents,
+    emptyIsValid: (html) => /list-item-container|Result\(s\) found/i.test(html),
   },
   {
     key: "santa-clara-library-family-events",
-    url: SANTA_CLARA_LIBRARY_RSS_URL,
-    accept: "application/rss+xml,application/xml,text/xml",
+    urls: santaClaraLibraryCalendarUrls,
     parse: parseSantaClaraLibraryEvents,
   },
   {
@@ -164,17 +252,19 @@ const sources = [
     url: SANTA_CLARA_EVENTS_RSS_URL,
     accept: "application/rss+xml,application/xml,text/xml",
     parse: parseSantaClaraCityEvents,
+    emptyIsValid: (xml) => /<rss[\s>]|<channel[\s>]/i.test(xml),
   },
   {
     key: "campbell-library-family-events",
-    url: CAMPBELL_LIBRARY_RSS_URL,
+    urls: () => santaClaraCountyLibraryRssUrls("CA"),
     accept: "application/rss+xml,application/xml,text/xml",
-    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "campbell-library-family-events", "Santa Clara County Library District"),
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "campbell-library-family-events", "Santa Clara County Library District", false),
   },
   {
     key: "campbell-family-events",
     urls: campbellCalendarUrls,
     parse: parseCampbellFamilyEvents,
+    emptyIsValid: (html) => /schema\.org\/Event|calendar/i.test(html),
   },
   {
     key: "los-gatos-library-family-events",
@@ -187,6 +277,19 @@ const sources = [
     key: "los-gatos-family-events",
     urls: losGatosCalendarUrls,
     parse: parseLosGatosFamilyEvents,
+    emptyIsValid: (html) => /schema\.org\/Event|calendar/i.test(html),
+  },
+  {
+    key: "san-jose-library-family-events",
+    urls: sanJoseLibraryRssUrls,
+    accept: "application/rss+xml,application/xml,text/xml",
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "san-jose-library-family-events", "San Jose Public Library", false),
+  },
+  {
+    key: "oakland-library-family-events",
+    urls: oaklandLibraryRssUrls,
+    accept: "application/rss+xml,application/xml,text/xml",
+    parse: (xml, now) => parseSanMateoCountyLibraryEvents(xml, now, "oakland-library-family-events", "Oakland Public Library", false),
   },
   {
     key: "san-francisco-library-family-events",
@@ -197,6 +300,7 @@ const sources = [
     key: "sf-rec-park-family-events",
     urls: sanFranciscoRecParkCalendarUrls,
     parse: parseSanFranciscoRecParkEvents,
+    emptyIsValid: (html) => /schema\.org\/Event|calendar/i.test(html),
   },
 ];
 
@@ -433,7 +537,8 @@ function makeEvent({
 
 function parseSouthSanFranciscoStorytimes(html, now = new Date()) {
   const sourceUrl = sources[1].url;
-  const monthMatch = html.match(/<h4[^>]*>[\s\S]*?(January|February|March|April|May|June|July|August|September|October|November|December)\s+(20\d{2})[\s\S]*?<\/h4>/i);
+  const monthMatch = html.match(/<h4[^>]*>[\s\S]*?(January|February|March|April|May|June|July|August|September|October|November|December)\s+(20\d{2})[\s\S]*?<\/h4>/i)
+    || html.match(new RegExp(`(${monthNames.join("|")})\\s+(20\\d{2})`, "i"));
   if (!monthMatch) return [];
   const monthIndex = monthNames.findIndex((name) => name.toLowerCase() === monthMatch[1].toLowerCase());
   const year = Number(monthMatch[2]);
@@ -498,6 +603,90 @@ function parseSouthSanFranciscoStorytimes(html, now = new Date()) {
         });
         if (event) events.push(event);
       });
+    }
+  }
+
+  // The current Granicus page places branch labels directly before three
+  // tables instead of wrapping them in h4/h5 sections. Keep the older parser
+  // above for archived markup, then fall back to the table sequence used by
+  // the live page.
+  if (!events.length) {
+    const tablePattern = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+    let table;
+    while ((table = tablePattern.exec(html))) {
+      const precedingText = stripHtml(html.slice(Math.max(0, table.index - 900), table.index));
+      const branchMatches = [...precedingText.matchAll(/(Main Library|Grand Ave\.? Library|Gene Mullin Community Learning Center)/gi)];
+      const branch = branchMatches.at(-1)?.[1] || "";
+      const location = /Main Library/i.test(branch)
+        ? {
+          label: "SSF Main Library",
+          address: "901 Civic Campus Way, South San Francisco, CA",
+          city: "South San Francisco",
+          distance: 12.6,
+          latitude: 37.6547,
+          longitude: -122.4077,
+          parking: "Civic Campus 주차장을 이용할 수 있어요.",
+          bathroom: "도서관과 공원·레크리에이션 센터 내 화장실 이용 가능.",
+          stroller: "엘리베이터로 Youth Library 층까지 이동할 수 있어요.",
+        }
+        : /Grand Ave/i.test(branch)
+          ? {
+            label: "Grand Avenue Library",
+            address: "306 Walnut Avenue, South San Francisco, CA",
+            city: "South San Francisco",
+            distance: 13.2,
+            latitude: 37.6552,
+            longitude: -122.4169,
+            parking: "Grand Avenue 주변 공영·노상 주차를 확인하세요.",
+            bathroom: "도서관 내 화장실 이용 가능.",
+            stroller: "입구 접근 동선을 방문 전에 확인하세요.",
+          }
+          : /Gene Mullin/i.test(branch)
+            ? {
+              label: "Gene Mullin Community Learning Center",
+              address: "520 Tamarack Lane, South San Francisco, CA",
+              city: "South San Francisco",
+              distance: 14.1,
+              latitude: 37.6460,
+              longitude: -122.4310,
+              parking: "센터 주변 주차 안내를 확인하세요.",
+              bathroom: "센터 내 화장실 이용 가능 여부를 확인하세요.",
+              stroller: "센터 출입구와 프로그램 공간까지 유모차로 이동할 수 있어요.",
+            }
+            : null;
+      if (!location) continue;
+
+      const rowPattern = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+      let row;
+      while ((row = rowPattern.exec(table[1]))) {
+        const cells = [...row[1].matchAll(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi)].map((cell) => stripHtml(cell[1]));
+        if (cells.length < 3 || /Program/i.test(cells[0])) continue;
+        const [name, daySpec, time] = cells;
+        const explicitDates = [...daySpec.matchAll(/(\d{1,2})\/(\d{1,2})/g)]
+          .map((match) => `${year}-${String(match[1]).padStart(2, "0")}-${String(match[2]).padStart(2, "0")}`);
+        const weekday = Object.entries(weekdayNames).find(([label]) => daySpec.toLowerCase().includes(label.toLowerCase().replace(/s$/, "")));
+        let dates = explicitDates.length
+          ? explicitDates
+          : weekday
+            ? datesForMonth(year, monthIndex, weekday[1])
+            : [];
+        if (/except\s+(?:the\s+)?2nd/i.test(daySpec)) {
+          dates = dates.filter((dateKey) => Number(dateKey.slice(-2)) < 8 || Number(dateKey.slice(-2)) > 14);
+        }
+
+        dates.filter((dateKey) => dateKey >= today && dateKey <= lastDate).forEach((dateKey) => {
+          const event = makeEvent({
+            sourceKey: sources[1].key,
+            sourceUrl,
+            sourceName: "City of South San Francisco Library",
+            name,
+            dateKey,
+            time,
+            location,
+          });
+          if (event) events.push(event);
+        });
+      }
     }
   }
 
@@ -637,7 +826,11 @@ function expandSanMateoCountyRecurringEvents(events, now = new Date()) {
   const lastDate = addDays(pacificDateKey(now), FUTURE_WINDOW_DAYS);
   const expanded = new Map();
   const recurringSeries = new Set();
-  const eventKey = (event) => `${event.name.toLowerCase()}|${event.startAt}|${event.latitude}|${event.longitude}`;
+  const eventKey = (event) => {
+    const timestamp = new Date(event.startAt).getTime();
+    const canonicalStart = Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : event.startAt;
+    return `${event.name.toLowerCase()}|${canonicalStart}|${event.latitude}|${event.longitude}`;
+  };
 
   events.forEach((event) => expanded.set(eventKey(event), event));
   events
@@ -670,7 +863,13 @@ function expandSanMateoCountyRecurringEvents(events, now = new Date()) {
   return [...expanded.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
 }
 
-function parseSanMateoCountyLibraryEvents(xml, now = new Date(), sourceKey = sources[2].key, sourceName = "San Mateo County Libraries") {
+function parseSanMateoCountyLibraryEvents(
+  xml,
+  now = new Date(),
+  sourceKey = sources[2].key,
+  sourceName = "San Mateo County Libraries",
+  expandRecurring = true,
+) {
   const today = pacificDateKey(now);
   const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
   const events = [];
@@ -681,12 +880,12 @@ function parseSanMateoCountyLibraryEvents(xml, now = new Date(), sourceKey = sou
     const block = item[1];
     const categories = xmlValues(block, "category");
     const name = xmlValue(block, "title");
-    const activityCategories = categories.filter((category) => !/^(?:All Ages|Kids: Family Events|Adults|Seniors|Teens|Tweens|English|Spanish)$/i.test(category));
+    const activityCategories = categories.filter((category) => !/^(?:All Ages|Families|Birth to 5|Kids: Family Events|Adults|Seniors|Teens|Tweens|English|Spanish)$/i.test(category));
     const broadlyKidFriendly = /animal|music|puppet|magic|play|dance|family|kids|craft|maker|steam|storytime|early learning|movie|read to|bubble/i.test(`${name} ${activityCategories.join(" ")}`);
-    const youngChildAudience = categories.some((category) => /Preschoolers? \(0-5\)|Pre-schoolers|Preschoolers|Babies|Toddlers|Kids: (?:Babies|Preschoolers|Toddlers)/i.test(category));
-    const familyAudience = categories.some((category) => /All Ages|Kids: Family Events/i.test(category));
+    const youngChildAudience = categories.some((category) => /Young Children|Birth to 5|Preschoolers? \(0-5\)|Pre-schoolers|Preschoolers|Babies|Toddlers|Kids: (?:Babies|Preschoolers|Toddlers)/i.test(category));
+    const familyAudience = categories.some((category) => /All Ages|Families|Kids: Family Events/i.test(category));
     const audienceMatch = youngChildAudience || (familyAudience && broadlyKidFriendly);
-    const childMatch = categories.some((category) => /Children \(6-11\)|Kids \(6-11\)|Kids: Grades K-8/i.test(category));
+    const childMatch = categories.some((category) => /Children \(6-11\)|Kids(?:, ages 5-10| \(6-11\))|Kids: Grades K-8/i.test(category));
     const olderOnlyProgram = /\b(?:ESL|conversation club|book club|tai chi|origami|adult|teen|grades? [1-9])\b/i.test(name)
       && !/family|baby|toddler|preschool|storytime|music|puppet|animal|magic|dance|play/i.test(name);
     if (!audienceMatch && !(childMatch && broadlyKidFriendly)) continue;
@@ -701,8 +900,16 @@ function parseSanMateoCountyLibraryEvents(xml, now = new Date(), sourceKey = sou
     const latitude = Number(xmlValue(locationBlock, "bc:latitude"));
     const longitude = Number(xmlValue(locationBlock, "bc:longitude"));
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) continue;
-    const locationName = xmlValue(locationBlock, "bc:name");
-    const city = xmlValue(locationBlock, "bc:city") || locationName;
+    const rawLocationName = xmlValue(locationBlock, "bc:name");
+    const locationName = sourceKey === "smcl-foster-city-family-events" && /^Foster City$/i.test(rawLocationName)
+      ? "Foster City Library"
+      : rawLocationName;
+    const rawCity = xmlValue(locationBlock, "bc:city") || locationName;
+    const city = sourceKey === "san-jose-library-family-events"
+      ? "San Jose"
+      : sourceKey === "oakland-library-family-events"
+        ? "Oakland"
+        : rawCity;
     const street = `${xmlValue(locationBlock, "bc:number")} ${xmlValue(locationBlock, "bc:street")}`.trim();
     const registrationBlock = block.match(/<bc:registration_info>([\s\S]*?)<\/bc:registration_info>/i)?.[1] || "";
     const registrationRequired = xmlValue(registrationBlock, "bc:is_required") === "true";
@@ -745,7 +952,17 @@ function parseSanMateoCountyLibraryEvents(xml, now = new Date(), sourceKey = sou
     }
   }
 
-  return expandSanMateoCountyRecurringEvents(events, now);
+  return expandRecurring ? expandSanMateoCountyRecurringEvents(events, now) : events;
+}
+
+function parseFosterCityLibraryEvents(xml, now = new Date()) {
+  return parseSanMateoCountyLibraryEvents(
+    xml,
+    now,
+    "smcl-foster-city-family-events",
+    "San Mateo County Libraries",
+    false,
+  );
 }
 
 function mountainViewLibraryCalendarUrl(now = new Date()) {
@@ -855,6 +1072,13 @@ function sunnyvaleLibraryCalendarUrls(now = new Date()) {
   // mirror carries the same calendar markup while avoiding the site's Akamai
   // block on server-to-server requests; public event links remain canonical.
   return sunnyvaleCalendarProxyUrls("www-library-sunnyvale-ca-gov.translate.goog", "/events/kids-events", now);
+}
+
+function santaClaraLibraryCalendarUrls(now = new Date()) {
+  // The canonical Santa Clara Library calendar blocks server requests at its
+  // CDN. Its Google Translate mirror carries the same official Granicus
+  // calendar markup and lets us read the current and following month.
+  return sunnyvaleCalendarProxyUrls("www-sclibrary-org.translate.goog", "/calendar/events/kids-events", now);
 }
 
 function sunnyvaleCityCalendarUrls(now = new Date()) {
@@ -1169,7 +1393,7 @@ function parseMenloParkFamilyEvents(html, now = new Date()) {
   });
 
   const itemPattern = /<div class="list-item-container[^>]*>[\s\S]*?<article>([\s\S]*?)<\/article>\s*<\/div>/gi;
-  const relevant = /storytime|puppet|concert|movie|family|animal|wildlife|festival|music|dance|craft|art|play|reading|library adventure/i;
+  const relevant = /storytime|puppet|concert|movie|family|animal|wildlife|festival|music|dance|craft|art|play|reading|library adventure|national night out/i;
   const excluded = /middle grade|teen|adult|commission|meeting|chess|conversation club/i;
   let item;
   while ((item = itemPattern.exec(html))) {
@@ -1181,32 +1405,46 @@ function parseMenloParkFamilyEvents(html, now = new Date()) {
     const address = stripHtml(block.match(/<p class="list-item-address">([\s\S]*?)<\/p>/i)?.[1]);
     const href = decodeHtml(block.match(/<a href="([^"]+)"/i)?.[1] || "");
     const dateText = stripHtml(block.match(/<p class="event-date[^>]*">([\s\S]*?)<\/p>/i)?.[1]);
-    const match = dateText.match(/([A-Za-z]+)\s+(\d{1,2}),\s*(20\d{2})\s*\|\s*(\d{1,2}:\d{2}\s*[AP]M)(?:\s*to\s*(\d{1,2}:\d{2}\s*[AP]M))?/i);
+    const explicitTime = dateText.match(/([A-Za-z]+)\s+(\d{1,2}),\s*(20\d{2})\s*\|\s*(\d{1,2}:\d{2}\s*[AP]M)(?:\s*to\s*(\d{1,2}:\d{2}\s*[AP]M))?/i);
+    const cardDay = block.match(/<span class="part-date">(\d{1,2})<\/span>/i)?.[1];
+    const cardMonth = block.match(/<span class="part-month">([A-Za-z]+)<\/span>/i)?.[1];
+    const cardYear = block.match(/<span class="part-year">(20\d{2})<\/span>/i)?.[1];
     const context = `${name} ${description} ${tags}`;
-    if (!name || !match || !/Events for (?:families|children)/i.test(tags) || !relevant.test(context) || excluded.test(context)) continue;
-    const monthIndex = monthNames.findIndex((month) => month.toLowerCase().startsWith(match[1].toLowerCase()));
+    if (!name || !/Events for (?:families|children)/i.test(tags) || !relevant.test(context) || excluded.test(context)) continue;
+    // Generic Storytime cards omit times and collapse many occurrences into
+    // one teaser. The official weekly schedule above has the right branch and
+    // time for those; use cards for dated one-off programs instead.
+    if (!explicitTime && /^Storytime$/i.test(name)) continue;
+    const monthLabel = explicitTime?.[1] || cardMonth;
+    const day = explicitTime?.[2] || cardDay;
+    const year = explicitTime?.[3] || cardYear;
+    if (!monthLabel || !day || !year) continue;
+    const monthIndex = monthNames.findIndex((month) => month.toLowerCase().startsWith(monthLabel.toLowerCase()));
     if (monthIndex < 0) continue;
-    const dateKey = `${match[3]}-${String(monthIndex + 1).padStart(2, "0")}-${String(match[2]).padStart(2, "0")}`;
+    const dateKey = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     if (dateKey < today || dateKey > lastDate) continue;
     const location = menloParkLocation(address);
     const outdoor = /park|outdoor|concert|festival/i.test(`${name} ${address}`);
+    const startTime = explicitTime?.[4] || "12:00 PM";
     const event = makeEvent({
       sourceKey: "menlo-park-family-events",
       sourceUrl: href || MENLO_PARK_EVENTS_URL,
       sourceName: "City of Menlo Park",
       name,
       dateKey,
-      time: match[4],
+      time: startTime,
       location,
       setting: outdoor ? "outdoor" : "indoor",
       type: /storytime/i.test(name) ? "storytime" : "seasonal",
       age: /storytime/i.test(name) ? "0-5세·가족" : "가족·전 연령",
       price: "free",
-      reservation: "예약 불필요 · 공식 페이지 확인",
+      reservation: explicitTime ? "예약 불필요 · 공식 페이지 확인" : "시간과 예약 여부는 공식 페이지 확인",
+      durationMinutes: outdoor ? 180 : 90,
+      confidenceStatus: explicitTime ? "source_confirmed" : "date_confirmed",
       why: "Menlo Park 시 공식 일정에서 확인한 어린이·가족 프로그램이에요.",
     });
     if (!event) continue;
-    const endClock = parseClock(match[5]);
+    const endClock = parseClock(explicitTime?.[5]);
     if (endClock) {
       const endAt = pacificIso(dateKey, endClock);
       if (new Date(endAt) > new Date(event.startAt)) event.endAt = endAt;
@@ -1988,6 +2226,58 @@ function santaClaraAge(name, description) {
   return "가족·전 연령";
 }
 
+function santaClaraOfficialEventUrl(rawHref) {
+  try {
+    const translated = new URL(rawHref);
+    const canonical = new URL(translated.pathname, "https://www.sclibrary.org");
+    ["curm", "cury"].forEach((key) => {
+      const value = translated.searchParams.get(key);
+      if (value) canonical.searchParams.set(key, value);
+    });
+    return canonical.href;
+  } catch {
+    return "https://www.sclibrary.org/calendar/events/kids-events";
+  }
+}
+
+function parseSantaClaraLibraryCalendarEvents(html, now = new Date()) {
+  const today = pacificDateKey(now);
+  const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
+  const relevant = /storytime|baby|toddler|playdate|family|little learners|maker kids|mad science|puppet|magic|music|dance|animal|wildlife|movie|festival|summer adventure|kids'? craft|craft-ernoon|reading with pets|splish splash/i;
+  const excluded = /middle school|teen|adult|ESL|book sale|library clos|trust at the library|homework help|financial literacy|meditation|board|meeting|genealogy|smartphone|tech help/i;
+  const events = new Map();
+
+  sunnyvaleCalendarItems(html).forEach((item) => {
+    const rawName = item.name;
+    if (item.dateKey < today || item.dateKey > lastDate || !relevant.test(rawName) || excluded.test(rawName) || eventIsCancelled(rawName)) return;
+    const name = rawName.replace(/^(?:CENTRAL|NORTHSIDE|MISSION):\s*/i, "").trim();
+    const location = santaClaraLocation(rawName, "", true);
+    const storytime = /storytime|little learners|baby & me/i.test(name);
+    const outdoor = /outdoor|patio|park/i.test(name);
+    const event = makeEvent({
+      sourceKey: "santa-clara-library-family-events",
+      sourceUrl: santaClaraOfficialEventUrl(item.href),
+      sourceName: "Santa Clara City Library",
+      name,
+      dateKey: item.dateKey,
+      time: item.time,
+      location,
+      setting: outdoor ? "outdoor" : "indoor",
+      type: storytime ? "storytime" : "indoor",
+      age: santaClaraAge(name, ""),
+      price: "free",
+      reservation: "예약 불필요 · 정원과 장소는 공식 페이지 확인",
+      why: storytime
+        ? "Santa Clara City Library 공식 일정에서 확인한 책·노래·움직임 중심의 영유아 프로그램이에요."
+        : "Santa Clara City Library 공식 일정에서 확인한 어린이와 가족 대상 프로그램이에요.",
+      durationMinutes: storytime ? 45 : 60,
+    });
+    if (event) events.set(event.id, event);
+  });
+
+  return [...events.values()].toSorted((left, right) => new Date(left.startAt) - new Date(right.startAt));
+}
+
 function parseSantaClaraEvents(xml, now = new Date(), libraryFeed = true) {
   const today = pacificDateKey(now);
   const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
@@ -1996,7 +2286,7 @@ function parseSantaClaraEvents(xml, now = new Date(), libraryFeed = true) {
   const sourceName = libraryFeed ? "Santa Clara City Library" : "City of Santa Clara";
   const libraryTitleRelevant = /storytime|baby|toddler|playdate|family|maker kids|mad science|puppet|magic|music|dance|animal|wildlife|movie|festival|summer adventure|kids|(?:kids|children|family).*craft|craft.*(?:kids|children|family)/i;
   const libraryDescriptionRelevant = /bab(?:y|ies)|toddlers?|children (?:ages|of all ages)|ages?\s*\d|early literacy|storytime|caregivers?/i;
-  const cityRelevant = /family|children|kids|night market|festival|parade|movie|music|concert|celebrate santa clara|holiday|tree lighting|egg hunt|pumpkin|carnival/i;
+  const cityRelevant = /family|children|kids|night market|festival|parade|movie|music|concert|dance|live entertainment|celebrate santa clara|holiday|tree lighting|egg hunt|pumpkin|carnival/i;
   const excluded = /\badult\b|\bteens?\b|ESL|lawyers|genealogy|book sale|commission|committee|meeting|coding camp|finance/i;
   const events = [];
   const itemPattern = /<item>([\s\S]*?)<\/item>/gi;
@@ -2049,6 +2339,7 @@ function parseSantaClaraEvents(xml, now = new Date(), libraryFeed = true) {
 }
 
 function parseSantaClaraLibraryEvents(xml, now = new Date()) {
+  if (/class="calendar_item"/i.test(xml)) return parseSantaClaraLibraryCalendarEvents(xml, now);
   return parseSantaClaraEvents(xml, now, true);
 }
 
@@ -2127,7 +2418,7 @@ function redwoodCityLocation(name, description) {
       stroller: "광장과 인도는 유모차로 이동할 수 있지만 행사 혼잡도를 고려하세요.",
     },
     {
-      match: /Downtown|Cuentos y Cantos|Música con Val|Music with Val/i,
+      match: /Downtown|Cuentos y Cantos|Cuentos bilingües de Pijama|Música con Val|Music with Val/i,
       label: "Downtown Library",
       address: "1044 Middlefield Road, Redwood City, CA 94063",
       latitude: 37.4844,
@@ -2161,7 +2452,7 @@ function redwoodCityAge(name) {
 }
 
 function expandRedwoodCityRecurringEvents(events, now = new Date()) {
-  const recurringProgram = /^(?:Toddler\/Preschool Storytime @ (?:Schaberg|Redwood Shores)|Tiny Tales @ (?:Schaberg|Redwood Shores)|Pajama Time Stories @ Redwood Shores|Stories and Songs with Pam @ Downtown|Stories in the Park(?: \/ Cuentos en el Parque)?|Cuentos bilingües de Pijama.*)$/i;
+  const recurringProgram = /^(?:Toddler\/Preschool Storytime @ (?:Schaberg|Redwood Shores)|Tiny Tales @ (?:Schaberg|Redwood Shores)|Pajama Time Stories @ Redwood Shores|Family Wiggles Storytime @ Redwood Shores|Storytime for All Ages @ Redwood Shores|Stories and Songs with Pam @ (?:Downtown|Schaberg)|Stories in the Park(?: \/ Cuentos en el Parque)?|Cuentos y Cantos|Cuentos bilingües de Pijama.*)$/i;
   const lastDate = addDays(pacificDateKey(now), FUTURE_WINDOW_DAYS);
   const expanded = new Map();
   const recurringSeries = new Set();
@@ -2203,7 +2494,7 @@ function parseRedwoodCityEvents(xml, now = new Date()) {
   const events = [];
   const itemPattern = /<item>([\s\S]*?)<\/item>/gi;
   const relevantEvent = /toddler|baby|tiny tales|storytime|stories and songs|stories in the park|cuentos|pajama time|family wiggles|music with val|música con val|jamaroo kids|malinky music|puppet|kids rock|fun fridays|story hour|free art project|kid makers|lego|creative tuesdays|lunch at the library|seaside|marine science|mobile recreation|parcade|magical bridge|movies? on the square|music in the park|music on the square|soccer on the square|family|children|festival|circus/i;
-  const excludedEvent = /adult|teen|tween|senior|meeting|commission|committee|basketball|pickleball|volleyball|mahjong|dominos|bridge|card games/i;
+  const excludedEventName = /\b(?:adults?|teens?|tweens?|seniors?|meeting|commission|committee|basketball|pickleball|volleyball|mahjong|dominos?|card games?)\b|(?:^|\s)Bridge(?:\s+@|\s*$)/i;
   let item;
 
   while ((item = itemPattern.exec(xml))) {
@@ -2211,7 +2502,7 @@ function parseRedwoodCityEvents(xml, now = new Date()) {
     const rawName = xmlValue(block, "title");
     const name = rawName.replace(/\s+\(\d{1,2}\/\d{1,2}\/\d{4}[\s\S]*\)$/, "").trim();
     const description = xmlValue(block, "description");
-    if (!relevantEvent.test(`${name} ${description}`) || excludedEvent.test(`${name} ${description}`) || /cancelled|canceled|closed|^no\s/i.test(name)) continue;
+    if (!relevantEvent.test(`${name} ${description}`) || excludedEventName.test(name) || /cancelled|canceled|closed|^no\s/i.test(name)) continue;
 
     const start = redwoodCityDateTime(xmlValue(block, "eventStartDate"));
     const end = redwoodCityDateTime(xmlValue(block, "eventEndDate"));
@@ -2222,7 +2513,7 @@ function parseRedwoodCityEvents(xml, now = new Date()) {
     const outdoor = /park|magical bridge|square|parcade|mobile recreation/i.test(`${name} ${location.label}`);
     const event = makeEvent({
       sourceKey: sources[6].key,
-      sourceUrl: xmlValue(block, "link") || sources[6].url,
+      sourceUrl: xmlValue(block, "link") || REDWOOD_CITY_LIBRARY_RSS_URL,
       sourceName: "City of Redwood City",
       name,
       dateKey: start.dateKey,
@@ -2418,10 +2709,12 @@ async function syncSource(db, source, now) {
       if (!response.ok) throw new Error(`공식 페이지 응답 ${response.status}`);
       return response.text();
     }));
-    const parsedEvents = source.parse(sourceTexts.join("\n"), now);
+    const combinedSourceText = sourceTexts.join("\n");
+    const parsedEvents = source.parse(combinedSourceText, now);
     const events = [...new Map(parsedEvents.map((event) => [event.id, event])).values()];
-    if (!events.length) throw new Error("일정 형식이 바뀌어 이벤트를 읽지 못했어요");
-    if (eventCountLooksAnomalous(previousCount, events.length)) {
+    const validEmptyResult = !events.length && source.emptyIsValid?.(combinedSourceText) === true;
+    if (!events.length && !validEmptyResult) throw new Error("일정 형식이 바뀌어 이벤트를 읽지 못했어요");
+    if (!validEmptyResult && eventCountLooksAnomalous(previousCount, events.length)) {
       throw new SourceCountAnomalyError(previousCount, events.length);
     }
 
@@ -2583,7 +2876,6 @@ function sourceIsCurrent(row, now) {
   const lastSuccess = row.last_success_at ? new Date(row.last_success_at).getTime() : 0;
   return row.status === "ok"
     && Number(row.data_revision || 0) >= SOURCE_DATA_REVISION
-    && Number(row.active_event_count || 0) > 0
     && now.getTime() - lastSuccess < REFRESH_INTERVAL_MS;
 }
 
@@ -2661,22 +2953,28 @@ async function getOutingsResponse(request, env, context) {
 
 export {
   ageRangeFromLabel,
+  bibliocommonsRssUrls,
   dateBucket,
   eventCountLooksAnomalous,
+  fosterCityLibraryRssUrls,
   getOutingsResponse,
   parseBayAreaDiscoveryMuseumEvents,
   parseBurlingameLibraryEvents,
   parseCampbellFamilyEvents,
   parseCupertinoFamilyEvents,
   parseCuriOdysseyDailyEvents,
+  parseFosterCityLibraryEvents,
   parseLosGatosFamilyEvents,
   parseLosGatosLibraryEvents,
   parseMenloParkFamilyEvents,
   parseMountainViewLibraryEvents,
+  oaklandLibraryRssUrls,
+  paloAltoLibraryRssUrls,
   parsePaloAltoFamilyEvents,
   parseRedwoodCityEvents,
   redwoodCityEffectiveEnd,
   parseSantaClaraCityEvents,
+  parseSantaClaraLibraryCalendarEvents,
   parseSantaClaraLibraryEvents,
   parseSanFranciscoLibraryEvents,
   parseSanFranciscoRecParkEvents,
@@ -2687,7 +2985,10 @@ export {
   parseSunnyvaleCityEvents,
   parseSunnyvaleLibraryEvents,
   refreshOutings,
+  sanJoseLibraryRssUrls,
+  santaClaraLibraryCalendarUrls,
   sanFranciscoLibraryCalendarUrls,
+  smclRegionalLibraryRssUrls,
   sourceIsCurrent,
   sunnyvaleLibraryCalendarUrls,
 };

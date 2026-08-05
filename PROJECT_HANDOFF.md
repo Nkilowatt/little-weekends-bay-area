@@ -1,6 +1,6 @@
 # Project Handoff
 
-Last updated: 2026-07-17
+Last updated: 2026-08-04
 
 ## Product
 
@@ -22,7 +22,7 @@ The core experience is:
 - Primary runtime: OpenAI Sites Worker
 - Event API: `/api/outings`
 - Database: D1 binding `DB`
-- Refresh schedule: 28 official sources every six hours
+- Refresh policy: 30 official sources, a six-hour freshness window, and a daily production refresh/health check
 
 The user interface is lightweight HTML, CSS, and JavaScript, but the primary service now includes a Worker backend and D1 database for automatic official-event updates.
 
@@ -50,10 +50,10 @@ The current basemap is intentionally lightweight:
 - Trust is structured as `human_verified`, `source_confirmed`, `recheck`, or `stale`; automatic source parsing is not presented as human verification.
 - The evergreen catalog contains 57 human-reviewed places across five Bay Area regions.
 - Automatic events include `endAt`; API and client checks remove completed programs. Missing end times use 90 minutes, date-only events remain through the Pacific calendar day, and the visible list is re-evaluated on tab return and every 60 seconds.
-- Redwood City 11:59 PM placeholder endings are normalized to 120 minutes for music, performances, and movies or 90 minutes for other single programs. `SOURCE_DATA_REVISION` is 7 so existing D1 rows are refreshed for the expanded source set.
-- Source status is current only when that source has a recent successful sync and active future events. Partial coverage is shown as `partial`, and stale-source events become `recheck`.
+- Redwood City 11:59 PM placeholder endings are normalized to 120 minutes for music, performances, and movies or 90 minutes for other single programs. `SOURCE_DATA_REVISION` is 10 so existing D1 rows are refreshed for the regional pagination, current-layout parser, and new-library-source fixes.
+- Source status is current when that source has a recent successful sync at the current data revision. A source whose official calendar is valid but has no matching future events can therefore remain healthy instead of creating a false failure. Partial coverage is shown as `partial`, and stale-source events become `recheck`.
 - On-demand recovery has a 30-second cooldown and records `syncing` before network fetches to limit repeated external calls and abuse.
-- On-demand recovery retries only unhealthy sources; scheduled refreshes still verify all 28 sources.
+- On-demand recovery retries only unhealthy sources. The production Codex automation opens a cache-busted API URL daily, which guarantees at least daily refresh evaluation even when visitor traffic is low; a full refresh runs whenever the six-hour freshness window has elapsed.
 
 ## San Francisco Coverage
 
@@ -64,27 +64,30 @@ The current basemap is intentionally lightweight:
 
 ## Redwood City Coverage
 
-- The official City of Redwood City calendar RSS feed is one of 28 automatic sources.
-- The parser keeps toddler storytimes, Tiny Tales, bilingual storytimes, music and movement, puppet shows, and selected family programs while excluding cancellations and unrelated city events.
+- The official City of Redwood City citywide and Library RSS feeds are combined as one of 30 automatic sources. The Library feed prevents the citywide feed's 50-item cap from being consumed by recreation programs before a full week of branch events is seen.
+- The parser keeps toddler storytimes, Tiny Tales, bilingual storytimes, music and movement, puppet shows, and selected family programs while excluding cancellations and unrelated city events. Exclusion checks operate on event titles so phrases such as `Adults must be accompanied by a child` and the venue name `Magical Bridge` do not discard child events.
 - Schaberg, Redwood Shores, Downtown Library, Magical Bridge, and Stafford Park receive location-specific coordinates and parent logistics when the event title identifies the venue.
-- The city RSS feed is capped to the next 50 citywide events. Verified weekly library series are extended through the 45-day window, while the six-hour refresh keeps one-off programs current.
+- Verified weekly library series from the dedicated feed are extended through the 45-day window, while daily refresh evaluation and the six-hour freshness policy keep one-off programs current.
 
 ## Central Peninsula Coverage
 
-- Belmont, Foster City, San Carlos, and Millbrae use branch-specific official San Mateo County Libraries feeds so citywide feed limits cannot hide their programs.
-- Stable weekly storytimes from those feeds extend through the 45-day window; one-off maker, performance, and seasonal programs remain tied to their official event records.
+- Belmont, Foster City, San Carlos, and Millbrae use child-audience, branch-specific official San Mateo County Libraries feeds and read three 25-item pages so adult-first and systemwide feed caps cannot hide their programs.
+- Atherton, Brisbane, East Palo Alto, Half Moon Bay/Coastside, North Fair Oaks, Pacifica Sanchez, Pacifica Sharp Park, Portola Valley, and Woodside are fetched branch by branch across two child-audience pages. All of these dates come from exact official records rather than generated recurrence estimates.
+- Foster City labels the venue as `Foster City Library` and keeps exact published dates across the 45-day window.
+- South San Francisco's parser supports the current month-and-branch table for Main, Grand Avenue, and Gene Mullin Community Learning Center, including explicit multi-date and weekly rows.
 - Burlingame uses the official city library calendar for the current and following month, including Main Library and Easton Branch family programs.
 - All five libraries are also available as human-reviewed anytime places.
 
 ## South Peninsula And West Valley Coverage
 
-- Palo Alto City Library's official BiblioCommons feed covers Children's, Mitchell Park, Rinconada, Downtown, and College Terrace library programs in addition to the existing city family calendar.
-- Menlo Park combines its official children-and-family event directory with the published weekly storytime schedule, including Menlo Park Library and Belle Haven Library.
+- Palo Alto City Library's official BiblioCommons feeds are filtered to four child audiences and read across three pages, covering Children's, Mitchell Park, Rinconada, Downtown, and College Terrace programs in addition to the existing city family calendar.
+- Menlo Park combines exact dated cards from its official children-and-family event directory with the published weekly storytime schedule for Menlo Park Library and Belle Haven Library. Only the weekly schedule expansion remains a recurrence estimate.
 - Mountain View Public Library uses its official public LibCal JSON with baby, toddler, preschool, family, storytime, STEAM, music, and park programs filtered for in-person use.
 - Sunnyvale uses separate current-and-next-month official kids and city calendars. Because the official domains reject server-to-server requests at Akamai, ingestion reads the identical calendar markup through the translation mirror linked by the official site, then rewrites every public event link to the canonical Sunnyvale domain. Library storytimes and city family events are filtered independently to prevent duplicates.
-- Cupertino combines the branch-filtered Santa Clara County Library BiblioCommons feed with the City of Cupertino `Kids & family` event directory.
-- Santa Clara combines separate official library-event and city-event RSS feeds. Central Park, Northside, and Mission prefixes map to their own branches so programs are not collapsed into a single city point.
-- Campbell combines the branch-filtered Santa Clara County Library BiblioCommons feed with current-and-next-month City of Campbell community and recreation calendars.
+- Cupertino and Campbell each read three child-audience pages from Santa Clara County Library District instead of relying on the adult-heavy first page, alongside their city calendars.
+- Santa Clara reads exact current-and-next-month library calendar entries through the same translation mirror technique used for server-blocked Sunnyvale pages. Public links are rewritten to the canonical Santa Clara Library domain, and city events remain a separate official source.
+- San Jose Public Library and Oakland Public Library each read multiple official BiblioCommons child-audience pages as dedicated sources, filling the previous citywide event gap.
+- Campbell also reads current-and-next-month City of Campbell community and recreation calendars.
 - Los Gatos combines the official Library LibCal JSON feed with the current-and-next-month Town of Los Gatos calendar, keeping storytimes and town events independent.
 - Menlo Park, Mountain View, Sunnyvale, Cupertino, Santa Clara, Campbell, and Los Gatos are selectable distance origins. Fifteen library locations across Palo Alto, Menlo Park, Mountain View, Sunnyvale, Cupertino, Santa Clara, Campbell, and Los Gatos are available as human-reviewed anytime places. Sunnyvale's Magical Bridge Playground at Fair Oaks Park is also included as a human-reviewed anytime destination.
 
