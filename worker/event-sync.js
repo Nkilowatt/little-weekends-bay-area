@@ -62,6 +62,7 @@ const SUNNYVALE_LIBRARY_EVENTS_URL = "https://www.library.sunnyvale.ca.gov/event
 const SUNNYVALE_CITY_EVENTS_URL = "https://www.sunnyvale.ca.gov/news-center-and-events-calendar/city-calendar";
 const SFPL_EVENTS_URL = "https://sfpl.org/events";
 const LIBCAL_BROWSER_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36";
+let translateMirrorFetchTail = Promise.resolve();
 
 const monthNames = [
   "January", "February", "March", "April", "May", "June",
@@ -2684,6 +2685,40 @@ function eventCountLooksAnomalous(previousCount, nextCount) {
   return previous >= 8 && next < Math.max(2, Math.ceil(previous * 0.25));
 }
 
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function fetchSourceText(sourceUrl, source) {
+  const fetchText = async () => {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const response = await fetch(sourceUrl, {
+        headers: {
+          Accept: source.accept || "text/html,application/xhtml+xml",
+          "User-Agent": source.userAgent || "LittleWeekendsBayArea/1.0 (+https://little-weekends-bay-area.cashmire2.chatgpt.site)",
+        },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (response.ok) return response.text();
+      if (attempt < 2 && (response.status === 429 || response.status >= 500)) {
+        await wait(750 * (attempt + 1));
+        continue;
+      }
+      throw new Error(`공식 페이지 응답 ${response.status}`);
+    }
+    throw new Error("공식 페이지 재시도 실패");
+  };
+
+  if (!new URL(sourceUrl).hostname.endsWith(".translate.goog")) return fetchText();
+
+  const queuedFetch = translateMirrorFetchTail
+    .catch(() => undefined)
+    .then(() => wait(400))
+    .then(fetchText);
+  translateMirrorFetchTail = queuedFetch.then(() => undefined, () => undefined);
+  return queuedFetch;
+}
+
 async function syncSource(db, source, now) {
   const attemptedAt = now.toISOString();
   const previousState = await db.prepare("SELECT event_count FROM sync_state WHERE source_key = ?").bind(source.key).first();
@@ -2698,17 +2733,7 @@ async function syncSource(db, source, now) {
     const sourceUrls = source.urls
       ? source.urls(now)
       : [typeof source.url === "function" ? source.url(now) : source.url];
-    const sourceTexts = await Promise.all(sourceUrls.map(async (sourceUrl) => {
-      const response = await fetch(sourceUrl, {
-        headers: {
-          Accept: source.accept || "text/html,application/xhtml+xml",
-          "User-Agent": source.userAgent || "LittleWeekendsBayArea/1.0 (+https://little-weekends-bay-area.cashmire2.chatgpt.site)",
-        },
-        signal: AbortSignal.timeout(15000),
-      });
-      if (!response.ok) throw new Error(`공식 페이지 응답 ${response.status}`);
-      return response.text();
-    }));
+    const sourceTexts = await Promise.all(sourceUrls.map((sourceUrl) => fetchSourceText(sourceUrl, source)));
     const combinedSourceText = sourceTexts.join("\n");
     const parsedEvents = source.parse(combinedSourceText, now);
     const events = [...new Map(parsedEvents.map((event) => [event.id, event])).values()];
@@ -2956,6 +2981,7 @@ export {
   bibliocommonsRssUrls,
   dateBucket,
   eventCountLooksAnomalous,
+  fetchSourceText,
   fosterCityLibraryRssUrls,
   getOutingsResponse,
   parseBayAreaDiscoveryMuseumEvents,
