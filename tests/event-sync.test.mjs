@@ -3,11 +3,15 @@ import test from "node:test";
 
 import {
   eventCountLooksAnomalous,
+  fosterCityLibraryRssUrls,
+  oaklandLibraryRssUrls,
+  paloAltoLibraryRssUrls,
   parseBayAreaDiscoveryMuseumEvents,
   parseBurlingameLibraryEvents,
   parseCampbellFamilyEvents,
   parseCupertinoFamilyEvents,
   parseCuriOdysseyDailyEvents,
+  parseFosterCityLibraryEvents,
   parseLosGatosFamilyEvents,
   parseLosGatosLibraryEvents,
   parseMenloParkFamilyEvents,
@@ -15,6 +19,7 @@ import {
   parsePaloAltoFamilyEvents,
   parseRedwoodCityEvents,
   parseSantaClaraCityEvents,
+  parseSantaClaraLibraryCalendarEvents,
   parseSantaClaraLibraryEvents,
   parseSanFranciscoLibraryEvents,
   parseSanFranciscoRecParkEvents,
@@ -25,7 +30,10 @@ import {
   parseSunnyvaleCityEvents,
   parseSunnyvaleLibraryEvents,
   redwoodCityEffectiveEnd,
+  sanJoseLibraryRssUrls,
+  santaClaraLibraryCalendarUrls,
   sanFranciscoLibraryCalendarUrls,
+  smclRegionalLibraryRssUrls,
   sourceIsCurrent,
   sunnyvaleLibraryCalendarUrls,
 } from "../worker/event-sync.js";
@@ -38,6 +46,19 @@ const fixtures = {
     <h4>July 2026</h4>
     <h5>Main Library</h5>
     <table><tr><td>Toddler Storytime</td><td>Mondays</td><td>10:30 AM</td></tr></table>
+  `,
+  southSanFranciscoCurrent: `
+    <main><h1>Storytime Schedule</h1><p>July 2026</p>
+      <p>Main Library - 901 Civic Campus Way</p>
+      <table>
+        <tr><td>Toddler Storytime</td><td>Tuesdays</td><td>10:30 AM</td></tr>
+        <tr><td>Mandarin Bilingual</td><td>Friday, 7/17 and 7/31</td><td>4:00 PM</td></tr>
+      </table>
+      <p>Grand Ave. Library - 306 Walnut Ave</p>
+      <table><tr><td>Pajama Storytime</td><td>Wednesdays</td><td>6:00 PM</td></tr></table>
+      <p>Gene Mullin Community Learning Center - 520 Tamarack Lane</p>
+      <table><tr><td>Bilingual - Spanish and English</td><td>Wednesdays</td><td>11:00 AM</td></tr></table>
+    </main>
   `,
   countyLibrary: `
     <rss><channel><item>
@@ -98,6 +119,22 @@ const fixtures = {
     <h3>Storytime schedule</h3><table><tbody><tr><td>Tuesdays</td><td>7:15 p.m.</td><td>Belle Haven Library<br>100 Terminal Ave.</td></tr></tbody></table>
     <div class="list-item-container homepage-show"><article><a href="https://www.menlopark.gov/events/family-puppet"><h2 class="list-item-title">Family Puppet Show</h2><p class="event-date published-on small-text">Saturday, July 18, 2026 | 10:00 AM to 11:00 AM</p><p>Stories and puppets for little ones.</p><p class="list-item-address">Menlo Park Library, 800 Alma St., Menlo Park, CA 94025</p><p class="tagged-as-list">Events for families, Events for children</p></a></article></div>
   `,
+  menloParkCurrent: `
+    <div class="list-item-container homepage-show"><article><a href="https://www.menlopark.gov/Citywide-calendar/Community-events/summer-concert">
+      <h2 class="list-item-title">Summer Concert Series: Family Night</h2>
+      <p class="clearfix"><span class="list-item-block-date"><span class="part-date">18</span><span class="part-month">Jul</span><span class="part-year">2026</span></span>
+      <span class="list-item-block-desc">Live music for families in the park.</span></p>
+      <p class="list-item-address">Fremont Park, Menlo Park, CA</p>
+      <p class="tagged-as-list">Community events, Events for families</p>
+    </a></article></div>
+    <div class="list-item-container homepage-show"><article><a href="https://www.menlopark.gov/storytime">
+      <h2 class="list-item-title">Storytime</h2>
+      <p class="clearfix"><span class="list-item-block-date"><span class="part-date">19</span><span class="part-month">Jul</span><span class="part-year">2026</span></span>
+      <span class="list-item-block-desc">Stories and songs.</span></p>
+      <p class="list-item-address">Menlo Park Library</p>
+      <p class="tagged-as-list">Events for families, Events for children</p>
+    </a></article></div>
+  `,
   mountainViewLibrary: JSON.stringify([{ id: 1, title: "Toddler Storytime", start: "2026-07-16T10:30:00", end: "2026-07-16T11:00:00", url: "https://mountainview.libcal.com/event/1", short_desc: "Stories and songs for toddlers.", location: "1st Floor Program Room", audiences: "Toddlers, Families", categories: "Storytime", in_person_registration: false }]),
   sunnyvaleLibrary: `
     <td class="calendar_day calendar_day_with_items" aria-label="Scheduled events, Tuesday, July 14, 2026">
@@ -131,6 +168,16 @@ const fixtures = {
       <link>https://www.santaclaraca.gov/Home/Components/Calendar/Event/fixture/</link>
       <eventStartDate>7/22/2026 10:30:00 AM</eventStartDate><eventEndDate>7/22/2026 11:00:00 AM</eventEndDate>
     </item></channel></rss>
+  `,
+  santaClaraLibraryCalendar: `
+    <td class="calendar_day calendar_day_with_items" aria-label="Scheduled events, Wednesday, July 15, 2026">
+      <div class="calendar_item"><span class="calendar_eventtime">10:30 AM</span>
+        <a class="calendar_eventlink" href="https://www-sclibrary-org.translate.goog/Home/Components/Calendar/Event/123/7954?curm=7&amp;cury=2026&amp;_x_tr_sl=en" title="CENTRAL: Baby &amp; Me Storytime (0-1.5 years)">Baby &amp; Me</a>
+      </div>
+      <div class="calendar_item"><span class="calendar_eventtime">1:00 PM</span>
+        <a class="calendar_eventlink" href="https://www-sclibrary-org.translate.goog/Home/Components/Calendar/Event/124/7954" title="CENTRAL: Genealogy Consultant Desk">Genealogy</a>
+      </div>
+    </td>
   `,
   santaClaraCity: `
     <rss><channel><item><title>Celebrate Santa Clara Family Night Market (07/18/2026 2:00 PM - 4:00 PM)</title>
@@ -255,19 +302,81 @@ test("all official-source parser families retain their expected fixture contract
   assert.equal(sanFranciscoEvent.age, "1-6세·가족");
 });
 
-test("source health requires success, freshness, and active future events", () => {
+test("source health accepts a recent successful empty result", () => {
   const healthy = {
     status: "ok",
     last_success_at: "2026-07-12T15:00:00.000Z",
     active_event_count: 4,
-    data_revision: 8,
+    data_revision: 10,
   };
 
   assert.equal(sourceIsCurrent(healthy, now), true);
   assert.equal(sourceIsCurrent({ ...healthy, status: "failed" }, now), false);
-  assert.equal(sourceIsCurrent({ ...healthy, active_event_count: 0 }, now), false);
+  assert.equal(sourceIsCurrent({ ...healthy, active_event_count: 0 }, now), true);
   assert.equal(sourceIsCurrent({ ...healthy, data_revision: 1 }, now), false);
   assert.equal(sourceIsCurrent({ ...healthy, last_success_at: "2026-07-12T08:00:00.000Z" }, now), false);
+});
+
+test("South San Francisco parses the current branch-table layout", () => {
+  const events = parseSouthSanFranciscoStorytimes(fixtures.southSanFranciscoCurrent, now);
+
+  assert.ok(events.some((event) => event.name === "Toddler Storytime" && event.venueName === "SSF Main Library"));
+  assert.equal(events.filter((event) => event.name === "Mandarin Bilingual").length, 2);
+  assert.ok(events.some((event) => event.name === "Pajama Storytime" && event.venueName === "Grand Avenue Library"));
+  assert.ok(events.some((event) => event.venueName === "Gene Mullin Community Learning Center"));
+  assert.ok(events.every((event) => event.confidenceStatus === "source_confirmed"));
+});
+
+test("Menlo Park keeps dated family cards from the current listing markup", () => {
+  const events = parseMenloParkFamilyEvents(fixtures.menloParkCurrent, now);
+
+  assert.equal(events.length, 1);
+  assert.equal(events[0].name, "Summer Concert Series: Family Night");
+  assert.equal(events[0].confidenceStatus, "date_confirmed");
+  assert.equal(events[0].venueName, "Fremont Park");
+});
+
+test("paginated child feeds cover Peninsula, San Jose, and Oakland without adult-first pages", () => {
+  const foster = fosterCityLibraryRssUrls();
+  const paloAlto = paloAltoLibraryRssUrls();
+  const sanJose = sanJoseLibraryRssUrls();
+  const oakland = oaklandLibraryRssUrls();
+  const regionalSmcl = smclRegionalLibraryRssUrls();
+
+  assert.equal(foster.length, 3);
+  assert.equal(paloAlto.length, 3);
+  assert.equal(sanJose.length, 6);
+  assert.equal(oakland.length, 6);
+  assert.equal(regionalSmcl.length, 18);
+  [foster, paloAlto, sanJose, oakland, regionalSmcl].flat().forEach((url) => {
+    assert.ok(url.includes("audiences="));
+    assert.ok(new URL(url).searchParams.has("page"));
+  });
+});
+
+test("San Jose and Oakland BiblioCommons records normalize their app cities", () => {
+  const sanJoseFixture = fixtures.countyLibrary.replaceAll("San Mateo", "San José");
+  const oaklandFixture = fixtures.countyLibrary.replaceAll("San Mateo", "Oakland");
+  const sanJose = parseSanMateoCountyLibraryEvents(sanJoseFixture, now, "san-jose-library-family-events", "San Jose Public Library", false);
+  const oakland = parseSanMateoCountyLibraryEvents(oaklandFixture, now, "oakland-library-family-events", "Oakland Public Library", false);
+
+  assert.equal(sanJose[0].city, "San Jose");
+  assert.equal(oakland[0].city, "Oakland");
+  assert.ok(sanJose.every((event) => event.confidenceStatus === "source_confirmed"));
+  assert.ok(oakland.every((event) => event.confidenceStatus === "source_confirmed"));
+});
+
+test("Santa Clara reads exact child events from current and next month calendars", () => {
+  const urls = santaClaraLibraryCalendarUrls(now);
+  const events = parseSantaClaraLibraryCalendarEvents(fixtures.santaClaraLibraryCalendar, now);
+
+  assert.equal(urls.length, 2);
+  assert.ok(urls.every((url) => url.startsWith("https://www-sclibrary-org.translate.goog/calendar/events/kids-events/")));
+  assert.equal(events.length, 1);
+  assert.equal(events[0].name, "Baby & Me Storytime (0-1.5 years)");
+  assert.equal(events[0].venueName, "Central Park Library");
+  assert.equal(events[0].confidenceStatus, "source_confirmed");
+  assert.ok(events[0].sourceUrl.startsWith("https://www.sclibrary.org/Home/Components/Calendar/Event/"));
 });
 
 test("Redwood City recurring library programs extend beyond the short RSS window", () => {
@@ -279,6 +388,36 @@ test("Redwood City recurring library programs extend beyond the short RSS window
   assert.ok(new Date(events.at(-1).startAt) - new Date(events[0].startAt) >= 35 * 86400000);
   assert.equal(events[0].confidenceStatus, "source_confirmed");
   assert.ok(events.slice(1).every((event) => event.confidenceStatus === "recurring_estimate"));
+});
+
+test("Redwood City keeps child events whose descriptions mention adults or Magical Bridge", () => {
+  const xml = `
+    <rss><channel>
+      <item>
+        <title>Tiny Tales @ Schaberg (08/05/2026 11:30 AM - 12:00 PM)</title>
+        <description>For children ages 0-24 months. Adults must be accompanied by a child.</description>
+        <link>https://www.redwoodcity.org/Home/Components/Calendar/Event/tiny-tales/</link>
+        <eventStartDate>8/5/2026 11:30:00 AM</eventStartDate><eventEndDate>8/5/2026 12:00:00 PM</eventEndDate>
+      </item>
+      <item>
+        <title>Free Art Project at Magical Bridge Playground (08/08/2026 1:30 PM - 3:30 PM)</title>
+        <description>Free art for children of all abilities.</description>
+        <link>https://www.redwoodcity.org/Home/Components/Calendar/Event/magical-bridge-art/</link>
+        <eventStartDate>8/8/2026 1:30:00 PM</eventStartDate><eventEndDate>8/8/2026 3:30:00 PM</eventEndDate>
+      </item>
+      <item>
+        <title>Cuentos bilingües de Pijama / Bilingual Pajama Time Stories (08/06/2026 7:00 PM - 7:30 PM)</title>
+        <description>Stories for children of all ages. Adults must be accompanied by a child.</description>
+        <link>https://www.redwoodcity.org/Home/Components/Calendar/Event/bilingual-pajama/</link>
+        <eventStartDate>8/6/2026 7:00:00 PM</eventStartDate><eventEndDate>8/6/2026 7:30:00 PM</eventEndDate>
+      </item>
+    </channel></rss>`;
+  const confirmed = parseRedwoodCityEvents(xml, new Date("2026-08-05T03:00:00.000Z"))
+    .filter((event) => event.confidenceStatus === "source_confirmed");
+
+  assert.ok(confirmed.some((event) => event.name === "Tiny Tales @ Schaberg" && event.age === "0-24개월"));
+  assert.ok(confirmed.some((event) => event.name.startsWith("Free Art Project") && event.setting === "outdoor"));
+  assert.ok(confirmed.some((event) => event.name.startsWith("Cuentos bilingües") && event.venueName === "Downtown Library"));
 });
 
 test("Redwood City end-of-day placeholders use a practical program duration", () => {
@@ -300,6 +439,31 @@ test("county branch storytimes extend beyond each short branch RSS window", () =
   assert.ok(events.every((event) => event.sourceKey === "smcl-belmont-family-events"));
   assert.ok(new Date(events.at(-1).startAt) - new Date(events[0].startAt) >= 35 * 86400000);
   assert.ok(events.slice(1).every((event) => event.confidenceStatus === "recurring_estimate"));
+});
+
+test("Foster City paginates child audiences and keeps official future dates without estimates", () => {
+  const urls = fosterCityLibraryRssUrls();
+  const fosterFixture = fixtures.countyLibrary
+    .replaceAll("Fixture Library", "Foster City")
+    .replaceAll("San Mateo", "Foster City");
+  const events = parseFosterCityLibraryEvents(fosterFixture, now);
+
+  assert.equal(urls.length, 3);
+  assert.ok(urls.every((url) => url.includes("locations=1F") && url.match(/audiences=/g)?.length === 3));
+  assert.deepEqual(urls.map((url) => new URL(url).searchParams.get("page")), ["1", "2", "3"]);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].sourceKey, "smcl-foster-city-family-events");
+  assert.equal(events[0].venueName, "Foster City Library");
+  assert.equal(events[0].confidenceStatus, "source_confirmed");
+});
+
+test("county recurring estimates do not duplicate an explicitly published occurrence", () => {
+  const nextWeek = fixtures.countyLibrary.replaceAll("2026-07-13", "2026-07-20");
+  const events = parseSanMateoCountyLibraryEvents(`${fixtures.countyLibrary}\n${nextWeek}`, now, "smcl-belmont-family-events");
+  const july20 = events.filter((event) => event.name === "Family Storytime" && event.startAt.startsWith("2026-07-20"));
+
+  assert.equal(july20.length, 1);
+  assert.equal(july20[0].confidenceStatus, "source_confirmed");
 });
 
 test("south peninsula and west valley sources retain toddler-friendly branch coverage", () => {
