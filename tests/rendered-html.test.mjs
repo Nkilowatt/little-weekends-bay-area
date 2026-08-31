@@ -13,7 +13,10 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /rel="canonical" href="https:\/\/little-weekends-bay-area\.cashmire2\.chatgpt\.site\/"/);
   assert.match(html, /id="addChildAge"/);
   assert.match(html, /id="childAgeRows"/);
-  assert.match(html, /id="familyAgeEmpty"[^>]*>나이를 추가하지 않으면 0–6세 전체/);
+  assert.match(html, /id="familyProfileButton"/);
+  assert.match(html, /id="familyAgeEmpty"[^>]*>나이를 추가하지 않으면 0–6세 대상 활동/);
+  assert.match(html, /id="clearFamilyAges"/);
+  assert.match(html, /id="clearPlaceNotes"/);
   assert.match(html, /id="locationDialog"/);
   assert.match(html, /data-location-key="oakland"/);
   assert.match(html, /data-location-key="redwood-city"/);
@@ -40,20 +43,22 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /name="category" value="photo_report"/);
   assert.match(html, /id="photoUploadDialog"/);
   assert.match(html, /id="placePhotoFile"[^>]*accept="image\/jpeg,image\/png,image\/webp"/);
+  assert.match(html, /id="photoRecoveryCode"/);
+  assert.match(html, /id="importPhotoRecovery"/);
   assert.match(html, /id="feedbackMessage"/);
   assert.match(html, /id="feedbackEmail"/);
   assert.match(html, /class="footer-feedback"[\s\S]*의견 보내기/);
   assert.match(html, /href="terms\.html">이용약관/);
   assert.match(html, /href="privacy\.html">개인정보처리방침/);
-  assert.match(html, /evergreen-outings\.js\?v=10/);
-  assert.match(html, /park-expansion\.js\?v=2/);
-  assert.match(html, /place-images\.js\?v=2/);
-  assert.match(html, /styles\.css\?v=32/);
+  assert.match(html, /evergreen-outings\.js\?v=11/);
+  assert.match(html, /park-expansion\.js\?v=3/);
+  assert.match(html, /place-images\.js\?v=3/);
+  assert.match(html, /styles\.css\?v=33/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=4/);
   assert.match(html, /family-state\.js\?v=1/);
-  assert.match(html, /app\.js\?v=38/);
+  assert.match(html, /app\.js\?v=39/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
@@ -131,6 +136,13 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /little-weekends-child-ages:v1/);
   assert.match(script, /little-weekends-place-notes:v1/);
   assert.match(script, /little-weekends-photo-submissions:v1/);
+  assert.match(script, /little-weekends-photo-upload-retry:v1/);
+  assert.match(script, /function uploadRetryFor\(file, placeKey\)/);
+  assert.match(script, /data\.set\("retryToken", retry\.retryToken\)/);
+  assert.match(script, /pendingChildAgeDraft = \{ years: "", months: "" \}/);
+  assert.doesNotMatch(script, /state\.childAgesMonths\.push\(24\)/);
+  assert.match(script, /같은 브라우저 프로필을 쓰는 사람에게는 보일 수 있어요/);
+  assert.match(script, /function ageEvidenceMarkup\(item\)/);
   assert.match(script, /familyAgeMatches\(item\.minAgeMonths, item\.maxAgeMonths, state\.childAgesMonths\)/);
   assert.match(script, /아이 \$\{state\.childAgesMonths\.length\}명 중 \$\{count\}명에게 맞아요/);
   assert.match(script, /fetch\("\/api\/place-photos"/);
@@ -199,6 +211,7 @@ test("Sites build contains the event API and security policy", async () => {
   const placeImageMigration = await readFile(new URL("drizzle/0005_place_image_sources.sql", root), "utf8");
   const feedbackMigration = await readFile(new URL("drizzle/0006_feedback_submissions.sql", root), "utf8");
   const familyMigration = await readFile(new URL("drizzle/0007_family_places_photos.sql", root), "utf8");
+  const moderationMigration = await readFile(new URL("drizzle/0008_photo_moderation_recovery.sql", root), "utf8");
 
   assert.match(worker, /pathname === "\/api\/outings"/);
   assert.match(worker, /handleCalendarRequest/);
@@ -249,6 +262,9 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(familyMigration, /ADD COLUMN `place_key`/);
   assert.match(familyMigration, /CREATE TABLE `place_photo_submissions`/);
   assert.match(familyMigration, /place_status_featured_idx/);
+  assert.match(moderationMigration, /retry_token_hash/);
+  assert.match(moderationMigration, /CREATE TABLE `place_photo_reports`/);
+  assert.match(moderationMigration, /place_photo_reports_photo_status_idx/);
 });
 
 test("Sites build serves both Korean webfonts", async () => {
@@ -275,7 +291,7 @@ test("Sites build serves public terms and privacy pages for map content", async 
     const html = await response.text();
     assert.match(html, /Google/);
     assert.match(html, /방문자 사진/);
-    assert.match(html, /styles\.css\?v=32/);
+    assert.match(html, /styles\.css\?v=33/);
   }
 });
 
@@ -296,6 +312,18 @@ test("photo moderation page requires ChatGPT login and the exact reviewer allowl
   }), env, {});
   assert.equal(allowed.status, 200);
   assert.match(await allowed.text(), /방문자 사진 검수/);
+});
+
+test("photo moderation UI separates approval from featuring and exposes consent and report handling", async () => {
+  const html = await readFile(new URL("admin/photos.html", root), "utf8");
+  const script = await readFile(new URL("admin/photos.js", root), "utf8");
+  assert.match(html, /id="adminReportList"/);
+  assert.match(script, /photo\.consentVersion/);
+  assert.match(script, /photo\.consentAt/);
+  assert.match(script, /data-featured="false"/);
+  assert.match(script, /data-featured="true"/);
+  assert.match(script, /\/api\/admin\/photo-reports\//);
+  assert.match(script, /data-report-action="takedown"/);
 });
 
 test("Sites build serves calendar actions as real ICS responses", async () => {

@@ -7,7 +7,7 @@
 .admin-heading > div > span { color: var(--muted); line-height: 1.55; }
 .admin-heading label { color: var(--muted); display: grid; font-size: .74rem; font-weight: 800; gap: 6px; min-width: 180px; }
 .admin-heading select { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-control); color: var(--ink); min-height: 44px; padding: 0 12px; }
-.admin-metrics { display: grid; gap: 1px; grid-template-columns: repeat(4, 1fr); margin: 32px 0; overflow: hidden; }
+.admin-metrics { display: grid; gap: 1px; grid-template-columns: repeat(5, 1fr); margin: 32px 0; overflow: hidden; }
 .admin-metric { background: var(--surface); border-top: 2px solid var(--line); display: grid; gap: 5px; padding: 18px; }
 .admin-metric small { color: var(--muted); font-size: .72rem; font-weight: 800; }
 .admin-metric strong { font-size: 1.7rem; }
@@ -25,11 +25,29 @@
 .admin-reason textarea { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-control); color: var(--ink); font: inherit; min-height: 78px; padding: 10px; resize: vertical; }
 .admin-photo-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .admin-photo-actions button { min-height: 42px; }
-.admin-photo-actions .danger { background: transparent; border: 1px solid var(--warning); border-radius: var(--radius-control); color: var(--warning); font-weight: 850; padding: 0 14px; }
+.admin-photo-actions .danger, .admin-report-actions .danger { background: transparent; border: 1px solid var(--warning); border-radius: var(--radius-control); color: var(--warning); font-weight: 850; padding: 0 14px; }
 .admin-empty { background: var(--surface); border-radius: var(--radius-card); color: var(--muted); padding: 48px 24px; text-align: center; }
+.admin-report-section { border-bottom: 1px solid var(--line); margin-bottom: 34px; padding-bottom: 34px; }
+.admin-subheading { align-items: end; display: flex; gap: 20px; justify-content: space-between; margin-bottom: 14px; }
+.admin-subheading p { color: var(--warning); font-size: .72rem; font-weight: 900; margin-bottom: 5px; text-transform: uppercase; }
+.admin-subheading h2 { font-size: 1.45rem; }
+.admin-subheading > span { color: var(--muted); font-size: .8rem; }
+.admin-report-list { display: grid; gap: 12px; }
+.admin-report-card { align-items: center; background: color-mix(in srgb, var(--warning) 7%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warning) 38%, var(--line)); border-radius: var(--radius-card); display: grid; gap: 16px; grid-template-columns: 112px 1fr auto; padding: 14px; }
+.admin-report-card img, .admin-report-placeholder { aspect-ratio: 4 / 3; background: var(--surface-muted); border-radius: var(--radius-control); object-fit: cover; width: 112px; }
+.admin-report-placeholder { align-items: center; color: var(--muted); display: flex; font-size: .72rem; justify-content: center; text-align: center; }
+.admin-report-copy { display: grid; gap: 5px; min-width: 0; }
+.admin-report-copy h3 { font-size: 1rem; }
+.admin-report-copy p { line-height: 1.5; margin: 0; }
+.admin-report-copy small { color: var(--muted); overflow-wrap: anywhere; }
+.admin-report-actions { display: flex; flex-direction: column; gap: 8px; }
+.admin-report-actions button { min-height: 40px; white-space: nowrap; }
 @media (max-width: 760px) {
   .photo-admin-shell { padding: 28px 16px 60px; }
   .admin-heading { align-items: stretch; flex-direction: column; }
   .admin-metrics { grid-template-columns: 1fr 1fr; }
   .admin-photo-card { grid-template-columns: 1fr; }
+  .admin-report-card { grid-template-columns: 82px 1fr; }
+  .admin-report-card img, .admin-report-placeholder { width: 82px; }
+  .admin-report-actions { flex-direction: row; grid-column: 1 / -1; }
 }

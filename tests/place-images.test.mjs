@@ -31,7 +31,7 @@ test("verified place-image registry is complete, licensed, and catalog-linked", 
   const entries = Object.entries(images);
   const catalogIds = new Set(catalog.map((item) => item.id));
 
-  assert.equal(entries.length, 61);
+  assert.equal(entries.length, 60);
   assert.equal(new Set(entries.map(([, image]) => image.src)).size, entries.length);
 
   for (const [id, image] of entries) {
@@ -52,6 +52,8 @@ test("verified place-image registry is complete, licensed, and catalog-linked", 
     }
     assert.match(image.verifiedAt, /^\d{4}-\d{2}-\d{2}$/);
     assert.ok(Array.isArray(image.aliases) && image.aliases.length >= 1);
+    assert.match(image.reviewFocus, /^(?:family_decision|venue_context)$/);
+    assert.doesNotMatch(`${image.alt} ${image.sourceUrl}`, /\b(?:gun|weapon|cannon|artillery)\b/i);
 
     const file = await stat(new URL(image.src, root));
     assert.ok(file.size > 40_000, `${image.src} should contain an optimized production photo`);

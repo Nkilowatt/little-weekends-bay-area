@@ -118,8 +118,8 @@ Optional recurrence fields:
 
 First place batch:
 
-- 10 libraries with strong toddler programming.
-- 10 parks/playgrounds with toddler-friendly equipment.
+- 10 libraries with strong baby-through-preschool programming.
+- 10 parks/playgrounds with equipment that spans younger and older preschool ages.
 - 5 indoor play spaces.
 - 5 museums/science centers.
 - 5 seasonal/nature outing categories.
@@ -127,13 +127,13 @@ First place batch:
 First event batch:
 
 - Storytime events from SFPL, San Mateo, South San Francisco, Redwood City, Sunnyvale, and Santa Clara County libraries.
-- Museum toddler hours where official schedules are clear.
+- Museum baby, toddler, preschool, pre-K, and kindergarten programs where official schedules are clear.
 - A small set of seasonal weekend events that can be manually verified.
 
 ## Batch Order
 
 1. 15-20 library systems, branches, or recurring storytime calendars.
-2. 15-20 standing places such as toddler-friendly playgrounds, museums, zoos, and county parks.
+2. 15-20 standing places such as 0–6-friendly playgrounds, museums, zoos, and county parks.
 3. 8-12 seasonal or nature sources.
 4. 5-10 indoor or rainy-day venues, manually reviewed first.
 

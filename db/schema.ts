@@ -101,6 +101,7 @@ export const placePhotoSubmissions = sqliteTable("place_photo_submissions", {
   byteSize: integer("byte_size").notNull(),
   takenOn: text("taken_on"),
   deviceHash: text("device_hash").notNull(),
+  retryTokenHash: text("retry_token_hash").notNull().default(""),
   manageTokenHash: text("manage_token_hash").notNull(),
   consentVersion: text("consent_version").notNull(),
   consentAt: text("consent_at").notNull(),
@@ -114,4 +115,21 @@ export const placePhotoSubmissions = sqliteTable("place_photo_submissions", {
   index("place_photo_submissions_status_created_idx").on(table.status, table.createdAt),
   index("place_photo_submissions_place_status_featured_idx").on(table.placeKey, table.status, table.isFeatured, table.reviewedAt),
   index("place_photo_submissions_device_created_idx").on(table.deviceHash, table.createdAt),
+]);
+
+export const placePhotoReports = sqliteTable("place_photo_reports", {
+  id: text("id").primaryKey(),
+  requestId: text("request_id").notNull().unique(),
+  photoId: text("photo_id").notNull(),
+  placeKey: text("place_key").notNull(),
+  message: text("message").notNull(),
+  email: text("email"),
+  status: text("status").notNull().default("new"),
+  createdAt: text("created_at").notNull(),
+  resolvedAt: text("resolved_at"),
+  resolvedByUserId: text("resolved_by_user_id"),
+  resolution: text("resolution"),
+}, (table) => [
+  index("place_photo_reports_status_created_idx").on(table.status, table.createdAt),
+  index("place_photo_reports_photo_status_idx").on(table.photoId, table.status),
 ]);

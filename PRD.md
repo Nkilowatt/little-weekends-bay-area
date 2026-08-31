@@ -28,7 +28,7 @@ Common traits:
 
 ## 3. Problem
 
-Parents know there are many good toddler-friendly activities in the Bay Area, but discovery is fragmented and repetitive.
+Parents know there are many good baby-through-preschool activities in the Bay Area, but discovery is fragmented and repetitive.
 
 They often need to check many different sources:
 

@@ -3,6 +3,8 @@ const MAX_MESSAGE_LENGTH = 1200;
 const MAX_EMAIL_LENGTH = 254;
 const CATEGORY_VALUES = new Set(["place_request", "improvement", "correction", "photo_report", "other"]);
 const REQUEST_ID_PATTERN = /^[0-9a-f-]{36}$/i;
+const PHOTO_ID_PATTERN = /^photo_[0-9a-f-]{36}$/i;
+const PLACE_KEY_PATTERN = /^[a-z0-9][a-z0-9-]{2,219}$/i;
 
 function jsonResponse(payload, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(payload), {
@@ -92,6 +94,21 @@ async function ensureFeedbackSchema(db) {
       created_at TEXT NOT NULL
     )`),
     db.prepare("CREATE INDEX IF NOT EXISTS feedback_submissions_status_created_idx ON feedback_submissions (status, created_at DESC)"),
+    db.prepare(`CREATE TABLE IF NOT EXISTS place_photo_reports (
+      id TEXT PRIMARY KEY NOT NULL,
+      request_id TEXT NOT NULL UNIQUE,
+      photo_id TEXT NOT NULL,
+      place_key TEXT NOT NULL,
+      message TEXT NOT NULL,
+      email TEXT,
+      status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'resolved', 'dismissed')),
+      created_at TEXT NOT NULL,
+      resolved_at TEXT,
+      resolved_by_user_id TEXT,
+      resolution TEXT
+    )`),
+    db.prepare("CREATE INDEX IF NOT EXISTS place_photo_reports_status_created_idx ON place_photo_reports (status, created_at DESC)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS place_photo_reports_photo_status_idx ON place_photo_reports (photo_id, status)"),
   ]);
 }
 
@@ -113,16 +130,34 @@ async function createFeedback(request, env) {
   if (!requestId) return jsonResponse({ error: "요청 식별자가 올바르지 않아요. 다시 시도해 주세요." }, 400);
 
   await ensureFeedbackSchema(env.DB);
+  const context = safeContext(body.context);
+  if (category === "photo_report") {
+    if (!PHOTO_ID_PATTERN.test(context.photoId) || !PLACE_KEY_PATTERN.test(context.placeKey)) {
+      return jsonResponse({ error: "신고할 사진을 확인하지 못했어요." }, 400);
+    }
+    const photo = await env.DB.prepare("SELECT id, place_key FROM place_photo_submissions WHERE id = ? AND status = 'approved'")
+      .bind(context.photoId).first();
+    if (!photo || photo.place_key !== context.placeKey) return jsonResponse({ error: "공개 중인 사진을 찾지 못했어요." }, 404);
+  }
+
   const id = `feedback_${crypto.randomUUID()}`;
   const createdAt = new Date().toISOString();
-  await env.DB.prepare(`INSERT INTO feedback_submissions (
+  const statements = [env.DB.prepare(`INSERT INTO feedback_submissions (
     id, request_id, category, message, email, context_json, status, created_at
   ) VALUES (?, ?, ?, ?, ?, ?, 'new', ?)
   ON CONFLICT(request_id) DO NOTHING`)
-    .bind(id, requestId, category, message, email || null, JSON.stringify(safeContext(body.context)), createdAt)
-    .run();
+    .bind(id, requestId, category, message, email || null, JSON.stringify(context), createdAt)];
 
-  return jsonResponse({ ok: true }, 201);
+  if (category === "photo_report") {
+    statements.push(env.DB.prepare(`INSERT INTO place_photo_reports (
+      id, request_id, photo_id, place_key, message, email, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, 'new', ?)
+    ON CONFLICT(request_id) DO NOTHING`)
+      .bind(`report_${crypto.randomUUID()}`, requestId, context.photoId, context.placeKey, message, email || null, createdAt));
+  }
+  await env.DB.batch(statements);
+
+  return jsonResponse({ ok: true, ...(category === "photo_report" ? { photoReport: true } : {}) }, 201);
 }
 
 export async function handleFeedbackRequest(request, env) {

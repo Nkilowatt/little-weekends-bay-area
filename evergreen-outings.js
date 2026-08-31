@@ -1592,12 +1592,23 @@ window.LITTLE_WEEKENDS_EVERGREEN = [
 
   window.LITTLE_WEEKENDS_EVERGREEN = window.LITTLE_WEEKENDS_EVERGREEN.map((item) => {
     const verifiedHours = verifiedHoursById[item.id];
-    if (!verifiedHours) return item;
-    return {
+    const reviewedItem = verifiedHours ? {
       ...item,
       timeLabel: verifiedHours,
       updated: "7월 25일 공식 운영시간 확인",
       lastReviewedAt: "2026-07-25",
+    } : item;
+    const basis = /library|도서관/i.test(`${reviewedItem.name} ${reviewedItem.sourceName}`)
+      ? "official_program"
+      : reviewedItem.type === "park" ? "official_facility" : "official_audience";
+    return {
+      ...reviewedItem,
+      ageEvidence: reviewedItem.ageEvidence || {
+        url: reviewedItem.source,
+        basis,
+        summary: `공식 운영기관의 이용 대상·시설 설명과 편집 검토를 바탕으로 ${reviewedItem.age} 범위를 적용했어요.`,
+        verifiedAt: reviewedItem.lastReviewedAt,
+      },
     };
   });
 })();

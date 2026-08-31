@@ -104,7 +104,7 @@ Tasks:
 
 Done when:
 
-- Results are toddler-relevant by default.
+- With no ages selected, results cover the full 0–6 catalog; once ages are added, every selected child must fit the activity range.
 - Every event and place has an official source and freshness status.
 
 ### 4. Trust And Freshness UI

@@ -94,6 +94,8 @@ The current basemap is intentionally lightweight:
 
 ## Current P1 Discovery Baseline
 
+- The family profile is a prominent discovery control. Parents can add each child in years and months from 0–83 months, and the main result set requires every selected child to fit. With no ages selected, the full 0–6 catalog is shown; partial-fit alternatives are labelled and separated instead of silently relaxing the filter.
+- Every evergreen place carries structured official age evidence, and the build fails if a place is missing its source, basis, review date, or age range. Pre-K and kindergarten programs are retained as ages 4–6 while older-only programs remain excluded.
 - The date filter includes tomorrow while retaining anytime places as flexible alternatives.
 - Region filtering covers San Francisco, Peninsula, South Bay, East Bay, and North Bay.
 - Event-time, reservation, bathroom-information, and stroller-information filters support practical parent decisions.
@@ -102,6 +104,9 @@ The current basemap is intentionally lightweight:
 - Empty states can expand distance, include anytime places, or reset all conditions.
 - Detail panels provide native sharing with clipboard fallback and three deduplicated nearby alternatives.
 - Images support optional actual/context provenance, while fallback category art is labeled `활동 예시`. Parking, bathroom, changing-table, and stroller notes use the same confirmed/unknown status model.
+- Private place notes are versioned in local storage, capped at 500 characters, and explicitly warn that other people using the same browser profile may see them. Notes never enter shared plans, feedback, photo submissions, URLs, or server APIs.
+- Visitor photo uploads stay hidden until the production flag, private R2 bucket, image transform, D1 migrations, and exact reviewer allowlist are all ready. Uploads require rights and identifiable-person consent, are re-encoded before private storage, remain pending until approval, support idempotent retry recovery, and expose a manual withdrawal-code fallback when browser storage is unavailable.
+- Public photo reports enter a dedicated moderation queue. Reviewers can dismiss a report or immediately remove the public image and its R2 object; approval and representative-image selection are separate decisions.
 - At 768px and below the hero is compact, search is always visible, filter fields are grouped by decision stage, and the sticky detail action area leads with directions and official information without hiding save/share/calendar actions.
 - Mobile places a text-free contextual photo moment between the compact hero title and discovery controls. Nine generated scenes are selected deterministically from Pacific date, origin city, date tab, search, and activity filters, so the image does not jump on refresh. Accessible alt text describes each anonymous activity scene without presenting it as a named venue photo.
 - The first save exposes a `계획 보기` action, and the saved view explains date grouping, nap and schedule conflict checks, calendar export, and family sharing.
@@ -140,16 +145,13 @@ Planning and operations docs:
 
 ## Security Baseline
 
-Current security posture is intentionally simple:
+Current security posture keeps public discovery account-free while protecting operational writes:
 
-- No API keys.
-- No secrets.
-- No auth.
-- No payments.
-- No form submission.
-- No cookies.
-- One same-origin read-only public endpoint: `/api/outings`.
-- D1 stores normalized event and source-sync state.
+- No public user accounts, payments, or cross-device private-note sync.
+- Public APIs are same-origin and validate input, request IDs, size limits, and origin headers.
+- ChatGPT authentication plus an exact server-side email allowlist protects every photo-admin page and API.
+- D1 stores normalized event/source state, feedback, shared-plan snapshots, photo-submission metadata, hashed management and retry tokens, and the dedicated photo-report queue. IP addresses are not stored as application data.
+- Private R2 stores only transformed photo objects. Pending objects never appear in public APIs, and rejection, withdrawal, takedown, or expiry removes the object.
 - Event rows include structured start and end times. Source metadata includes active-event counts and current/stale state.
 
 The OpenAI Sites build and `netlify.toml` set security headers including:
@@ -160,7 +162,7 @@ The OpenAI Sites build and `netlify.toml` set security headers including:
 - `X-Content-Type-Options`
 - `Referrer-Policy`
 
-OpenAI Sites uses `connect-src 'self'` for `/api/outings`. The Netlify legacy configuration remains restrictive because it redirects to the canonical service instead of hosting the event API.
+OpenAI Sites uses `connect-src 'self'` for the same-origin public and reviewer APIs. The Netlify legacy configuration remains restrictive because it redirects to the canonical service instead of hosting those APIs.
 
 External official-source links in `app.js` use `target="_blank"` with `rel="noopener noreferrer"`.
 
@@ -168,13 +170,13 @@ Imported text is normalized and escaped before HTML rendering. Official source l
 
 ## Important Data Note
 
-The service combines automatically collected official events with 57 human-reviewed evergreen places. Automatic source parsing is not the same as human verification. Before a broader launch:
+The service combines automatically collected official events with 128 human-reviewed evergreen places. Automatic source parsing is not the same as human verification. Before a broader launch:
 
 - Every public event needs an official source URL.
 - Every public event needs freshness metadata.
 - Imported events should not appear as verified until reviewed.
 - Stale or ambiguous events should be hidden or clearly marked.
-- User-submitted tips should be moderated before public display.
+- Visitor photos must complete the pending → reviewer approval → public lifecycle, and reports must support immediate takedown.
 
 ## Git And Deployment Note
 

@@ -104,6 +104,28 @@ test("feedback request ids make retries idempotent", async () => {
   assert.equal(database.prepare("SELECT COUNT(*) AS count FROM feedback_submissions").get().count, 1);
 });
 
+test("public photo reports are validated and routed to the moderation queue", async () => {
+  const { database, env } = testEnvironment();
+  database.exec(`CREATE TABLE place_photo_submissions (
+    id TEXT PRIMARY KEY, place_key TEXT NOT NULL, status TEXT NOT NULL
+  )`);
+  const photoId = `photo_${crypto.randomUUID()}`;
+  database.prepare("INSERT INTO place_photo_submissions (id, place_key, status) VALUES (?, ?, 'approved')")
+    .run(photoId, "foster-city-library-family-place");
+  const body = validFeedback({
+    category: "photo_report",
+    message: "사진에 식별 가능한 개인정보가 보여요.",
+    context: { photoId, placeKey: "foster-city-library-family-place" },
+  });
+  const response = await handleFeedbackRequest(feedbackRequest(body), env);
+  assert.equal(response.status, 201);
+  assert.equal((await response.json()).photoReport, true);
+  const report = database.prepare("SELECT * FROM place_photo_reports").get();
+  assert.equal(report.photo_id, photoId);
+  assert.equal(report.status, "new");
+  assert.equal(database.prepare("SELECT category FROM feedback_submissions").get().category, "photo_report");
+});
+
 test("feedback rejects cross-site and invalid submissions without storing them", async () => {
   const { database, env } = testEnvironment();
   const crossSite = feedbackRequest(validFeedback(), {

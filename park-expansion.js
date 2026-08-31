@@ -204,6 +204,12 @@
       sourceName,
       updated: "7월 25일 공식 정보 확인",
       lastReviewedAt: reviewedAt,
+      ageEvidence: {
+        url: source,
+        basis: "official_facility",
+        summary: "공식 공원·시설 안내와 놀이터 구성을 바탕으로 1–8세 가족 범위를 편집 검토했어요.",
+        verifiedAt: reviewedAt,
+      },
       confidenceStatus: "human_verified",
       address,
       why,

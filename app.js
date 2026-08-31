@@ -599,6 +599,16 @@ function normalizeOuting(item) {
   const venueName = safeText(item.venueName, !item.startDate && address ? item.name : "", 180);
   const placeKey = outingPlaceKey(item, venueName, address, city);
   const reservation = safeText(item.reservation, "공식 페이지 확인", 180);
+  const rawAgeEvidence = item.ageEvidence && typeof item.ageEvidence === "object" ? item.ageEvidence : {};
+  const evidenceUrl = safeSourceUrl(rawAgeEvidence.url || item.source);
+  const ageEvidence = evidenceUrl ? {
+    url: evidenceUrl,
+    basis: safeText(rawAgeEvidence.basis, item.startDate ? "official_program" : "editorial_review", 60),
+    summary: safeText(rawAgeEvidence.summary, "공식 기관 정보와 가족 대상 시설 설명을 바탕으로 연령 범위를 검토했어요.", 220),
+    verifiedAt: /^\d{4}-\d{2}-\d{2}$/.test(String(rawAgeEvidence.verifiedAt || item.lastReviewedAt || ""))
+      ? String(rawAgeEvidence.verifiedAt || item.lastReviewedAt)
+      : ""
+  } : null;
   const placeFeatures = Array.isArray(item.placeFeatures)
     ? [...new Set(item.placeFeatures.map((feature) => safeText(feature, "", 40)).filter(Boolean))].slice(0, 5)
     : [];
@@ -637,6 +647,7 @@ function normalizeOuting(item) {
     source: safeSourceUrl(item.source),
     sourceName: safeText(item.sourceName, "공식 운영기관", 140),
     updated: safeText(item.updated, "확인 시각 없음", 120),
+    ageEvidence,
     why: safeText(item.why, "공식 페이지에서 세부 정보를 확인해 주세요.", 500),
     venueName,
     address,
@@ -804,6 +815,7 @@ const state = {
   discoveryMode: "mixed",
   filterOpen: false
 };
+let pendingChildAgeDraft = null;
 
 const {
   buildCalendarUrl,
@@ -854,6 +866,7 @@ try {
 
 let photoDeviceId = "";
 let photoSubmissionReceipts = [];
+let photoUploadRetryDraft = null;
 try {
   photoDeviceId = String(localStorage.getItem("little-weekends-photo-device:v1") || "");
   if (!/^[A-Za-z0-9_-]{24,120}$/.test(photoDeviceId)) {
@@ -864,9 +877,15 @@ try {
   photoSubmissionReceipts = Array.isArray(receipts)
     ? receipts.filter((receipt) => /^photo_[0-9a-f-]{36}$/i.test(String(receipt?.id || "")) && /^[A-Za-z0-9_-]{24,120}$/.test(String(receipt?.manageToken || ""))).slice(0, 30)
     : [];
+  const retryDraft = JSON.parse(localStorage.getItem("little-weekends-photo-upload-retry:v1") || "null");
+  if (/^[0-9a-f-]{36}$/i.test(String(retryDraft?.requestId || ""))
+    && /^[A-Za-z0-9_-]{24,120}$/.test(String(retryDraft?.retryToken || ""))
+    && /^[a-z0-9][a-z0-9-]{2,219}$/i.test(String(retryDraft?.placeKey || ""))
+    && Number.isFinite(Number(retryDraft?.createdAt))) photoUploadRetryDraft = retryDraft;
 } catch {
   photoDeviceId = createParticipantId();
   photoSubmissionReceipts = [];
+  photoUploadRetryDraft = null;
 }
 
 try {
@@ -904,6 +923,10 @@ const photoUploadSubmit = document.querySelector("#photoUploadSubmit");
 const photoPreview = document.querySelector("#photoPreview");
 const photoPreviewImage = document.querySelector("#photoPreviewImage");
 const photoSubmissionHistory = document.querySelector("#photoSubmissionHistory");
+const photoRecoveryCode = document.querySelector("#photoRecoveryCode");
+const photoRecoveryImport = document.querySelector("#photoRecoveryImport");
+const photoRecoveryImportStatus = document.querySelector("#photoRecoveryImportStatus");
+const familyProfileButton = document.querySelector("#familyProfileButton");
 const mobileSearchMedia = window.matchMedia("(max-width: 768px)");
 const mobileMomentEl = document.querySelector("#mobileMoment");
 const mobileMomentImageEl = document.querySelector("#mobileMomentImage");
@@ -1025,22 +1048,46 @@ function placeNoteFor(item) {
   return item?.placeKey ? state.placeNotesByKey[item.placeKey] || null : null;
 }
 
+function syncFamilyProfile() {
+  const summary = document.querySelector("#familyProfileSummary");
+  const hint = document.querySelector("#familyProfileHint");
+  if (!summary || !hint || !familyProfileButton) return;
+  if (!state.childAgesMonths.length) {
+    summary.textContent = "아이 나이 추가";
+    hint.textContent = "나이를 넣으면 모든 아이에게 맞는 곳만 찾아드려요.";
+  } else {
+    const labels = state.childAgesMonths.map(childAgeLabel);
+    summary.textContent = labels.length <= 3 ? labels.join(" · ") : `${labels.slice(0, 3).join(" · ")} 외 ${labels.length - 3}명`;
+    hint.textContent = `${labels.length}명 모두에게 맞는 결과만 표시 중이에요.`;
+  }
+  familyProfileButton.setAttribute("aria-expanded", String(state.filterOpen));
+}
+
 function renderChildAgeRows() {
   const rows = document.querySelector("#childAgeRows");
   const empty = document.querySelector("#familyAgeEmpty");
   if (!rows || !empty) return;
-  rows.innerHTML = state.childAgesMonths.map((ageMonths, index) => {
+  const savedRows = state.childAgesMonths.map((ageMonths, index) => {
     const years = Math.floor(ageMonths / 12);
     const months = ageMonths % 12;
     return `
       <div class="child-age-row" data-child-age-index="${index}">
         <span class="child-age-number">아이 ${index + 1}</span>
-        <label><span>만 나이</span><select data-child-years="${index}">${Array.from({ length: 7 }, (_, year) => `<option value="${year}" ${year === years ? "selected" : ""}>${year}세</option>`).join("")}</select></label>
-        <label><span>개월</span><select data-child-months="${index}">${Array.from({ length: 12 }, (_, month) => `<option value="${month}" ${month === months ? "selected" : ""}>${month}개월</option>`).join("")}</select></label>
+        <label><span>만 나이</span><select aria-label="아이 ${index + 1} 만 나이" data-child-years="${index}">${Array.from({ length: 7 }, (_, year) => `<option value="${year}" ${year === years ? "selected" : ""}>${year}세</option>`).join("")}</select></label>
+        <label><span>개월</span><select aria-label="아이 ${index + 1} 개월" data-child-months="${index}">${Array.from({ length: 12 }, (_, month) => `<option value="${month}" ${month === months ? "selected" : ""}>${month}개월</option>`).join("")}</select></label>
         <button class="child-age-remove" data-remove-child-age="${index}" type="button" aria-label="아이 ${index + 1} 나이 삭제">삭제</button>
       </div>`;
   }).join("");
-  empty.hidden = state.childAgesMonths.length > 0;
+  const draftIndex = state.childAgesMonths.length;
+  const draftRow = pendingChildAgeDraft ? `
+    <div class="child-age-row is-draft" data-child-age-draft>
+      <span class="child-age-number">아이 ${draftIndex + 1}</span>
+      <label><span>만 나이</span><select aria-label="아이 ${draftIndex + 1} 만 나이" data-draft-years><option value="" ${pendingChildAgeDraft.years === "" ? "selected" : ""} disabled>선택</option>${Array.from({ length: 7 }, (_, year) => `<option value="${year}" ${String(year) === pendingChildAgeDraft.years ? "selected" : ""}>${year}세</option>`).join("")}</select></label>
+      <label><span>개월</span><select aria-label="아이 ${draftIndex + 1} 개월" data-draft-months><option value="" ${pendingChildAgeDraft.months === "" ? "selected" : ""} disabled>선택</option>${Array.from({ length: 12 }, (_, month) => `<option value="${month}" ${String(month) === pendingChildAgeDraft.months ? "selected" : ""}>${month}개월</option>`).join("")}</select></label>
+      <button class="child-age-remove" data-cancel-child-age type="button" aria-label="아이 ${draftIndex + 1} 나이 입력 취소">취소</button>
+    </div>` : "";
+  rows.innerHTML = savedRows + draftRow;
+  empty.hidden = state.childAgesMonths.length > 0 || Boolean(pendingChildAgeDraft);
 
   rows.querySelectorAll("select").forEach((select) => select.addEventListener("change", (event) => {
     const index = Number(event.currentTarget.closest("[data-child-age-index]").dataset.childAgeIndex);
@@ -1057,6 +1104,22 @@ function renderChildAgeRows() {
     renderChildAgeRows();
     render();
   }));
+  rows.querySelectorAll("[data-draft-years], [data-draft-months]").forEach((select) => select.addEventListener("change", () => {
+    const draft = rows.querySelector("[data-child-age-draft]");
+    const years = draft.querySelector("[data-draft-years]").value;
+    const months = draft.querySelector("[data-draft-months]").value;
+    pendingChildAgeDraft = { years, months };
+    if (years === "" || months === "") return;
+    state.childAgesMonths.push(Math.min(83, Number(years) * 12 + Number(months)));
+    pendingChildAgeDraft = null;
+    persistChildAges();
+    render();
+  }));
+  rows.querySelector("[data-cancel-child-age]")?.addEventListener("click", () => {
+    pendingChildAgeDraft = null;
+    renderChildAgeRows();
+  });
+  syncFamilyProfile();
 }
 
 function persistNapWindow() {
@@ -1076,9 +1139,36 @@ function createParticipantId() {
 function persistPhotoReceipts() {
   try {
     localStorage.setItem("little-weekends-photo-submissions:v1", JSON.stringify(photoSubmissionReceipts.slice(0, 30)));
+    return true;
   } catch {
-    // The submitted image remains in moderation even when the local receipt cannot be stored.
+    return false;
   }
+}
+
+function photoFileFingerprint(file, placeKey) {
+  return `${placeKey}|${file.name}|${file.size}|${file.lastModified}|${file.type}`;
+}
+
+function uploadRetryFor(file, placeKey) {
+  const fingerprint = photoFileFingerprint(file, placeKey);
+  const fresh = photoUploadRetryDraft
+    && photoUploadRetryDraft.fingerprint === fingerprint
+    && Date.now() - Number(photoUploadRetryDraft.createdAt) < 24 * 60 * 60 * 1000;
+  if (fresh) return photoUploadRetryDraft;
+  photoUploadRetryDraft = {
+    placeKey,
+    fingerprint,
+    requestId: createFeedbackRequestId(),
+    retryToken: createParticipantId(),
+    createdAt: Date.now(),
+  };
+  try { localStorage.setItem("little-weekends-photo-upload-retry:v1", JSON.stringify(photoUploadRetryDraft)); } catch { /* Current session can still retry. */ }
+  return photoUploadRetryDraft;
+}
+
+function clearUploadRetry() {
+  photoUploadRetryDraft = null;
+  try { localStorage.removeItem("little-weekends-photo-upload-retry:v1"); } catch { /* No stored draft to clear. */ }
 }
 
 let activePhotoUploadItem = null;
@@ -1161,6 +1251,10 @@ function openPhotoUploadDialog(item) {
   photoUploadForm.reset();
   photoUploadStatus.textContent = "";
   photoUploadStatus.classList.remove("is-error");
+  photoRecoveryCode.hidden = true;
+  photoRecoveryCode.querySelector("code").textContent = "";
+  photoRecoveryImport.value = "";
+  photoRecoveryImportStatus.textContent = "";
   document.querySelector("#photoUploadPlaceName").textContent = item.venueName || item.name;
   document.querySelector("#photoTakenOn").max = new Date().toISOString().slice(0, 10);
   if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
@@ -1193,11 +1287,12 @@ async function submitPlacePhoto(event) {
     photoUploadStatus.classList.add("is-error");
     return;
   }
-  const requestId = createFeedbackRequestId();
+  const retry = uploadRetryFor(file, activePhotoUploadItem.placeKey);
   const data = new FormData();
   data.set("photo", file);
   data.set("placeKey", activePhotoUploadItem.placeKey);
-  data.set("requestId", requestId);
+  data.set("requestId", retry.requestId);
+  data.set("retryToken", retry.retryToken);
   data.set("deviceId", photoDeviceId);
   data.set("takenOn", document.querySelector("#photoTakenOn").value);
   data.set("rightsConfirmed", "true");
@@ -1210,7 +1305,13 @@ async function submitPlacePhoto(event) {
     const response = await fetch("/api/place-photos", { method: "POST", body: data });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || "사진을 올리지 못했어요.");
-    if (!photoSubmissionReceipts.some((receipt) => receipt.id === payload.submissionId)) {
+    if (!/^photo_[0-9a-f-]{36}$/i.test(String(payload.submissionId || "")) || !/^[A-Za-z0-9_-]{24,120}$/.test(String(payload.manageToken || ""))) {
+      throw new Error("사진 관리 정보를 받지 못했어요. 같은 사진으로 다시 시도해 주세요.");
+    }
+    const existingReceipt = photoSubmissionReceipts.find((receipt) => receipt.id === payload.submissionId);
+    if (existingReceipt) {
+      Object.assign(existingReceipt, { manageToken: payload.manageToken, status: payload.status });
+    } else {
       photoSubmissionReceipts.unshift({
         id: payload.submissionId,
         placeKey: activePhotoUploadItem.placeKey,
@@ -1220,12 +1321,20 @@ async function submitPlacePhoto(event) {
         createdAt: new Date().toISOString()
       });
     }
-    persistPhotoReceipts();
+    const receiptStored = persistPhotoReceipts();
+    clearUploadRetry();
     photoUploadForm.reset();
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
     photoPreviewUrl = "";
     photoPreview.hidden = true;
-    photoUploadStatus.textContent = "검수 요청을 받았어요. 승인 전에는 다른 사용자에게 보이지 않아요.";
+    photoUploadStatus.textContent = payload.recovered
+      ? "기존 검수 요청을 복구했어요. 승인 전에는 다른 사용자에게 보이지 않아요."
+      : "검수 요청을 받았어요. 승인 전에는 다른 사용자에게 보이지 않아요.";
+    if (!receiptStored) {
+      const recoveryValue = `${payload.submissionId}:${payload.manageToken}`;
+      photoRecoveryCode.querySelector("code").textContent = recoveryValue;
+      photoRecoveryCode.hidden = false;
+    }
     await refreshPhotoSubmissionHistory(activePhotoUploadItem.placeKey);
   } catch (error) {
     photoUploadStatus.textContent = error?.message || "사진을 올리지 못했어요. 잠시 후 다시 시도해 주세요.";
@@ -1234,6 +1343,45 @@ async function submitPlacePhoto(event) {
     photoUploadSubmit.disabled = false;
   }
 }
+
+document.querySelector("#copyPhotoRecoveryCode").addEventListener("click", async () => {
+  const value = photoRecoveryCode.querySelector("code").textContent;
+  if (!value) return;
+  await copyText(value);
+  showToast("사진 관리 코드를 복사했어요.");
+});
+
+document.querySelector("#importPhotoRecovery").addEventListener("click", async () => {
+  const value = photoRecoveryImport.value.trim();
+  const match = value.match(/^(photo_[0-9a-f-]{36}):([A-Za-z0-9_-]{24,120})$/i);
+  if (!match || !activePhotoUploadItem?.placeKey) {
+    photoRecoveryImportStatus.textContent = "관리 코드 형식을 확인해 주세요.";
+    return;
+  }
+  const response = await fetch(`/api/place-photos/submissions/${encodeURIComponent(match[1])}`, {
+    headers: { Accept: "application/json", "X-Photo-Manage-Token": match[2] },
+    cache: "no-store"
+  }).catch(() => null);
+  if (!response?.ok) {
+    photoRecoveryImportStatus.textContent = "이 관리 코드를 확인하지 못했어요.";
+    return;
+  }
+  const detail = await response.json();
+  if (detail.placeKey !== activePhotoUploadItem.placeKey) {
+    photoRecoveryImportStatus.textContent = "현재 장소에 해당하는 관리 코드가 아니에요.";
+    return;
+  }
+  const receipt = photoSubmissionReceipts.find((candidate) => candidate.id === detail.id);
+  const values = { id: detail.id, placeKey: detail.placeKey, placeName: detail.placeName, manageToken: match[2], status: detail.status, createdAt: detail.createdAt };
+  if (receipt) Object.assign(receipt, values);
+  else photoSubmissionReceipts.unshift(values);
+  if (!persistPhotoReceipts()) {
+    photoRecoveryImportStatus.textContent = "코드는 맞지만 이 브라우저에 저장하지 못했어요. 코드를 계속 보관해 주세요.";
+    return;
+  }
+  photoRecoveryImportStatus.textContent = "사진 관리 내역을 이 브라우저에 복구했어요.";
+  await refreshPhotoSubmissionHistory(detail.placeKey);
+});
 
 function planUpdatedLabel(value) {
   if (!value) return "업데이트 시각 확인 중";
@@ -1499,6 +1647,9 @@ function resetFeedbackView() {
     helper.classList.remove("is-error");
   });
   currentFeedbackRequestId = createFeedbackRequestId();
+  document.querySelector("#feedbackTitle").textContent = "Little Weekends에 알려주세요";
+  document.querySelector(".feedback-heading p").textContent = "30초면 충분해요. 선택한 지역과 필터는 함께 전달되지만 정확한 위치는 저장하지 않아요.";
+  feedbackForm.querySelector(".photo-report-option").hidden = true;
 }
 
 function openFeedbackDialog(report = null) {
@@ -1509,9 +1660,17 @@ function openFeedbackDialog(report = null) {
   if (!currentFeedbackRequestId || !feedbackSuccess.hidden) resetFeedbackView();
   if (reportingPhoto) {
     const category = feedbackForm.querySelector("input[name='category'][value='photo_report']");
-    if (category) category.checked = true;
+    if (category) {
+      category.closest("label").hidden = false;
+      category.checked = true;
+    }
+    document.querySelector("#feedbackTitle").textContent = "공개 사진 신고";
+    document.querySelector(".feedback-heading p").textContent = "신고는 사진 검수자에게 바로 전달되며 필요하면 즉시 공개를 중단해요.";
     feedbackForm.querySelector("#feedbackMessage").placeholder = "이 사진을 신고하는 이유를 적어 주세요.";
   } else {
+    const reportOption = feedbackForm.querySelector(".photo-report-option");
+    reportOption.hidden = true;
+    if (reportOption.querySelector("input").checked) feedbackForm.querySelector("input[name='category'][value='place_request']").checked = true;
     feedbackForm.querySelector("#feedbackMessage").placeholder = "예: Fremont의 주말 스토리타임도 보고 싶어요.";
   }
   setFeedbackBackgroundInert(true);
@@ -1561,6 +1720,8 @@ async function submitFeedback(event) {
 
     feedbackSubmit.dataset.state = "success";
     feedbackForm.closest(".feedback-form-view").hidden = true;
+    feedbackSuccess.querySelector("h2").textContent = reportingPhoto ? "사진 신고를 접수했어요" : "의견을 잘 받았어요";
+    feedbackSuccess.querySelector("p").textContent = reportingPhoto ? "검수자가 확인하고 필요한 경우 사진을 즉시 비공개 처리할게요." : "보내주신 내용을 다음 개선에 꼼꼼히 반영할게요.";
     feedbackSuccess.hidden = false;
     currentFeedbackRequestId = "";
     if (feedbackDialog.open) feedbackSuccess.querySelector("button").focus();
@@ -2992,6 +3153,7 @@ function renderMap(items) {
 function syncFilterPanel() {
   filterPanelEl.hidden = !state.filterOpen;
   filterButtonEl.setAttribute("aria-expanded", String(state.filterOpen));
+  syncFamilyProfile();
 }
 
 function setFilterPanelOpen(open, { restoreFocus = false } = {}) {
@@ -3241,7 +3403,7 @@ function privatePlaceNoteMarkup(item) {
   return `
     <section class="private-place-note" aria-labelledby="privateNoteTitle">
       <div class="private-note-heading">
-        <div><h3 id="privateNoteTitle">나만의 메모</h3><p>이 브라우저에만 저장돼요. 공유 링크나 서버에는 포함되지 않아요.</p></div>
+        <div><h3 id="privateNoteTitle">나만의 메모</h3><p>이 브라우저에만 저장돼요. 공유 링크나 서버에는 포함되지 않지만, 같은 브라우저 프로필을 쓰는 사람에게는 보일 수 있어요.</p></div>
         ${note ? '<span>메모 있음</span>' : ""}
       </div>
       <textarea id="placeNoteInput" maxlength="500" placeholder="다녀온 뒤 기억할 점을 간단히 적어보세요. 예: 뒤쪽 주차장이 한적했어요.">${escapeHtml(note?.text || "")}</textarea>
@@ -3268,10 +3430,24 @@ function detailPhotoContributeMarkup(item) {
   if (!item.placeKey) return "";
   const hasActual = itemImageKind(item) === "actual";
   return `
-    <section class="detail-photo-contribute">
+    <section class="detail-photo-contribute" hidden>
       <div><strong>${hasActual ? "이 장소의 최근 사진이 있나요?" : "이 장소의 실제 사진을 찾고 있어요"}</strong><span>직접 촬영한 사진을 올리면 검수 후 장소 사진으로 공개할 수 있어요.</span></div>
       <button class="secondary-action" id="uploadPlacePhoto" type="button" disabled>업로드 확인 중</button>
     </section>`;
+}
+
+function ageEvidenceMarkup(item) {
+  if (!item.ageEvidence?.url) return "";
+  const basisLabel = {
+    official_program: "공식 프로그램 대상",
+    official_facility: "공식 시설 안내",
+    official_audience: "공식 이용 대상",
+    editorial_review: "공식 자료 기반 편집 검토",
+  }[item.ageEvidence.basis] || "공식 자료 기반 검토";
+  const reviewed = item.ageEvidence.verifiedAt
+    ? new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "short", day: "numeric", timeZone: "America/Los_Angeles" }).format(new Date(`${item.ageEvidence.verifiedAt}T12:00:00-07:00`))
+    : "검토일 확인 중";
+  return `<div class="age-evidence"><span><strong>연령 근거</strong><small>${escapeHtml(basisLabel)} · ${escapeHtml(reviewed)}</small></span><p>${escapeHtml(item.ageEvidence.summary)}</p><a href="${escapeHtml(item.ageEvidence.url)}" target="_blank" rel="noopener noreferrer">근거 확인</a></div>`;
 }
 
 function openDetail(id) {
@@ -3318,6 +3494,7 @@ function openDetail(id) {
       ${placeFeaturesMarkup}
       <div class="decision-grid">${decisionMarkup}</div>
       <div class="trust-panel ${trust.key}"><strong>${escapeHtml(trust.short)}</strong><span>${escapeHtml(trust.detail)}</span></div>
+      ${ageEvidenceMarkup(item)}
       ${communityPhotoGalleryMarkup(item)}
       <div class="detail-notes">
         ${amenityRow("주차", item.amenities?.parking)}${amenityRow("화장실", item.amenities?.bathroom)}${amenityRow("기저귀 교환대", item.amenities?.changingTable)}${amenityRow("유모차", item.amenities?.stroller)}<div class="note-row"><strong>예상 체류</strong><span>${item.type === "storytime" ? "30-60분" : "60-90분"} 정도를 추천해요.</span></div><div class="note-row"><strong>날씨 대응</strong><span>${item.setting === "indoor" ? "실내 활동이라 비 오는 날에도 좋아요." : "출발 전 기온과 공원 운영 상태를 확인하세요."}</span></div>
@@ -3365,9 +3542,15 @@ function openDetail(id) {
   if (uploadPhotoButton) {
     void photoUploadsAvailable().then((available) => {
       if (!uploadPhotoButton.isConnected) return;
-      uploadPhotoButton.disabled = !available;
-      uploadPhotoButton.textContent = available ? (itemImageKind(item) === "actual" ? "사진 추가" : "이 장소 사진 올리기") : "사진 업로드 준비 중";
-      if (available) uploadPhotoButton.addEventListener("click", () => openPhotoUploadDialog(item));
+      const section = uploadPhotoButton.closest(".detail-photo-contribute");
+      if (!available) {
+        section.remove();
+        return;
+      }
+      section.hidden = false;
+      uploadPhotoButton.disabled = false;
+      uploadPhotoButton.textContent = itemImageKind(item) === "actual" ? "사진 추가" : "이 장소 사진 올리기";
+      uploadPhotoButton.addEventListener("click", () => openPhotoUploadDialog(item));
     });
   }
   detailBody.querySelectorAll("[data-alternative-id]").forEach((button) => {
@@ -3517,14 +3700,39 @@ document.querySelector("#regionFilter").addEventListener("change", (event) => {
 });
 
 document.querySelector("#addChildAge").addEventListener("click", () => {
-  if (state.childAgesMonths.length >= 8) {
-    showToast("아이 나이는 최대 8명까지 추가할 수 있어요.");
+  if (state.childAgesMonths.length >= 8 || pendingChildAgeDraft) {
+    if (pendingChildAgeDraft) document.querySelector("[data-draft-years]")?.focus();
+    else showToast("아이 나이는 최대 8명까지 추가할 수 있어요.");
     return;
   }
-  state.childAgesMonths.push(24);
-  persistChildAges();
+  pendingChildAgeDraft = { years: "", months: "" };
   renderChildAgeRows();
+  document.querySelector("[data-draft-years]")?.focus();
+});
+
+document.querySelector("#clearFamilyAges").addEventListener("click", () => {
+  if (!state.childAgesMonths.length && !pendingChildAgeDraft) {
+    showToast("저장된 가족 나이가 없어요.");
+    return;
+  }
+  state.childAgesMonths = [];
+  pendingChildAgeDraft = null;
+  persistChildAges();
   render();
+  showToast("이 브라우저의 가족 나이를 모두 지웠어요.");
+});
+
+document.querySelector("#clearPlaceNotes").addEventListener("click", () => {
+  const noteCount = Object.keys(state.placeNotesByKey).length;
+  if (!noteCount) {
+    showToast("저장된 개인 메모가 없어요.");
+    return;
+  }
+  if (!window.confirm(`이 브라우저에 저장된 개인 메모 ${noteCount}개를 모두 삭제할까요?`)) return;
+  state.placeNotesByKey = {};
+  persistPlaceNotes();
+  render();
+  showToast("이 브라우저의 개인 메모를 모두 삭제했어요.");
 });
 
 document.querySelector("#typeFilter").addEventListener("change", (event) => {
@@ -3591,6 +3799,7 @@ function resetFilters() {
   state.distance = "10";
   state.region = "all";
   state.childAgesMonths = [];
+  pendingChildAgeDraft = null;
   persistChildAges();
   state.type = "all";
   state.setting = "all";
@@ -3620,6 +3829,11 @@ function resetFilters() {
 
 document.querySelector("#resetFilters").addEventListener("click", resetFilters);
 filterButtonEl.addEventListener("click", () => setFilterPanelOpen(!state.filterOpen));
+familyProfileButton.addEventListener("click", () => {
+  setFilterPanelOpen(true);
+  document.querySelector("#addChildAge").focus();
+  document.querySelector("#filterPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
 document.querySelector("#closeFilters").addEventListener("click", () => setFilterPanelOpen(false, { restoreFocus: true }));
 document.querySelector("#applyFilters").addEventListener("click", () => {
   setFilterPanelOpen(false, { restoreFocus: true });

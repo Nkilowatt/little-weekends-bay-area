@@ -1020,7 +1020,7 @@ function parseMountainViewLibraryEvents(json, now = new Date()) {
 
   const today = pacificDateKey(now);
   const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
-  const youngChildAudience = /Babies|Toddlers|Preschoolers/i;
+  const youngChildAudience = /Babies|Toddlers|Preschoolers|Pre[- ]?K|Kindergarten/i;
   const broadFamilyAudience = /Families|All Ages/i;
   const familyProgram = /storytime|baby|toddler|preschool|pre[- ]?k|kindergarten|family|read to|music|dance|puppet|animal|wildlife|steam|craft|play|kids|children/i;
   const excluded = /Adults|Seniors|Teens|Tweens/i;
@@ -1068,7 +1068,7 @@ function parseMountainViewLibraryEvents(json, now = new Date()) {
       location,
       setting: outdoor ? "outdoor" : "indoor",
       type,
-      age: youngChildRelevant ? "0-5세·가족" : "가족·전 연령",
+      age: /Pre[- ]?K|Kindergarten/i.test(context) ? "4-6세" : youngChildRelevant ? "0-5세·가족" : "가족·전 연령",
       price: "free",
       reservation: record?.in_person_registration
         ? /closed|full/i.test(String(record?.seats || "")) ? "예약 마감" : "예약 필요"
@@ -3013,6 +3013,7 @@ async function getOutingsResponse(request, env) {
 }
 
 export {
+  ageForProgram,
   ageRangeFromLabel,
   placeKeyForVenue,
   bibliocommonsRssUrls,

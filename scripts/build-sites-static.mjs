@@ -213,6 +213,15 @@ for (const [region, cities] of Object.entries(supportedRegionCities)) {
     cities.some((city) => String(place.city || "").includes(city))
     && /^https:\/\//.test(String(place.source || ""))
   ));
+  const missingEvidence = officialPlaces.filter((place) => {
+    const evidence = place.ageEvidence;
+    return !evidence
+      || evidence.url !== place.source
+      || !["official_program", "official_facility", "official_audience", "editorial_review"].includes(evidence.basis)
+      || !/^\d{4}-\d{2}-\d{2}$/.test(String(evidence.verifiedAt || ""))
+      || String(evidence.summary || "").length < 24;
+  });
+  if (missingEvidence.length) throw new Error(`${region} evergreen places are missing structured age evidence: ${missingEvidence.map((place) => place.id).join(", ")}`);
   const missingMonths = Array.from({ length: 84 }, (_, month) => month).filter((month) => !officialPlaces.some((place) => {
     const range = auditAgeRange(place.age);
     return range && range.min <= month && month <= range.max;

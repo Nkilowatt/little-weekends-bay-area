@@ -1,4 +1,5 @@
-window.LITTLE_WEEKENDS_PLACE_IMAGES = Object.freeze({
+(() => {
+const reviewedPlaceImages = {
   "childrens-creativity-museum": {
     src: "assets/places/childrens-creativity-museum.webp",
     kind: "actual",
@@ -636,19 +637,6 @@ window.LITTLE_WEEKENDS_PLACE_IMAGES = Object.freeze({
     verifiedAt: "2026-07-28",
     aliases: ["Seven Seas Park", "Seven Seas Park Playground"]
   },
-  "sunnyvale-washington-park": {
-    src: "assets/places/sunnyvale-washington-park.jpg",
-    kind: "actual",
-    alt: "잔디 가장자리에 전시된 Washington Park의 M1 57 mm 포",
-    creator: "Eugene Zelenko",
-    credit: "Eugene Zelenko · Wikimedia Commons · resized and compressed",
-    license: "CC BY-SA 4.0",
-    licenseUrl: "https://creativecommons.org/licenses/by-sa/4.0/",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:USA-Sunnyvale-Washington_Park-M1_57_mm_gun-1.jpg",
-    commonsPageId: 176748781,
-    verifiedAt: "2026-07-28",
-    aliases: ["Washington Park", "Washington Park Sunnyvale"]
-  },
   "cupertino-library-family-place": {
     src: "assets/places/cupertino-library-family-place.jpg",
     kind: "actual",
@@ -792,4 +780,14 @@ window.LITTLE_WEEKENDS_PLACE_IMAGES = Object.freeze({
     verifiedAt: "2026-07-28",
     aliases: ["Burlingame Public Library, Main", "Burlingame Main Library", "Burlingame Library"]
   }
-});
+};
+
+window.LITTLE_WEEKENDS_PLACE_IMAGES = Object.freeze(Object.fromEntries(
+  Object.entries(reviewedPlaceImages).map(([id, image]) => [id, {
+    ...image,
+    reviewFocus: /놀이터|놀이|어린이|도서관|박물관|뮤지엄|동물|입구|정문|건물|전시|공원|산책|호수|광장|농가|해변|기차|회전목마|플라밍고/i.test(image.alt)
+      ? "family_decision"
+      : "venue_context",
+  }]),
+));
+})();

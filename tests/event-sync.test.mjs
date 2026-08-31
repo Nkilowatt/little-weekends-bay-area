@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  ageForProgram,
   eventCountLooksAnomalous,
   fetchSourceText,
   fosterCityLibraryRssUrls,
@@ -479,6 +480,20 @@ test("south peninsula and west valley sources retain toddler-friendly branch cov
   assert.ok(mountainView.some((event) => event.city === "Mountain View" && event.name === "Toddler Storytime"));
   assert.ok(cupertinoLibrary.some((event) => event.city === "Cupertino" && event.type === "storytime"));
   assert.ok(cupertinoCity.some((event) => event.city === "Cupertino" && event.confidenceStatus === "date_confirmed"));
+});
+
+test("pre-K and kindergarten programs are retained as 4–6 while older-only programs stay excluded", () => {
+  assert.equal(ageForProgram("Pre-K Makers"), "4-6세");
+  assert.equal(ageForProgram("Kindergarten Ready"), "4-6세");
+  const records = JSON.stringify([
+    { id: 11, title: "Pre-K Makers", start: "2026-07-17T11:00:00", end: "2026-07-17T11:45:00", url: "https://mountainview.libcal.com/event/11", short_desc: "Hands-on making for children entering kindergarten.", location: "Program Room", audiences: "Pre-K, Kindergarten", categories: "STEAM", in_person_registration: false },
+    { id: 12, title: "Grade 4 Robotics Club", start: "2026-07-17T14:00:00", end: "2026-07-17T15:00:00", url: "https://mountainview.libcal.com/event/12", short_desc: "Robotics for older students.", location: "Program Room", audiences: "Children, Tweens", categories: "STEAM", in_person_registration: false },
+  ]);
+  const events = parseMountainViewLibraryEvents(records, now);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].name, "Pre-K Makers");
+  assert.equal(events[0].minAgeMonths, 48);
+  assert.equal(events[0].maxAgeMonths, 83);
 });
 
 test("Santa Clara, Campbell, and Los Gatos retain both library and local-event coverage", () => {

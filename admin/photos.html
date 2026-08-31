@@ -6,8 +6,8 @@
     <meta name="color-scheme" content="light dark" />
     <title>방문자 사진 검수 | Little Weekends</title>
     <link rel="icon" href="/favicon.svg" />
-    <link rel="stylesheet" href="/styles.css?v=32" />
-    <link rel="stylesheet" href="/admin/photos.css?v=1" />
+    <link rel="stylesheet" href="/styles.css?v=33" />
+    <link rel="stylesheet" href="/admin/photos.css?v=2" />
   </head>
   <body class="photo-admin-page">
     <header class="site-header">
@@ -22,9 +22,13 @@
         <label>상태<select id="photoStatus"><option value="pending">검수 대기</option><option value="approved">승인</option><option value="rejected">거절</option><option value="withdrawn">철회·삭제</option><option value="expired">만료</option></select></label>
       </section>
       <section class="admin-metrics" id="adminMetrics" aria-label="사진 현황"></section>
+      <section class="admin-report-section" aria-labelledby="adminReportTitle">
+        <div class="admin-subheading"><div><p>공개 사진 안전</p><h2 id="adminReportTitle">처리할 사진 신고</h2></div><span id="adminReportStatus"></span></div>
+        <div class="admin-report-list" id="adminReportList"></div>
+      </section>
       <p class="admin-status" id="adminStatus" role="status" aria-live="polite">검수 목록을 불러오고 있어요.</p>
       <section class="admin-photo-list" id="adminPhotoList"></section>
     </main>
-    <script src="/admin/photos.js?v=1"></script>
+    <script src="/admin/photos.js?v=2"></script>
   </body>
 </html>

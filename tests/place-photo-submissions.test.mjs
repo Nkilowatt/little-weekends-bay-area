@@ -80,6 +80,7 @@ function submissionRequest(file = jpegFile(), options = {}) {
   form.set("placeKey", "foster-city-library-family-place");
   form.set("requestId", options.requestId || crypto.randomUUID());
   form.set("deviceId", options.deviceId || "device_secret_12345678901234567890");
+  form.set("retryToken", options.retryToken || "retry_secret_12345678901234567890");
   form.set("takenOn", "2026-08-29");
   if (!options.omitConsent) form.set("rightsConfirmed", "true");
   form.set("peopleConsentConfirmed", "true");
@@ -119,6 +120,11 @@ test("visitor photos remain private until an allowlisted reviewer approves them"
   assert.equal(stored.status, "pending");
   assert.equal(stored.manage_token_hash.includes(receipt.manageToken), false);
   assert.equal(uploads.objects.size, 1);
+
+  const adminQueue = await handlePlacePhotoRequest(new Request("https://little-weekends.test/api/admin/place-photos", { headers: reviewerHeaders() }), env, catalog);
+  const adminPayload = await adminQueue.json();
+  assert.equal(adminPayload.submissions[0].consentVersion, "2026-08-v1");
+  assert.match(adminPayload.submissions[0].consentAt, /^2026-/);
 
   const hidden = await handlePlacePhotoRequest(new Request("https://little-weekends.test/api/place-photos?placeKey=foster-city-library-family-place"), env, catalog);
   assert.deepEqual((await hidden.json()).photos["foster-city-library-family-place"], []);
@@ -168,18 +174,64 @@ test("uploads require all consent and enforce idempotency and the daily device l
   assert.equal(uploads.objects.size, 0);
 
   const requestId = crypto.randomUUID();
-  const first = await handlePlacePhotoRequest(submissionRequest(jpegFile(), { requestId }), env, catalog);
-  const duplicate = await handlePlacePhotoRequest(submissionRequest(jpegFile(), { requestId }), env, catalog);
+  const retryToken = "retry_secret_same_file_123456789012";
+  const first = await handlePlacePhotoRequest(submissionRequest(jpegFile(), { requestId, retryToken }), env, catalog);
+  const firstReceipt = await first.json();
+  const duplicate = await handlePlacePhotoRequest(submissionRequest(jpegFile(), { requestId, retryToken }), env, catalog);
+  const recoveredReceipt = await duplicate.json();
   assert.equal(first.status, 201);
   assert.equal(duplicate.status, 200);
-  assert.equal((await first.json()).submissionId, (await duplicate.json()).submissionId);
+  assert.equal(firstReceipt.submissionId, recoveredReceipt.submissionId);
+  assert.match(recoveredReceipt.manageToken, /^[A-Za-z0-9_-]{24,120}$/);
+  assert.notEqual(recoveredReceipt.manageToken, firstReceipt.manageToken);
+  assert.equal(recoveredReceipt.recovered, true);
   assert.equal(uploads.objects.size, 1);
+
+  const hijack = await handlePlacePhotoRequest(submissionRequest(jpegFile(), { requestId, retryToken: "different_retry_secret_1234567890" }), env, catalog);
+  assert.equal(hijack.status, 409);
 
   assert.equal((await handlePlacePhotoRequest(submissionRequest(), env, catalog)).status, 201);
   assert.equal((await handlePlacePhotoRequest(submissionRequest(), env, catalog)).status, 201);
   const limited = await handlePlacePhotoRequest(submissionRequest(), env, catalog);
   assert.equal(limited.status, 429);
   assert.equal(uploads.objects.size, 3);
+});
+
+test("photo reports appear in the reviewer queue and can immediately take a photo down", async () => {
+  const { env, database, uploads } = environment();
+  const created = await handlePlacePhotoRequest(submissionRequest(), env, catalog);
+  const receipt = await created.json();
+  await handlePlacePhotoRequest(new Request(`https://little-weekends.test/api/admin/place-photos/${receipt.submissionId}`, {
+    method: "PATCH",
+    headers: { ...reviewerHeaders(), Origin: "https://little-weekends.test", "Sec-Fetch-Site": "same-origin", "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "approve", featured: false }),
+  }), env, catalog);
+  database.prepare(`INSERT INTO place_photo_reports (
+    id, request_id, photo_id, place_key, message, status, created_at
+  ) VALUES (?, ?, ?, ?, ?, 'new', ?)`).run(
+    `report_${crypto.randomUUID()}`,
+    crypto.randomUUID(),
+    receipt.submissionId,
+    "foster-city-library-family-place",
+    "사진에 개인정보가 보여요.",
+    new Date().toISOString(),
+  );
+
+  const queueResponse = await handlePlacePhotoRequest(new Request("https://little-weekends.test/api/admin/place-photos?status=approved", { headers: reviewerHeaders() }), env, catalog);
+  const queue = await queueResponse.json();
+  assert.equal(queue.reports.length, 1);
+  assert.equal(queue.metrics.reportCounts.new, 1);
+  assert.equal(queue.submissions[0].featured, false);
+
+  const takedown = await handlePlacePhotoRequest(new Request(`https://little-weekends.test/api/admin/photo-reports/${queue.reports[0].id}`, {
+    method: "PATCH",
+    headers: { ...reviewerHeaders(), Origin: "https://little-weekends.test", "Sec-Fetch-Site": "same-origin", "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "takedown" }),
+  }), env, catalog);
+  assert.equal(takedown.status, 200);
+  assert.equal(database.prepare("SELECT status FROM place_photo_submissions WHERE id = ?").get(receipt.submissionId).status, "withdrawn");
+  assert.equal(database.prepare("SELECT status FROM place_photo_reports").get().status, "resolved");
+  assert.equal(uploads.objects.size, 0);
 });
 
 test("R2 and D1 partial failures never leave an orphaned public submission", async () => {

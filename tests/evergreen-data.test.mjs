@@ -22,6 +22,9 @@ test("curated evergreen catalog covers the core peninsula library baseline", asy
   assert.ok(catalog.every((item) => item.confidenceStatus === "human_verified"));
   assert.ok(catalog.every((item) => item.lastReviewedAt >= "2026-07-12" && item.lastReviewedAt <= "2026-07-25"));
   assert.ok(catalog.every((item) => new URL(item.source).protocol === "https:"));
+  assert.ok(catalog.every((item) => item.ageEvidence?.url === item.source));
+  assert.ok(catalog.every((item) => /^(?:official_program|official_facility|official_audience|editorial_review)$/.test(item.ageEvidence?.basis || "")));
+  assert.ok(catalog.every((item) => /^\d{4}-\d{2}-\d{2}$/.test(item.ageEvidence?.verifiedAt || "")));
   assert.ok(new Set(parks.map((item) => item.city)).size >= 26);
   ["San Francisco", "Belmont", "Foster City", "San Carlos", "Millbrae", "Burlingame", "Palo Alto", "Menlo Park", "Mountain View", "Sunnyvale", "Cupertino", "Santa Clara", "Campbell", "Los Gatos"].forEach((city) => {
     assert.ok(catalog.some((item) => item.city === city));

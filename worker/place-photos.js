@@ -6,6 +6,7 @@ const PLACE_KEY_PATTERN = /^[a-z0-9][a-z0-9-]{2,219}$/i;
 const REQUEST_ID_PATTERN = /^[0-9a-f-]{36}$/i;
 const SECRET_PATTERN = /^[A-Za-z0-9_-]{24,120}$/;
 const SUBMISSION_ID_PATTERN = /^photo_[0-9a-f-]{36}$/i;
+const REPORT_ID_PATTERN = /^report_[0-9a-f-]{36}$/i;
 const ACCEPTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function jsonResponse(payload, status = 200, extraHeaders = {}) {
@@ -64,7 +65,11 @@ function imageTypeFromBytes(bytes) {
 }
 
 function uploadConfigured(env) {
-  return Boolean(env?.DB && env?.UPLOADS && env?.IMAGES && String(env?.PHOTO_UPLOADS_ENABLED || "").toLowerCase() === "true");
+  return Boolean(env?.DB
+    && env?.UPLOADS
+    && env?.IMAGES
+    && reviewerEmails(env).size > 0
+    && String(env?.PHOTO_UPLOADS_ENABLED || "").toLowerCase() === "true");
 }
 
 function reviewerEmails(env) {
@@ -100,6 +105,7 @@ function schemaStatements(db) {
       byte_size INTEGER NOT NULL,
       taken_on TEXT,
       device_hash TEXT NOT NULL,
+      retry_token_hash TEXT NOT NULL DEFAULT '',
       manage_token_hash TEXT NOT NULL,
       consent_version TEXT NOT NULL,
       consent_at TEXT NOT NULL,
@@ -110,9 +116,24 @@ function schemaStatements(db) {
       is_featured INTEGER NOT NULL DEFAULT 0,
       deleted_at TEXT
     )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS place_photo_reports (
+      id TEXT PRIMARY KEY NOT NULL,
+      request_id TEXT NOT NULL UNIQUE,
+      photo_id TEXT NOT NULL,
+      place_key TEXT NOT NULL,
+      message TEXT NOT NULL,
+      email TEXT,
+      status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'resolved', 'dismissed')),
+      created_at TEXT NOT NULL,
+      resolved_at TEXT,
+      resolved_by_user_id TEXT,
+      resolution TEXT
+    )`),
     db.prepare("CREATE INDEX IF NOT EXISTS place_photo_submissions_status_created_idx ON place_photo_submissions (status, created_at DESC)"),
     db.prepare("CREATE INDEX IF NOT EXISTS place_photo_submissions_place_status_featured_idx ON place_photo_submissions (place_key, status, is_featured DESC, reviewed_at DESC)"),
     db.prepare("CREATE INDEX IF NOT EXISTS place_photo_submissions_device_created_idx ON place_photo_submissions (device_hash, created_at DESC)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS place_photo_reports_status_created_idx ON place_photo_reports (status, created_at DESC)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS place_photo_reports_photo_status_idx ON place_photo_reports (photo_id, status)"),
   ];
 }
 
@@ -199,9 +220,10 @@ async function createSubmission(request, env, catalog) {
   const placeKey = safeText(form.get("placeKey"), 220);
   const requestId = safeText(form.get("requestId"), 60);
   const deviceId = safeText(form.get("deviceId"), 120);
+  const retryToken = safeText(form.get("retryToken"), 160);
   const file = form.get("photo");
   if (!PLACE_KEY_PATTERN.test(placeKey)) return jsonResponse({ error: "장소를 확인할 수 없어요." }, 400);
-  if (!REQUEST_ID_PATTERN.test(requestId) || !SECRET_PATTERN.test(deviceId)) {
+  if (!REQUEST_ID_PATTERN.test(requestId) || !SECRET_PATTERN.test(deviceId) || !SECRET_PATTERN.test(retryToken)) {
     return jsonResponse({ error: "업로드 요청을 다시 준비해 주세요." }, 400);
   }
   if (!(file instanceof File)) return jsonResponse({ error: "올릴 사진을 선택해 주세요." }, 400);
@@ -213,8 +235,17 @@ async function createSubmission(request, env, catalog) {
   const place = await placeRecord(env, catalog, placeKey);
   if (!place) return jsonResponse({ error: "등록된 장소를 찾지 못했어요." }, 404);
   const deviceHash = await hashValue(deviceId);
-  const existing = await env.DB.prepare("SELECT id, status FROM place_photo_submissions WHERE request_id = ?").bind(requestId).first();
-  if (existing) return jsonResponse({ ok: true, submissionId: existing.id, status: existing.status }, 200);
+  const retryTokenHash = await hashValue(retryToken);
+  const existing = await env.DB.prepare("SELECT id, status, retry_token_hash FROM place_photo_submissions WHERE request_id = ?").bind(requestId).first();
+  if (existing) {
+    if (!existing.retry_token_hash || existing.retry_token_hash !== retryTokenHash) {
+      return jsonResponse({ error: "이 업로드 요청을 복구할 수 없어요. 새로 제출해 주세요." }, 409);
+    }
+    const replacementManageToken = randomToken(32);
+    await env.DB.prepare("UPDATE place_photo_submissions SET manage_token_hash = ? WHERE id = ?")
+      .bind(await hashValue(replacementManageToken), existing.id).run();
+    return jsonResponse({ ok: true, submissionId: existing.id, status: existing.status, manageToken: replacementManageToken, recovered: true }, 200);
+  }
   const since = new Date(Date.now() - 86400000).toISOString();
   const daily = await env.DB.prepare("SELECT COUNT(*) AS count FROM place_photo_submissions WHERE device_hash = ? AND created_at >= ?")
     .bind(deviceHash, since).first();
@@ -240,9 +271,9 @@ async function createSubmission(request, env, catalog) {
   try {
     await env.DB.prepare(`INSERT INTO place_photo_submissions (
       id, request_id, place_key, place_name, object_key, status, content_type, byte_size, taken_on,
-      device_hash, manage_token_hash, consent_version, consent_at, created_at, is_featured
-    ) VALUES (?, ?, ?, ?, ?, 'pending', 'image/webp', ?, ?, ?, ?, ?, ?, ?, 0)`)
-      .bind(id, requestId, placeKey, place.name, objectKey, body.byteLength, safeDate(form.get("takenOn")), deviceHash, await hashValue(manageToken), CONSENT_VERSION, now, now)
+      device_hash, retry_token_hash, manage_token_hash, consent_version, consent_at, created_at, is_featured
+    ) VALUES (?, ?, ?, ?, ?, 'pending', 'image/webp', ?, ?, ?, ?, ?, ?, ?, ?, 0)`)
+      .bind(id, requestId, placeKey, place.name, objectKey, body.byteLength, safeDate(form.get("takenOn")), deviceHash, retryTokenHash, await hashValue(manageToken), CONSENT_VERSION, now, now)
       .run();
   } catch (error) {
     await env.UPLOADS.delete(objectKey);
@@ -296,6 +327,12 @@ async function adminList(request, env, catalog) {
   const result = await env.DB.prepare("SELECT * FROM place_photo_submissions WHERE status = ? ORDER BY created_at DESC LIMIT 100")
     .bind(allowedStatus).all();
   const counts = await env.DB.prepare("SELECT status, COUNT(*) AS count FROM place_photo_submissions GROUP BY status").all();
+  const reportCounts = await env.DB.prepare("SELECT status, COUNT(*) AS count FROM place_photo_reports GROUP BY status").all();
+  const reports = await env.DB.prepare(`SELECT r.*, p.place_name, p.status AS photo_status, p.object_key
+    FROM place_photo_reports r
+    LEFT JOIN place_photo_submissions p ON p.id = r.photo_id
+    WHERE r.status = 'new'
+    ORDER BY r.created_at ASC LIMIT 100`).all();
   const approvedPlaces = await env.DB.prepare("SELECT DISTINCT place_key FROM place_photo_submissions WHERE status = 'approved'").all();
   const actualPhotoPlaces = new Set(Object.entries(catalog || {})
     .filter(([, place]) => place?.hasVerifiedActualPhoto)
@@ -310,12 +347,27 @@ async function adminList(request, env, catalog) {
       takenOn: row.taken_on,
       createdAt: row.created_at,
       reviewedAt: row.reviewed_at,
+      consentVersion: row.consent_version,
+      consentAt: row.consent_at,
       rejectionReason: row.rejection_reason || "",
       featured: Boolean(row.is_featured),
       previewUrl: `/api/admin/place-photos/${encodeURIComponent(row.id)}/image`,
     })),
+    reports: (reports.results || []).map((row) => ({
+      id: row.id,
+      photoId: row.photo_id,
+      placeKey: row.place_key,
+      placeName: row.place_name || row.place_key,
+      message: row.message,
+      email: row.email || "",
+      status: row.status,
+      photoStatus: row.photo_status || "missing",
+      createdAt: row.created_at,
+      previewUrl: row.object_key ? `/api/admin/place-photos/${encodeURIComponent(row.photo_id)}/image` : "",
+    })),
     metrics: {
       counts: Object.fromEntries((counts.results || []).map((row) => [row.status, Number(row.count || 0)])),
+      reportCounts: Object.fromEntries((reportCounts.results || []).map((row) => [row.status, Number(row.count || 0)])),
       approvedCommunityPlaces: (approvedPlaces.results || []).length,
       actualPhotoPlaces: actualPhotoPlaces.size,
       catalogPlaces: Object.keys(catalog || {}).length,
@@ -332,7 +384,7 @@ async function adminUpdate(request, env, id, actingReviewer) {
   if (!row) return jsonResponse({ error: "제출 내역을 찾지 못했어요." }, 404);
   const now = new Date().toISOString();
   if (action === "approve") {
-    const featured = body.featured !== false;
+    const featured = body.featured === true;
     const statements = [];
     if (featured) statements.push(env.DB.prepare("UPDATE place_photo_submissions SET is_featured = 0 WHERE place_key = ?").bind(row.place_key));
     statements.push(env.DB.prepare(`UPDATE place_photo_submissions
@@ -358,6 +410,43 @@ async function adminUpdate(request, env, id, actingReviewer) {
     return jsonResponse({ ok: true, status });
   }
   return jsonResponse({ error: "검수 작업을 확인해 주세요." }, 400);
+}
+
+async function adminReportUpdate(request, env, id, actingReviewer) {
+  if (!mutationAllowed(request)) return jsonResponse({ error: "허용되지 않은 요청이에요." }, 403);
+  if (!REPORT_ID_PATTERN.test(id)) return jsonResponse({ error: "신고 내역을 찾지 못했어요." }, 404);
+  const body = await request.json().catch(() => ({}));
+  const action = safeText(body.action, 40);
+  const report = await env.DB.prepare(`SELECT r.*, p.object_key, p.status AS photo_status
+    FROM place_photo_reports r LEFT JOIN place_photo_submissions p ON p.id = r.photo_id
+    WHERE r.id = ?`).bind(id).first();
+  if (!report) return jsonResponse({ error: "신고 내역을 찾지 못했어요." }, 404);
+  if (report.status !== "new") return jsonResponse({ error: "이미 처리된 신고예요." }, 409);
+  const now = new Date().toISOString();
+
+  if (["resolve", "dismiss"].includes(action)) {
+    const status = action === "dismiss" ? "dismissed" : "resolved";
+    const resolution = action === "dismiss" ? "no_action" : "kept_public";
+    await env.DB.prepare(`UPDATE place_photo_reports
+      SET status = ?, resolved_at = ?, resolved_by_user_id = ?, resolution = ? WHERE id = ?`)
+      .bind(status, now, actingReviewer.userId, resolution, id).run();
+    return jsonResponse({ ok: true, status, resolution });
+  }
+
+  if (action === "takedown") {
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE place_photo_submissions
+        SET status = 'withdrawn', object_key = NULL, is_featured = 0, reviewed_at = ?, reviewer_user_id = ?,
+          rejection_reason = '사진 신고 후 공개 중단', deleted_at = ? WHERE id = ?`)
+        .bind(now, actingReviewer.userId, now, report.photo_id),
+      env.DB.prepare(`UPDATE place_photo_reports
+        SET status = 'resolved', resolved_at = ?, resolved_by_user_id = ?, resolution = 'takedown'
+        WHERE photo_id = ? AND status = 'new'`).bind(now, actingReviewer.userId, report.photo_id),
+    ]);
+    if (report.object_key) await env.UPLOADS?.delete(report.object_key);
+    return jsonResponse({ ok: true, status: "resolved", resolution: "takedown" });
+  }
+  return jsonResponse({ error: "신고 처리 작업을 확인해 주세요." }, 400);
 }
 
 export function adminPhotoPageResponse(request, env, html) {
@@ -402,6 +491,14 @@ export async function handlePlacePhotoRequest(request, env, catalog = {}) {
     if (denied) return denied;
     return request.method === "PATCH"
       ? adminUpdate(request, env, adminUpdateMatch[1], reviewer(request, env))
+      : jsonResponse({ error: "지원하지 않는 요청 방식이에요." }, 405, { Allow: "PATCH" });
+  }
+  const adminReportMatch = url.pathname.match(/^\/api\/admin\/photo-reports\/(report_[0-9a-f-]{36})$/i);
+  if (adminReportMatch) {
+    const denied = reviewerResponse(request, env);
+    if (denied) return denied;
+    return request.method === "PATCH"
+      ? adminReportUpdate(request, env, adminReportMatch[1], reviewer(request, env))
       : jsonResponse({ error: "지원하지 않는 요청 방식이에요." }, 405, { Allow: "PATCH" });
   }
   return null;
