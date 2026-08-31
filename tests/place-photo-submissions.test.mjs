@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 
-import { handlePlacePhotoRequest, imageTypeFromBytes, reviewer } from "../worker/place-photos.js";
+import { handlePlacePhotoRequest, imageDimensionsFromBytes, imageTypeFromBytes, reviewer } from "../worker/place-photos.js";
 
 class D1Statement {
   constructor(database, sql, values = []) { this.database = database; this.sql = sql; this.values = values; }
@@ -107,6 +107,29 @@ function reviewerHeaders(email = "owner@example.com") {
 test("image signatures reject declared images whose bytes do not match", () => {
   assert.equal(imageTypeFromBytes(new Uint8Array([0xff, 0xd8, 0xff, 0])), "image/jpeg");
   assert.equal(imageTypeFromBytes(new Uint8Array(16)), null);
+});
+
+test("portable image dimensions are parsed before Worker-side decoding", () => {
+  const jpeg = new Uint8Array(24);
+  jpeg.set([0xff, 0xd8, 0xff, 0xc0, 0, 17, 8, 0x04, 0xb0, 0x06, 0x40], 0);
+  assert.deepEqual(imageDimensionsFromBytes(jpeg, "image/jpeg"), { width: 1600, height: 1200 });
+
+  const png = new Uint8Array(32);
+  png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+  png.set([0, 0, 0x06, 0x40, 0, 0, 0x04, 0xb0], 16);
+  assert.deepEqual(imageDimensionsFromBytes(png, "image/png"), { width: 1600, height: 1200 });
+
+  const webp = new Uint8Array(32);
+  webp.set([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x58], 0);
+  webp.set([0x3f, 0x06, 0, 0xaf, 0x04, 0], 24);
+  assert.deepEqual(imageDimensionsFromBytes(webp, "image/webp"), { width: 1600, height: 1200 });
+});
+
+test("upload status accepts the bundled Worker image transformer when the platform binding is absent", async () => {
+  const { env } = environment();
+  delete env.IMAGES;
+  const response = await handlePlacePhotoRequest(new Request("https://little-weekends.test/api/place-photos/status"), env, catalog);
+  assert.deepEqual(await response.json(), { configured: true, moderationConfigured: true });
 });
 
 test("visitor photos remain private until an allowlisted reviewer approves them", async () => {

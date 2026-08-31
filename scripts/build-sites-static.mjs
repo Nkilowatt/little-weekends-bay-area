@@ -344,7 +344,26 @@ await copyFile(join(root, "worker/event-sync.js"), join(root, "dist/server/event
 await copyFile(join(root, "worker/feedback.js"), join(root, "dist/server/feedback.js"));
 await copyFile(join(root, "worker/place-images.js"), join(root, "dist/server/place-images.js"));
 await copyFile(join(root, "worker/place-photos.js"), join(root, "dist/server/place-photos.js"));
+await copyFile(join(root, "worker/image-codecs.js"), join(root, "dist/server/image-codecs.js"));
 await copyFile(join(root, "worker/shared-plans.js"), join(root, "dist/server/shared-plans.js"));
+const codecFiles = [
+  "jpeg/utils.js",
+  "jpeg/codec/dec/mozjpeg_dec.js",
+  "jpeg/codec/dec/mozjpeg_dec.wasm",
+  "png/codec/pkg/squoosh_png.js",
+  "png/codec/pkg/squoosh_png_bg.wasm",
+  "resize/lib/resize/pkg/squoosh_resize.js",
+  "resize/lib/resize/pkg/squoosh_resize_bg.wasm",
+  "webp/codec/dec/webp_dec.js",
+  "webp/codec/dec/webp_dec.wasm",
+  "webp/codec/enc/webp_enc_simd.js",
+  "webp/codec/enc/webp_enc_simd.wasm",
+];
+for (const codecFile of codecFiles) {
+  const destination = join(root, "dist/server/image-codecs-vendor", codecFile);
+  await mkdir(dirname(destination), { recursive: true });
+  await copyFile(join(root, "node_modules/@jsquash", codecFile), destination);
+}
 const hostingOutputPath = join(root, "dist/.openai/hosting.json");
 await mkdir(dirname(hostingOutputPath), { recursive: true });
 await writeFile(

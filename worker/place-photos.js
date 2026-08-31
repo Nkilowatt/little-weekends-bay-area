@@ -1,4 +1,5 @@
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_DECODED_PIXELS = 20_000_000;
 const MAX_DEVICE_UPLOADS_PER_DAY = 3;
 const MAX_PENDING_PER_PLACE = 12;
 const CONSENT_VERSION = "2026-08-v1";
@@ -67,9 +68,68 @@ function imageTypeFromBytes(bytes) {
 function uploadConfigured(env) {
   return Boolean(env?.DB
     && env?.UPLOADS
-    && env?.IMAGES
     && reviewerEmails(env).size > 0
     && String(env?.PHOTO_UPLOADS_ENABLED || "").toLowerCase() === "true");
+}
+
+function uint16be(bytes, offset) {
+  return (bytes[offset] << 8) | bytes[offset + 1];
+}
+
+function uint24le(bytes, offset) {
+  return bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16);
+}
+
+function uint32be(bytes, offset) {
+  return ((bytes[offset] * 0x1000000)
+    + (bytes[offset + 1] << 16)
+    + (bytes[offset + 2] << 8)
+    + bytes[offset + 3]) >>> 0;
+}
+
+function jpegDimensions(bytes) {
+  let offset = 2;
+  while (offset + 8 < bytes.length) {
+    if (bytes[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+    while (offset < bytes.length && bytes[offset] === 0xff) offset += 1;
+    const marker = bytes[offset];
+    offset += 1;
+    if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+    if (marker === 0xda || offset + 1 >= bytes.length) break;
+    const segmentLength = uint16be(bytes, offset);
+    if (segmentLength < 2 || offset + segmentLength > bytes.length) break;
+    if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+      return { width: uint16be(bytes, offset + 5), height: uint16be(bytes, offset + 3) };
+    }
+    offset += segmentLength;
+  }
+  return null;
+}
+
+function webpDimensions(bytes) {
+  if (bytes.length < 30) return null;
+  const chunk = String.fromCharCode(...bytes.slice(12, 16));
+  if (chunk === "VP8X") return { width: uint24le(bytes, 24) + 1, height: uint24le(bytes, 27) + 1 };
+  if (chunk === "VP8 " && bytes[23] === 0x9d && bytes[24] === 0x01 && bytes[25] === 0x2a) {
+    return { width: uint16be(new Uint8Array([bytes[27], bytes[26]]), 0) & 0x3fff, height: uint16be(new Uint8Array([bytes[29], bytes[28]]), 0) & 0x3fff };
+  }
+  if (chunk === "VP8L" && bytes[20] === 0x2f) {
+    return {
+      width: 1 + bytes[21] + ((bytes[22] & 0x3f) << 8),
+      height: 1 + ((bytes[22] & 0xc0) >> 6) + (bytes[23] << 2) + ((bytes[24] & 0x0f) << 10),
+    };
+  }
+  return null;
+}
+
+function imageDimensionsFromBytes(bytes, contentType) {
+  if (contentType === "image/jpeg") return jpegDimensions(bytes);
+  if (contentType === "image/png" && bytes.length >= 24) return { width: uint32be(bytes, 16), height: uint32be(bytes, 20) };
+  if (contentType === "image/webp") return webpDimensions(bytes);
+  return null;
 }
 
 function reviewerEmails(env) {
@@ -199,13 +259,22 @@ async function transformedImage(file, env) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const detectedType = imageTypeFromBytes(bytes);
   if (!detectedType || detectedType !== declaredType) throw new Error("INVALID_IMAGE");
-  const transformed = await env.IMAGES
-    .input(new Blob([bytes], { type: detectedType }).stream())
-    .transform({ width: 1600, fit: "scale-down" })
-    .output({ format: "image/webp", quality: 82 });
-  const response = transformed.response ? transformed.response() : transformed;
-  if (!response?.ok) throw new Error("INVALID_IMAGE");
-  const body = await response.arrayBuffer();
+  let body;
+  if (env?.IMAGES) {
+    const transformed = await env.IMAGES
+      .input(new Blob([bytes], { type: detectedType }).stream())
+      .transform({ width: 1600, fit: "scale-down" })
+      .output({ format: "image/webp", quality: 82 });
+    const response = transformed.response ? transformed.response() : transformed;
+    if (!response?.ok) throw new Error("INVALID_IMAGE");
+    body = await response.arrayBuffer();
+  } else {
+    const dimensions = imageDimensionsFromBytes(bytes, detectedType);
+    if (!dimensions?.width || !dimensions?.height) throw new Error("INVALID_IMAGE");
+    if (dimensions.width * dimensions.height > MAX_DECODED_PIXELS) throw new Error("IMAGE_DIMENSIONS_TOO_LARGE");
+    const { reencodeImage } = await import("./image-codecs.js");
+    body = await reencodeImage(bytes, detectedType, { maxDimension: 1600, quality: 82 });
+  }
   if (!body.byteLength || body.byteLength > MAX_UPLOAD_BYTES) throw new Error("INVALID_IMAGE");
   return body;
 }
@@ -260,6 +329,7 @@ async function createSubmission(request, env, catalog) {
   } catch (error) {
     if (error?.message === "PAYLOAD_TOO_LARGE") return jsonResponse({ error: "사진은 10MB 이하만 올릴 수 있어요." }, 413);
     if (error?.message === "UNSUPPORTED_TYPE") return jsonResponse({ error: "JPEG, PNG, WebP 사진만 올릴 수 있어요." }, 415);
+    if (error?.message === "IMAGE_DIMENSIONS_TOO_LARGE") return jsonResponse({ error: "사진 해상도가 너무 커요. 기기에서 크기를 줄인 뒤 다시 올려 주세요." }, 413);
     return jsonResponse({ error: "사진 파일을 읽지 못했어요. 다른 사진을 선택해 주세요." }, 400);
   }
 
@@ -521,4 +591,4 @@ export async function purgeExpiredPlacePhotos(env) {
     WHERE status IN ('rejected', 'withdrawn', 'expired') AND COALESCE(deleted_at, created_at) < ?`).bind(auditCutoff).run();
 }
 
-export { imageTypeFromBytes, placeRecord, reviewer };
+export { imageDimensionsFromBytes, imageTypeFromBytes, placeRecord, reviewer };

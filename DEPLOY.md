@@ -1,6 +1,6 @@
 # Deployment Guide
 
-Last updated: 2026-07-12
+Last updated: 2026-08-30
 
 ## Primary Production Service
 
@@ -11,7 +11,8 @@ OpenAI Sites is the canonical production service:
 - Project configuration: `.openai/hosting.json`
 - Static Worker build: `scripts/build-sites-static.mjs`
 - Event API: `/api/outings`
-- Storage: OpenAI Sites D1 binding named `DB`
+- Structured storage: OpenAI Sites D1 binding named `DB`
+- Private photo storage: OpenAI Sites R2 binding named `UPLOADS`
 
 The Sites deployment serves the HTML, CSS, JavaScript, image assets, and same-origin event API. It is the only deployment that currently supports the automatic official-event refresh pipeline.
 
@@ -32,6 +33,18 @@ Before deploying a new version:
 3. Save a Sites version from that pushed commit.
 4. Deploy the saved version.
 5. Verify the home page, `/api/outings`, security headers, and public access.
+
+## Visitor Photo Release Gate
+
+Visitor photo upload requires all of the following in production:
+
+- D1 and the private `UPLOADS` R2 binding from `.openai/hosting.json`.
+- All photo migrations through `0008_photo_moderation_recovery.sql` in the saved archive.
+- A non-empty secret `PHOTO_REVIEWER_EMAILS` allowlist.
+- `PHOTO_UPLOADS_ENABLED=true`, followed by a deployment so the environment revision is applied.
+- A successful `/api/place-photos/status` response with `configured: true`.
+
+The Worker bundles JPEG, PNG, WebP, resize, and WebP-encode WebAssembly modules. It does not rely on a separately configurable Sites image-transform binding. Before leaving uploads enabled, verify a private submission can be created, remains absent from public photo results, and can be withdrawn with its management token.
 
 ## Netlify Legacy URL
 

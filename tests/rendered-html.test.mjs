@@ -326,6 +326,23 @@ test("photo moderation UI separates approval from featuring and exposes consent 
   assert.match(script, /data-report-action="takedown"/);
 });
 
+test("Sites build packages the Worker-side image decoder, resizer, and WebP encoder", async () => {
+  const codecModule = await readFile(new URL("../dist/server/image-codecs.js", import.meta.url), "utf8");
+  assert.match(codecModule, /mozjpeg_dec\.wasm/);
+  assert.match(codecModule, /squoosh_png_bg\.wasm/);
+  assert.match(codecModule, /squoosh_resize_bg\.wasm/);
+  assert.match(codecModule, /webp_enc_simd\.wasm/);
+  for (const path of [
+    "jpeg/codec/dec/mozjpeg_dec.wasm",
+    "png/codec/pkg/squoosh_png_bg.wasm",
+    "resize/lib/resize/pkg/squoosh_resize_bg.wasm",
+    "webp/codec/dec/webp_dec.wasm",
+    "webp/codec/enc/webp_enc_simd.wasm",
+  ]) {
+    assert.ok((await readFile(new URL(`../dist/server/image-codecs-vendor/${path}`, import.meta.url))).byteLength > 20_000);
+  }
+});
+
 test("Sites build serves calendar actions as real ICS responses", async () => {
   const { default: worker } = await import(new URL("../dist/server/index.js", import.meta.url));
   const url = new URL("https://little-weekends.test/calendar.ics");
