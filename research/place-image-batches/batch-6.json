@@ -1,0 +1,408 @@
+[
+  {
+    "placeId": "mountain-view-rengstorff-magical-bridge",
+    "placeName": "Rengstorff Park Magical Bridge Playground",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Rengstorff_Park,_Mountain_View,_California,_March_2019.jpg",
+    "commonsPageId": 79770196,
+    "verifiedAt": null,
+    "aliases": [
+      "Rengstorff Park Magical Bridge Playground",
+      "Magical Bridge Playground at Rengstorff Park",
+      "Rengstorff Park Playground"
+    ],
+    "matchEvidence": [
+      "Commons 파일 설명과 좌표가 Mountain View의 Rengstorff Park 놀이터를 정확히 가리킨다.",
+      "Rengstorff Park 전용 카테고리의 놀이터, 북쪽 입구 표지, 수영장, 스케이트 파크 후보를 직접 확인했다.",
+      "Wikidata P18, Openverse와 카탈로그 좌표 반경 500 m의 Commons 사진도 함께 검토했다."
+    ],
+    "rejectionReason": "정확한 공원 사진이지만 2019년 촬영된 기존 놀이터로 현재 Magical Bridge Playground의 시설이 아니다. 다른 후보는 공원 표지판이나 수영장 등으로 목표 놀이터를 보여주지 못했다."
+  },
+  {
+    "placeId": "mountain-view-cuesta-park",
+    "placeName": "Cuesta Park",
+    "status": "verified",
+    "src": "assets/places/mountain-view-cuesta-park.jpg",
+    "alt": "잔디와 큰 나무를 배경으로 보이는 Mountain View Cuesta Park 입구 표지",
+    "creator": "Jonah Probell",
+    "credit": "Jonah Probell · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Cuesta_Park_entrance_-_panoramio.jpg",
+    "commonsPageId": 49679122,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Cuesta Park",
+      "Cuesta Park Mountain View",
+      "Mountain View Cuesta Park"
+    ],
+    "matchEvidence": [
+      "Commons 파일명이 Cuesta Park entrance라고 정확히 명시한다.",
+      "촬영 좌표 37.373419, -122.080403이 카탈로그 좌표에서 약 170 m로 일치한다.",
+      "파일 카테고리가 Mountain View의 공원이며 입구 표지에 City of Mountain View와 Cuesta Park가 모두 보인다.",
+      "허용 라이선스 후보 두 장을 직접 비교하고 장소명이 선명한 입구 사진을 선택했다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "mountain-view-bubb-park",
+    "placeName": "Bubb Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Bubb Park",
+      "Bubb Park Mountain View",
+      "Mountain View Bubb Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Mountain View·Barbara Avenue 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과 세 장과 Wikidata P18을 확인했다.",
+      "Openverse에서 장소명·도시·주소 조합을 검색하고 후보를 검토했다."
+    ],
+    "rejectionReason": "근접 결과는 자동차 번호판, 다른 체육관, 사유지 조형물로 공원과 무관했다. 놀이터·입구·대표 시설을 식별할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "mountain-view-wyandotte-park",
+    "placeName": "Wyandotte Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Wyandotte Park",
+      "Wyandotte Park Mountain View",
+      "Mountain View Wyandotte Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 장소명·Mountain View·Wyandotte Street 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과 아홉 장과 Wikidata P18을 확인했다.",
+      "Openverse 장소명·도시·주소 검색 결과를 검토했다."
+    ],
+    "rejectionReason": "근접 Commons 결과는 Heritage Park와 사무실 사진뿐이었고 Wyandotte Park를 묘사하지 않았다. 정확한 놀이터·입구·대표 시설 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "san-jose-almaden-lake-regional-park",
+    "placeName": "Almaden Lake Regional Park",
+    "status": "verified",
+    "src": "assets/places/san-jose-almaden-lake-regional-park.jpg",
+    "alt": "잔디 언덕에서 산책로와 호수를 함께 내려다본 Almaden Lake Regional Park 전경",
+    "creator": "Bunty4",
+    "credit": "Bunty4 · Wikimedia Commons · resized and compressed",
+    "license": "CC0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:AlmadenLakePark.jpg",
+    "commonsPageId": 147098794,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Almaden Lake Regional Park",
+      "Almaden Lake Park",
+      "Almaden Lake Park San Jose"
+    ],
+    "matchEvidence": [
+      "Commons 파일 설명이 Almaden Lake Park in Almaden Valley, San Francisco Bay Area라고 명시한다.",
+      "촬영 좌표 37.241264, -121.873725가 넓은 공원 경계 내에 있고 카탈로그 좌표에서 약 485 m다.",
+      "Commons의 Almaden Lake Park 전용 카테고리와 San Jose 위치 정보가 일치한다.",
+      "허용 라이선스 후보 여러 장을 직접 비교하고 호수·잔디·산책 동선을 함께 보여주는 CC0 사진을 선택했다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "san-jose-hellyer-county-park",
+    "placeName": "Hellyer County Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Hellyer_County_Park.jpg",
+    "commonsPageId": 79511061,
+    "verifiedAt": null,
+    "aliases": [
+      "Hellyer County Park",
+      "Hellyer Park",
+      "Hellyer County Park San Jose"
+    ],
+    "matchEvidence": [
+      "Commons 파일명이 Hellyer County Park라고 정확히 명시하고 Wikidata Q16918383에서 대표 이미지로 사용한다.",
+      "원본 페이지가 San Jose 공원 카테고리와 adam_miguel의 CC BY 2.0 라이선스를 명시한다.",
+      "파일 원본과 Coyote Creek 항공 사진을 직접 확인했다."
+    ],
+    "rejectionReason": "정확한 장소 사진이지만 석양의 호수와 수목만 보이는 파노라마로 입구·놀이터·대표 시설을 식별할 수 없다. 단순 풍경 금지 기준에 해당한다."
+  },
+  {
+    "placeId": "rotary-playgarden",
+    "placeName": "Rotary PlayGarden",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Rotary PlayGarden",
+      "Rotary PlayGarden San Jose",
+      "Guadalupe Gardens Rotary PlayGarden"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·San Jose·Coleman Avenue·Guadalupe Gardens 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과 27장과 Wikidata P18을 확인했다.",
+      "Openverse 장소명·도시·주소 검색 후보를 검토했다."
+    ],
+    "rejectionReason": "근접 결과는 Heritage Rose Garden, Guadalupe River Trail, 항공기 사진 등으로 놀이터와 무관했다. 포용형 놀이시설이나 입구를 식별할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "oakland-dimond-park",
+    "placeName": "Dimond Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Sausal_Creek,_Oakland,_California,_US.jpg",
+    "commonsPageId": 193137803,
+    "verifiedAt": null,
+    "aliases": [
+      "Dimond Park",
+      "Dimond Park Oakland",
+      "Oakland Dimond Park"
+    ],
+    "matchEvidence": [
+      "카탈로그 좌표 반경 500 m에서 Sausal Creek 사진과 역사 문서 후보를 확인했다.",
+      "Sausal Creek 사진 좌표 37.806694, -122.215611은 카탈로그 좌표에서 약 155 m다.",
+      "Commons·Wikidata P18·Openverse의 Dimond Park와 Oakland 조합을 검색했다."
+    ],
+    "rejectionReason": "근접 사진은 공원명이나 시설 없이 하천 풍경만 보여 장소 정체성을 확인하기 어렵다. 다른 후보는 허용 목록에 없는 일반 Public Domain 역사 문서여서 사용할 수 없다."
+  },
+  {
+    "placeId": "oakland-defremery-park",
+    "placeName": "DeFremery Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:De_Fremery_Park,_Oakland,_California,_US.jpg",
+    "commonsPageId": 181534063,
+    "verifiedAt": null,
+    "aliases": [
+      "DeFremery Park",
+      "De Fremery Park",
+      "Little Bobby Hutton Park"
+    ],
+    "matchEvidence": [
+      "Commons 일반 공원 사진의 파일명·설명·좌표가 Oakland의 De Fremery Park와 일치한다.",
+      "카탈로그 좌표 반경 500 m의 후보와 Oakland Black Cowboy Association 행사 사진 네 장을 직접 확인했다.",
+      "Wikidata P18과 Openverse의 DeFremery·De Fremery·Little Bobby Hutton 별칭 검색을 완료했다."
+    ],
+    "rejectionReason": "일반 공원 사진은 잔디·수목·산책로만 보여 대표 시설을 알아보기 어렵다. 다른 정확 일치 후보는 행사 참가자와 어린이·말이 주 피사체여서 금지 기준에 해당한다."
+  },
+  {
+    "placeId": "oakland-zoo",
+    "placeName": "Oakland Zoo Children's Zoo",
+    "status": "verified",
+    "src": "assets/places/oakland-zoo.jpg",
+    "alt": "동물 조형물과 Oakland Zoo 글자가 보이는 정문 입구",
+    "creator": "Todd Dailey",
+    "credit": "Todd Dailey · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Oakland_Zoo_entrance.jpg",
+    "commonsPageId": 10745944,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Oakland Zoo Children's Zoo",
+      "Wayne and Gladys Valley Children's Zoo",
+      "Oakland Zoo"
+    ],
+    "matchEvidence": [
+      "Commons 파일 설명이 Oakland, California의 Oakland Zoo entrance라고 정확히 명시한다.",
+      "파일이 좌표와 도시 정보가 있는 Oakland Zoo 전용 Commons 카테고리에 속한다.",
+      "전용 카테고리의 45개 파일과 좌표 반경 후보를 직접 검토했으며 동물 사진이나 어린이 중심 사진보다 장소명이 선명한 정문 사진을 선택했다.",
+      "Children's Zoo는 카탈로그 주소 9777 Golf Links Road의 Oakland Zoo 내부 시설이며 정문은 가족이 실제 방문 동선을 이해하는 데 도움이 된다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "berkeley-ohlone-park",
+    "placeName": "Ohlone Park",
+    "status": "verified",
+    "src": "assets/places/berkeley-ohlone-park.jpg",
+    "alt": "산책로에서 운동장 울타리와 잔디 공간을 바라본 Berkeley Ohlone Park",
+    "creator": "Søren Fuglede Jørgensen, User:Pred",
+    "credit": "Søren Fuglede Jørgensen (User:Pred) · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Ohlone_Park.jpg",
+    "commonsPageId": 11608452,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Ohlone Park",
+      "Ohlone Park Berkeley",
+      "Berkeley Ohlone Park"
+    ],
+    "matchEvidence": [
+      "Commons 파일 설명이 Ohlone Park in Berkeley, California라고 정확히 명시한다.",
+      "파일이 좌표 37.8728, -122.2780인 Ohlone Park 전용 Commons 카테고리에 속한다.",
+      "전용 카테고리 두 장과 Openverse 후보를 직접 비교했으며 현재 산책로·운동 공간·잔디 구성을 함께 보여주는 사진을 선택했다.",
+      "다른 후보는 오래된 놀이기구, 동물·공·나뭇가지 접사로 현재 공원 이해에 도움이 되지 않았다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "berkeley-codornices-park",
+    "placeName": "Codornices Park",
+    "status": "verified",
+    "src": "assets/places/berkeley-codornices-park.jpg",
+    "alt": "산책로와 나무 사이로 놀이 구조물과 운동 공간이 보이는 Berkeley Codornices Park 전경",
+    "creator": "tbo47",
+    "credit": "tbo47 · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:20220129_Codornices_Park_Berkeley.jpg",
+    "commonsPageId": 118420514,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Codornices Park",
+      "Codornices Park Berkeley",
+      "Berkeley Codornices Park"
+    ],
+    "matchEvidence": [
+      "Commons 파일명과 설명이 Codornices Park Berkeley라고 정확히 명시한다.",
+      "촬영 좌표 37.885617, -122.262038이 카탈로그 좌표에서 약 49 m로 일치한다.",
+      "정확 일치 후보와 입구 사진을 직접 비교하고 산책로·놀이 구조물·운동 공간을 넓게 보여주는 사진을 선택했다.",
+      "사람은 작게 배경에만 있고 장소 시설과 전체 배치가 주 피사체다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "berkeley-live-oak-park",
+    "placeName": "Live Oak Park",
+    "status": "verified",
+    "src": "assets/places/berkeley-live-oak-park.jpg",
+    "alt": "나무 사이에 설치된 Berkeley Live Oak Park 목재 입구 표지",
+    "creator": "Burkhard Mücke",
+    "credit": "Burkhard Mücke · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Live_Oak_Park.JPG",
+    "commonsPageId": 41932746,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Live Oak Park",
+      "Live Oak Park Berkeley",
+      "Berkeley Live Oak Park"
+    ],
+    "matchEvidence": [
+      "Commons 설명이 Berkeley, California의 Live Oak Park 입구 표지라고 정확히 명시한다.",
+      "촬영 좌표 37.883980, -122.269738이 카탈로그 좌표에서 약 61 m로 일치한다.",
+      "입구 표지·피크닉 공간·개울·수목 후보를 모두 직접 비교하고 장소명이 가장 분명한 사진을 선택했다.",
+      "Commons 원본 페이지에서 Burkhard Mücke의 CC BY-SA 4.0 라이선스를 확인했다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "berkeley-becky-temko-tot-park",
+    "placeName": "Becky Temko Tot Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Becky Temko Tot Park",
+      "Becky Temko Tot Lot",
+      "Temko Tot Park Berkeley"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Berkeley·Roosevelt Avenue 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과와 Wikidata P18을 확인했다.",
+      "Openverse에서 장소명·별칭·도시·주소 조합을 검색했다."
+    ],
+    "rejectionReason": "정확한 공원·놀이터·입구 사진을 찾지 못했다. 근접 검색은 요청 제한 재시도에서도 장소를 식별할 수 있는 후보를 반환하지 않았다."
+  },
+  {
+    "placeId": "alameda-washington-park",
+    "placeName": "Washington Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://www.flickr.com/photos/125063157@N02/24386749711",
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Washington Park",
+      "Washington Park Alameda",
+      "Alameda Washington Park"
+    ],
+    "matchEvidence": [
+      "Openverse 후보 제목이 Washington Park, Alameda, California라고 정확히 명시한다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과 44장과 Wikidata P18을 함께 확인했다.",
+      "Openverse 원본 Flickr 후보를 내려받아 직접 검토했다."
+    ],
+    "rejectionReason": "정확한 장소명의 후보지만 연못과 오리만 보이고 놀이터·입구 표지·대표 시설을 식별할 수 없다. 단순 풍경 기준에 해당해 사용하지 않았다."
+  },
+  {
+    "placeId": "alameda-krusi-park",
+    "placeName": "Krusi Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Krusi Park",
+      "Krusi Park Alameda",
+      "Alameda Krusi Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Alameda·Otis Drive 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과와 Wikidata P18을 확인했다.",
+      "Openverse 장소명·도시·주소 검색 결과를 검토했다."
+    ],
+    "rejectionReason": "유일한 근접 Commons 결과는 버섯 접사였고 공원 시설을 보여주지 않았다. 놀이터·입구·대표 시설을 식별할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  }
+]

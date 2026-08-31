@@ -1,0 +1,229 @@
+[
+  {
+    "placeId": "burlingame-main-library-family-place",
+    "placeName": "Burlingame Public Library, Main",
+    "status": "verified",
+    "src": "assets/places/burlingame-main-library-family-place.jpg",
+    "alt": "정면 출입구와 480 번지 표지가 보이는 Burlingame Public Library Main 외관",
+    "creator": "Kglavin",
+    "credit": "Kglavin · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Burlingame_Library.JPG",
+    "commonsPageId": 49914,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Burlingame Public Library, Main",
+      "Burlingame Main Library",
+      "Burlingame Library"
+    ],
+    "matchEvidence": [
+      "Commons의 Burlingame Public Library 전용 카테고리에 있는 Main Library 외관 후보다.",
+      "사진 정면에 LIBRARY와 480이 선명하게 보여 카탈로그 주소 480 Primrose Road와 일치한다.",
+      "파일 카테고리가 Burlingame, California의 공공도서관임을 확인했고 Easton Branch 후보와 구분했다.",
+      "외관·입구 후보 세 장을 직접 비교하고 건물 전체와 접근 경사로가 가장 잘 보이는 사진을 선택했다.",
+      "Commons 원본 위키텍스트에서 저작자 Kglavin과 CC BY-SA 재라이선스를 확인했다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "burlingame-village-park",
+    "placeName": "Village Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Village Park",
+      "Village Park Burlingame",
+      "Burlingame Village Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Burlingame·California Drive 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과 여섯 장과 Wikidata P18을 확인했다.",
+      "Openverse의 장소명·도시 검색과 주소 조합 검색을 시도했다."
+    ],
+    "rejectionReason": "근접 결과는 Mills Creek·Easton Creek의 배수 시설과 책 사진으로 공원과 무관했다. 놀이터·입구·대표 시설을 식별할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "burlingame-washington-park",
+    "placeName": "Washington Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Burlingame_washington_park1.JPG",
+    "commonsPageId": 50921,
+    "verifiedAt": null,
+    "aliases": [
+      "Washington Park",
+      "Washington Park Burlingame",
+      "Burlingame Washington Park"
+    ],
+    "matchEvidence": [
+      "Commons 전용 카테고리와 다섯 파일의 설명이 Washington Park, Burlingame, San Mateo, CA라고 정확히 명시한다.",
+      "원본 페이지에서 Kglavin의 CC BY-SA 3.0 재라이선스를 확인했다.",
+      "허용 라이선스 후보 다섯 장을 모두 직접 확인했다."
+    ],
+    "rejectionReason": "정확한 장소 사진이지만 모든 후보가 2005년의 잔디·수목·산책로 중심 풍경이며 놀이터·입구 표지·대표 시설을 식별할 수 없다. 단순 풍경 금지 기준에 해당한다."
+  },
+  {
+    "placeId": "millbrae-central-park",
+    "placeName": "Central Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Central Park",
+      "Central Park Millbrae",
+      "Millbrae Central Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Millbrae·Lincoln Circle 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과 네 장과 Wikidata P18을 확인했다.",
+      "Openverse 장소명·도시·주소 조합 검색을 시도하고 동명 장소 여부를 검토했다."
+    ],
+    "rejectionReason": "근접 결과는 Millbrae Library·Millbrae Museum과 의상 사진뿐이었다. 다른 지역의 동명 Central Park를 제외하고 놀이터·입구·대표 시설 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "millbrae-marina-vista-park",
+    "placeName": "Marina Vista Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Marina Vista Park",
+      "Marina Vista Park Millbrae",
+      "Millbrae Marina Vista Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Millbrae·Bay Street·Spruce Street 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과 46장과 Wikidata P18을 확인했다.",
+      "Openverse 장소명·도시·주소 검색을 시도했다."
+    ],
+    "rejectionReason": "근접 결과는 모두 San Francisco International Airport의 항공기·터미널·AirTrain 사진으로 공원과 무관했다. 펜스 놀이터·입구·그네를 식별할 수 있는 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "san-carlos-burton-park",
+    "placeName": "Burton Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Contextual_view_to_north-northwest_of_Burton_Park_Club_House_and_Amphitheater_(90_mm_lens)._-_Burton_Park,_Club_House_and_Amphitheater,_Adjacent_ot_south_end_of_Chestnut_Avenue,_HABS_CAL,41-SACAR,2A-4.tif",
+    "commonsPageId": 33786552,
+    "verifiedAt": null,
+    "aliases": [
+      "Burton Park",
+      "Burton Park San Carlos",
+      "San Carlos Burton Park"
+    ],
+    "matchEvidence": [
+      "Commons 전용 카테고리에 San Carlos의 Burton Park Club House and Amphitheater HABS 사진 21장이 있다.",
+      "파일명·San Carlos·Chestnut Avenue가 장소와 일치하고 일부 촬영 좌표도 공원 인근으로 확인된다.",
+      "Commons·Wikidata P18·Openverse와 카탈로그 좌표 반경 500 m 검색을 완료했다."
+    ],
+    "rejectionReason": "정확한 장소 기록이지만 모든 사진의 라이선스 표시는 일반 Public Domain으로 이번 허용 목록의 CC0가 아니다. 현재 놀이터 모습도 아니어서 사용하지 않았다."
+  },
+  {
+    "placeId": "san-carlos-laureola-park",
+    "placeName": "Laureola Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Laureola Park",
+      "Laureola Park San Carlos",
+      "San Carlos Laureola Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·San Carlos·Old County Road 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과 11장과 Wikidata P18을 확인했다.",
+      "Openverse 장소명·도시·주소 조합 검색을 시도했다."
+    ],
+    "rejectionReason": "근접 결과는 San Carlos 역, 음식점, 음료·음식 사진과 도시 표지로 공원과 무관했다. 놀이터·입구·대표 시설을 보여주는 정확 일치 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "daly-city-westlake-park",
+    "placeName": "Westlake Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Westlake_Community_Center_-_March_2018_(3192).jpg",
+    "commonsPageId": 78101840,
+    "verifiedAt": null,
+    "aliases": [
+      "Westlake Park",
+      "Westlake Park Daly City",
+      "Westlake Community Center"
+    ],
+    "matchEvidence": [
+      "Westlake Community Center 후보의 설명이 Daly City를 명시하고 촬영 좌표 37.704906, -122.484864가 카탈로그 좌표에서 약 110 m다.",
+      "Commons 전용 카테고리의 CC BY-SA 4.0 후보 12장을 모두 직접 확인했다.",
+      "Commons·Wikidata P18·Openverse와 카탈로그 좌표 반경 500 m 검색을 완료했다."
+    ],
+    "rejectionReason": "정확한 인접 시설 사진이지만 조형물 접사, 기념판, 행정·시니어 센터 표지만 보인다. 공원 놀이터·입구·열린 운동 공간을 식별할 수 없어 사용하지 않았다."
+  },
+  {
+    "placeId": "south-san-francisco-westborough-park",
+    "placeName": "Westborough Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Westborough Park",
+      "Westborough Park South San Francisco",
+      "South San Francisco Westborough Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·South San Francisco·Westborough Boulevard·Galway Drive 조합을 검색했다.",
+      "카탈로그 좌표 반경 500 m의 Commons 결과 16장과 Wikidata P18을 확인했다.",
+      "Openverse 장소명·도시·주소 조합 검색을 시도했다."
+    ],
+    "rejectionReason": "근접 결과는 모두 인근 Paris Baguette의 매장·제과 사진으로 공원과 무관했다. 놀이 구역·입구·피크닉 시설을 확인할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  }
+]

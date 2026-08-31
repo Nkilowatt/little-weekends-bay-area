@@ -1,0 +1,405 @@
+[
+  {
+    "placeId": "palo-alto-college-terrace-library",
+    "placeName": "College Terrace Library",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "College Terrace Library",
+      "College Terrace Branch Library"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons exact-name and 250 m coordinate searches completed",
+      "Wikidata P18 and Openverse exact-name/tag-style searches completed"
+    ],
+    "rejectionReason": "허용 라이선스 후보가 없었고, 근접 좌표 검색 결과는 인근 주택과 Donaldina M. Cameron Park 사진뿐이어서 도서관을 식별할 수 없었다."
+  },
+  {
+    "placeId": "palo-alto-downtown-library",
+    "placeName": "Downtown Library",
+    "status": "verified",
+    "src": "assets/places/palo-alto-downtown-library.jpg",
+    "alt": "횡단보도 건너편에서 본 Downtown Library 정면 입구",
+    "creator": "BrokenSegue",
+    "credit": "BrokenSegue · Wikimedia Commons · cropped, resized, and compressed",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Downtown_Palo_Alto_Library.jpg",
+    "commonsPageId": 178282856,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Downtown Library",
+      "Palo Alto Downtown Library",
+      "Downtown Palo Alto Library"
+    ],
+    "matchEvidence": [
+      "Commons 설명이 'Entrance to the library in Downtown Palo Alto'로 장소명과 도시를 함께 명시한다.",
+      "Commons 촬영 좌표 37.444055,-122.159471가 카탈로그 좌표에서 약 29 m 떨어져 있다.",
+      "사진에서 LIBRARY 표지와 정면 출입구가 선명하게 보인다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "palo-alto-johnson-park",
+    "placeName": "Johnson Park",
+    "status": "verified",
+    "src": "assets/places/palo-alto-johnson-park.jpg",
+    "alt": "산책로와 잔디밭이 보이는 Johnson Park 전경",
+    "creator": "ECTran71",
+    "credit": "ECTran71 · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Doctor_E_E_Johnson_Park.jpg",
+    "commonsPageId": 164728963,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Johnson Park",
+      "Doctor E. E. Johnson Park",
+      "Dr. E. E. Johnson Park"
+    ],
+    "matchEvidence": [
+      "Commons 파일명과 설명이 공식 명칭 Doctor E E Johnson Park를 명시한다.",
+      "Commons 촬영 좌표 37.44895333,-122.16319333가 카탈로그 좌표에서 약 48 m 떨어져 있다.",
+      "Commons 분류가 Parks in Palo Alto, California로 도시를 확인한다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "magical-bridge-palo-alto",
+    "placeName": "Magical Bridge Playground",
+    "status": "verified",
+    "src": "assets/places/magical-bridge-palo-alto.jpg",
+    "alt": "Adobe Creek 너머로 보이는 Magical Bridge Playground의 보행교와 놀이 구조물",
+    "creator": "Dicklyon",
+    "credit": "Dicklyon · Wikimedia Commons · cropped, resized, and compressed",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Adobe_Creek_at_Magic_Bridge_Playground_Mitchell_Park.jpg",
+    "commonsPageId": 81757272,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Magical Bridge Playground",
+      "Magical Bridge",
+      "Magic Bridge Playground",
+      "Magical Bridge Playground at Mitchell Park"
+    ],
+    "matchEvidence": [
+      "Commons 설명이 'Magic Bridge Playground in Mitchell Park, Palo Alto'로 장소명·공원·도시를 명시한다.",
+      "Commons 촬영 좌표 37.420369,-122.113675가 카탈로그 좌표에서 약 223 m이며 Mitchell Park 부지 안이다.",
+      "사진에 대표 보행교와 놀이터 구조물이 보이고 행사 참가자나 어린이가 주 피사체가 아니다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "palo-alto-mitchell-park",
+    "placeName": "Mitchell Park",
+    "status": "verified",
+    "src": "assets/places/palo-alto-mitchell-park.jpg",
+    "alt": "Mitchell Park 입구 표지와 뒤편 놀이터",
+    "creator": "Victorgrigas",
+    "credit": "Victorgrigas · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Mitchell_Park_(1).jpg",
+    "commonsPageId": 78475872,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Mitchell Park"
+    ],
+    "matchEvidence": [
+      "Commons 파일명과 설명이 Mitchell Park를 정확히 명시한다.",
+      "Commons 촬영 좌표 37.42307778,-122.11666111가 카탈로그 좌표에서 약 277 m이며 공원 경계 안이다.",
+      "Commons 분류가 Parks in Palo Alto, California와 Playgrounds in California를 함께 확인한다.",
+      "사진에 Mitchell Park 표지와 놀이터가 함께 보인다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "palo-alto-mitchell-park-library",
+    "placeName": "Mitchell Park Library",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Mitchell Park Library",
+      "Mitchell Park Library and Community Center"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons exact-name and 250 m coordinate searches completed",
+      "Wikidata P18 and Openverse exact-name/tag-style searches completed"
+    ],
+    "rejectionReason": "정확한 도서관 외관·입구 사진을 찾지 못했다. 근접 검색의 Mitchell Park 사진은 공원 표지와 놀이터만 보여 도서관 사진으로 재사용할 수 없다."
+  },
+  {
+    "placeId": "palo-alto-childrens-library",
+    "placeName": "Palo Alto Children's Library",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Palo Alto Children's Library",
+      "Children's Library"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons exact-name and 250 m coordinate searches completed",
+      "Wikidata P18 and Openverse exact-name/tag-style searches completed"
+    ],
+    "rejectionReason": "장소를 식별할 수 있는 허용 라이선스 사진을 찾지 못했다. 근접 좌표 결과는 도서관과 무관한 BarCamp 포스터 사진이었다."
+  },
+  {
+    "placeId": "palo-alto-peers-park",
+    "placeName": "Peers Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Peers Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons exact-name and 250 m coordinate searches completed",
+      "Wikidata P18 and Openverse exact-name/tag-style searches completed"
+    ],
+    "rejectionReason": "허용 소스에서 Peers Park의 입구·놀이터·대표 시설을 식별할 수 있는 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "palo-alto-rinconada-library",
+    "placeName": "Rinconada Library",
+    "status": "verified",
+    "src": "assets/places/palo-alto-rinconada-library.jpg",
+    "alt": "잔디 정원에서 바라본 Rinconada Library 입구와 외관",
+    "creator": "Michal Cierniak",
+    "credit": "Michal Cierniak · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Palo_Alto_Public_Library,_Main_Branch_-_panoramio.jpg",
+    "commonsPageId": 52570004,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Rinconada Library",
+      "Palo Alto Main Library",
+      "Palo Alto Public Library Main Branch",
+      "Main Branch"
+    ],
+    "matchEvidence": [
+      "Commons 파일명과 설명이 이 지점의 이전 명칭 Palo Alto Public Library Main Branch를 명시한다.",
+      "Commons 촬영 좌표 37.445166,-122.138974가 카탈로그 좌표에서 약 27 m 떨어져 있다.",
+      "사진은 현재 Rinconada Library로 쓰이는 동일 건물의 정원 쪽 입구와 외관을 보여준다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "palo-alto-rinconada-park",
+    "placeName": "Rinconada Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Rinconada Park"
+    ],
+    "matchEvidence": [
+      "Commons 후보 10장은 촬영 좌표가 카탈로그 좌표에서 41–74 m였다.",
+      "Openverse 태그형 후보 17장은 rinconadapark와 paloalto 태그가 일치했다."
+    ],
+    "rejectionReason": "Commons 후보는 모두 2025년 No Kings 시위 참가자가 주 피사체였고, Openverse 후보는 모두 Dogoween 반려견 행사 사진이었다. 공원 입구·놀이터·대표 시설을 이해하는 데 도움이 되지 않아 전부 제외했다."
+  },
+  {
+    "placeId": "belle-haven-library-family-place",
+    "placeName": "Belle Haven Library",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Belle Haven Library",
+      "Belle Haven Branch Library"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons exact-name and 250 m coordinate searches completed",
+      "Wikidata P18 and Openverse exact-name/tag-style searches completed"
+    ],
+    "rejectionReason": "장소를 식별할 수 있는 허용 라이선스 사진을 찾지 못했다. Openverse의 유일한 광역 검색 결과는 City of Menlo Park 작업 차량 사진으로 도서관과 무관했다."
+  },
+  {
+    "placeId": "menlo-park-burgess-park",
+    "placeName": "Burgess Park",
+    "status": "verified",
+    "src": "assets/places/menlo-park-burgess-park.jpg",
+    "alt": "Burgess Park Pool의 야외 수영 레인과 데크",
+    "creator": "mjmonty",
+    "credit": "mjmonty · Flickr via Openverse · cropped, resized, and compressed",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+    "sourceUrl": "https://www.flickr.com/photos/mjmonty/2794250822",
+    "commonsPageId": null,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Burgess Park",
+      "Burgess Park Pool",
+      "Burgess Pool"
+    ],
+    "matchEvidence": [
+      "원본 Flickr 제목이 Burgess Park Pool이다.",
+      "원본 Flickr 설명이 'the Burgess Park Pool in Menlo Park'로 장소명과 도시를 함께 명시한다.",
+      "사진에 공원의 대표 시설인 야외 수영장과 레인이 선명하게 보인다.",
+      "원본 Flickr 페이지의 라이선스 링크를 CC BY 2.0으로 재확인했다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "menlo-park-hamilton-park",
+    "placeName": "Hamilton Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Hamilton Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons exact-name and 250 m coordinate searches completed",
+      "Wikidata P18 and Openverse exact-name/tag-style searches completed"
+    ],
+    "rejectionReason": "허용 소스에서 Menlo Park의 Hamilton Park 입구·놀이터·대표 시설을 식별할 수 있는 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "menlo-park-library-family-place",
+    "placeName": "Menlo Park Library",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Menlo Park Library",
+      "Menlo Park Main Library"
+    ],
+    "matchEvidence": [
+      "Commons 후보 두 장은 Menlo Park, California 좌표와 도서관 이름이 일치하지만 1962년 또는 촬영일 불명인 역사 사진이다.",
+      "추가 후보의 제목·설명·화면을 원본 페이지와 대조했다."
+    ],
+    "rejectionReason": "캘리포니아 후보는 현재 방문 모습을 설명하기 어려운 오래된 사진뿐이었다. 나머지 Commons 후보는 미시간 Greenfield Village의 에디슨 복원 시설이고, Openverse 후보는 시 작업 차량, 근접 후보는 도서관을 식별할 수 없는 Civic Center 풍경이라 모두 제외했다."
+  },
+  {
+    "placeId": "menlo-park-nealon-all-abilities-playground",
+    "placeName": "Nealon Park All-Abilities Playground",
+    "status": "verified",
+    "src": "assets/places/menlo-park-nealon-all-abilities-playground.jpg",
+    "alt": "잔디밭 앞 Nealon Park와 City of Menlo Park 입구 표지",
+    "creator": "Näystin",
+    "credit": "Näystin · Flickr via Openverse · cropped, resized, and compressed",
+    "license": "CC BY-SA 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.0/",
+    "sourceUrl": "https://www.flickr.com/photos/naystin/2218427391",
+    "commonsPageId": null,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Nealon Park All-Abilities Playground",
+      "Nealon Park Nature Play Area",
+      "Nealon Park"
+    ],
+    "matchEvidence": [
+      "사진의 입구 표지에 NEALON PARK와 CITY OF MENLO PARK가 함께 선명하게 보인다.",
+      "Openverse 원본 레코드의 nealonpark·menlopark·california 태그가 장소와 도시를 확인한다.",
+      "원본 Flickr 페이지의 라이선스 링크를 CC BY-SA 2.0으로 재확인했다.",
+      "2019년 이전 놀이터 시설 사진 대신 현재 장소 식별에 유효한 공원 입구 사진을 선택했다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "menlo-park-tinker-park",
+    "placeName": "Tinker Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Tinker Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons exact-name and 250 m coordinate searches completed",
+      "Wikidata P18 and Openverse exact-name/tag-style searches completed"
+    ],
+    "rejectionReason": "장소를 식별할 수 있는 허용 라이선스 사진을 찾지 못했다. 근접 좌표 결과는 Dumbarton Bridge 항공 사진으로 공원과 무관했다."
+  },
+  {
+    "placeId": "menlo-park-willow-oaks-park",
+    "placeName": "Willow Oaks Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Willow Oaks Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons exact-name and 250 m coordinate searches completed",
+      "Wikidata P18 and Openverse exact-name/tag-style searches completed"
+    ],
+    "rejectionReason": "장소를 식별할 수 있는 허용 라이선스 사진을 찾지 못했다. 근접 좌표 결과는 공원에서 촬영된 균류 접사로 장소 정체성이 보이지 않았다."
+  }
+]

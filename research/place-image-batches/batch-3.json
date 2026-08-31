@@ -1,0 +1,319 @@
+[
+  {
+    "placeId": "santa-clara-central-park-library-family-place",
+    "placeName": "Central Park Library",
+    "status": "verified",
+    "src": "assets/places/santa-clara-central-park-library-family-place.jpg",
+    "alt": "보행로 건너편에서 본 Santa Clara Central Park Library 정면 입구",
+    "creator": "Coolcaesar",
+    "credit": "Coolcaesar · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Santa_Clara_Central_Park_Library.jpg",
+    "commonsPageId": 1037813,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Central Park Library",
+      "Santa Clara Central Park Library",
+      "Santa Clara City Library Central Park"
+    ],
+    "matchEvidence": [
+      "Commons 파일명과 설명이 Santa Clara, California의 Central Park Library를 정확히 명시한다.",
+      "Commons 분류가 Central Park Library로 지점을 재확인한다.",
+      "사진에서 현재 도서관 외관과 중앙 출입구가 선명하게 보인다.",
+      "Wikidata Q66364192의 P18은 Public Domain 표기라 제외하고 허용 목록에 포함되는 CC BY-SA 사진을 선택했다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "santa-clara-northside-library-family-place",
+    "placeName": "Northside Branch Library",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Northside Branch Library",
+      "Northside Library",
+      "Santa Clara Northside Branch Library"
+    ],
+    "matchEvidence": [
+      "Wikidata Q66364191이 Santa Clara의 Northside Branch Library를 확인하지만 P18 이미지는 없다.",
+      "Wikimedia Commons 정확한 장소명 및 반경 500 m 검색을 완료했다.",
+      "Openverse 정확한 장소명·별칭·태그형 검색을 완료했다."
+    ],
+    "rejectionReason": "근접 결과는 주택 설비, 풍력발전소 항공사진, Lick Mill Park 등 도서관과 무관했다. 현재 도서관 외관이나 입구를 식별할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "santa-clara-mission-library-family-place",
+    "placeName": "Mission Branch Library",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Mission Branch Library",
+      "Mission Library",
+      "Santa Clara Mission Branch Library"
+    ],
+    "matchEvidence": [
+      "Wikidata Q66364190이 Santa Clara의 Mission Branch Library를 확인하지만 P18 이미지는 없다.",
+      "Openverse에서 발견한 2020 Library 2 Library Bicycle Loop Tour 사진 두 장은 도서관 입구에서 촬영된 것으로 화면을 확인했다.",
+      "Commons 반경 500 m 이미지형 후보와 Openverse 보강 후보를 모두 검수했다."
+    ],
+    "rejectionReason": "유일한 장소 일치 사진은 행사 단체사진으로 참가자와 어린이가 주 피사체였다. 나머지는 Mission Santa Clara 유물·교회·인근 주택 사진이어서 도서관 외관이나 입구 사진으로 사용할 수 없었다."
+  },
+  {
+    "placeId": "sunnyvale-magical-bridge-playground",
+    "placeName": "Magical Bridge Playground at Fair Oaks Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Magical Bridge Playground at Fair Oaks Park",
+      "Sunnyvale Magical Bridge Playground",
+      "Fair Oaks Park Magical Bridge"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons 정확한 장소명 및 반경 500 m 검색을 완료했다.",
+      "Wikidata P18과 Openverse Magical Bridge·Fair Oaks Park 별칭 검색을 완료했다."
+    ],
+    "rejectionReason": "근접 Commons 결과는 인근 Lowe's 매장 사진뿐이었고, 허용 소스에서 놀이터 입구·놀이 구조물·대표 시설을 확인할 수 있는 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "santa-clara-central-park-magical-bridge",
+    "placeName": "Santa Clara Magical Bridge Playground",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Santa Clara Magical Bridge Playground",
+      "Magical Bridge Playground Santa Clara",
+      "Central Park Magical Bridge"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons 정확한 장소명 및 반경 500 m 검색을 완료했다.",
+      "Wikidata P18과 Openverse Magical Bridge·Central Park 별칭 검색을 완료했다.",
+      "근접 Central Park 사진도 직접 확인했다."
+    ],
+    "rejectionReason": "근접 사진은 호수와 정원을 보여주는 Central Park 일반 풍경 또는 수영 시설 사진뿐이었다. Magical Bridge의 놀이터 시설을 식별할 수 없어 추가하지 않았다."
+  },
+  {
+    "placeId": "sunnyvale-las-palmas-park",
+    "placeName": "Las Palmas Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Las Palmas Park",
+      "Las Palmas Park Sunnyvale"
+    ],
+    "matchEvidence": [
+      "Wikidata Q49514772의 장소명과 좌표가 Sunnyvale의 Las Palmas Park와 일치하지만 P18 이미지는 없다.",
+      "Openverse 후보 한 장의 제목과 태그가 Las Palmas Park·Sunnyvale을 함께 명시해 원본 화면을 확인했다.",
+      "Commons 반경 500 m 후보를 모두 검수했다."
+    ],
+    "rejectionReason": "Openverse 후보는 해질녘 야자수 실루엣뿐이라 공원 입구·놀이터·대표 시설을 알아볼 수 없었다. 근접 Commons 결과도 학교 운송 장면과 도로 장비 등으로 장소와 무관했다."
+  },
+  {
+    "placeId": "sunnyvale-ortega-park",
+    "placeName": "Ortega Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Ortega Park",
+      "Ortega Park Sunnyvale"
+    ],
+    "matchEvidence": [
+      "Wikidata Q49536184의 장소명과 좌표 37.342222,-122.025833이 카탈로그와 일치하지만 P18 이미지는 없다.",
+      "Openverse 후보 여섯 장의 ortegapark·sunnyvale 태그와 원본 화면을 확인했다.",
+      "Commons 반경 500 m 결과는 모두 위성 레이더 영상이었다."
+    ],
+    "rejectionReason": "장소 일치 후보는 잔디·벤치·일몰 같은 일반 풍경, 학교 운동장 또는 어린이가 주 피사체인 피크닉 사진이었다. 현재 가족 방문자가 놀이터 모습을 이해할 수 있는 사진이 없어 모두 제외했다."
+  },
+  {
+    "placeId": "sunnyvale-seven-seas-park",
+    "placeName": "Seven Seas Park",
+    "status": "verified",
+    "src": "assets/places/sunnyvale-seven-seas-park.jpg",
+    "alt": "그늘막 아래 배 모양 놀이 구조물이 보이는 Seven Seas Park 놀이터",
+    "creator": "BrokenSegue",
+    "credit": "BrokenSegue · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Seven_Seas_Park_Playground_(Sunnyvale).jpg",
+    "commonsPageId": 129606982,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Seven Seas Park",
+      "Seven Seas Park Playground"
+    ],
+    "matchEvidence": [
+      "Commons 파일명과 설명이 Sunnyvale의 Seven Seas Park 놀이터를 정확히 명시한다.",
+      "Commons 촬영 좌표 37.398454,-122.016440이 카탈로그 좌표에서 약 42 m 떨어져 있다.",
+      "Wikidata Q117100063의 P18이 동일한 Commons 사진을 가리킨다.",
+      "사진에서 그늘막과 대표 놀이 구조물이 선명하게 보이고 사람이 주 피사체가 아니다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "sunnyvale-washington-park",
+    "placeName": "Washington Park",
+    "status": "verified",
+    "src": "assets/places/sunnyvale-washington-park.jpg",
+    "alt": "잔디 가장자리에 전시된 Washington Park의 M1 57 mm 포",
+    "creator": "Eugene Zelenko",
+    "credit": "Eugene Zelenko · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:USA-Sunnyvale-Washington_Park-M1_57_mm_gun-1.jpg",
+    "commonsPageId": 176748781,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Washington Park",
+      "Washington Park Sunnyvale"
+    ],
+    "matchEvidence": [
+      "Commons 파일명과 설명이 Washington Park, Sunnyvale, California를 함께 명시한다.",
+      "사진은 공원에 보존된 고유한 M1 57 mm 전시물을 전체 모습으로 보여준다.",
+      "동일 장소의 학교 사진과 세부 부품 사진 대신 공원 대표물을 가장 완전하게 보여주는 장면을 선택했다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "santa-clara-bowers-park",
+    "placeName": "Bowers Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Bowers Park",
+      "Bowers Park Santa Clara"
+    ],
+    "matchEvidence": [
+      "Wikidata Q49475429의 장소명과 좌표 37.358333,-121.973611이 카탈로그와 일치하지만 P18 이미지는 없다.",
+      "Openverse 보강 검색 후보 14장을 모두 화면으로 확인했다.",
+      "Commons 정확한 장소명 및 반경 500 m 검색에는 사용할 수 있는 결과가 없었다."
+    ],
+    "rejectionReason": "Openverse 결과는 모두 Levi's Stadium의 Ed Sheeran 공연 자전거 주차 행사 사진으로 Bowers Park와 무관했고 참가자가 주 피사체였다. 공원 입구·놀이터·대표 시설 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "santa-clara-bracher-park",
+    "placeName": "Bracher Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Bracher Park",
+      "Bracher Park Santa Clara"
+    ],
+    "matchEvidence": [
+      "Wikidata Q49475525의 장소명과 좌표 37.369444,-121.976111이 카탈로그와 일치하지만 P18 이미지는 없다.",
+      "Wikimedia Commons 정확한 장소명 및 반경 500 m 검색을 완료했다.",
+      "Openverse 정확한 장소명·별칭·태그형 검색을 완료했다."
+    ],
+    "rejectionReason": "허용 소스에서 Bracher Park의 입구·놀이터·대표 시설을 식별할 수 있는 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "santa-clara-fuller-street-park",
+    "placeName": "Fuller Street Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Fuller Street Park",
+      "Fuller St Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons 정확한 장소명 및 반경 500 m 검색을 완료했다.",
+      "Wikidata P18과 Openverse 정확한 장소명·태그형 검색을 완료했다."
+    ],
+    "rejectionReason": "근접 Commons 결과는 Levi's Stadium, Lafayette Street, 주택 가스 계량기 사진뿐이었다. Fuller Street Park를 식별할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "santa-clara-fremont-park",
+    "placeName": "Fremont Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Fremont Park",
+      "Fremont Park Santa Clara"
+    ],
+    "matchEvidence": [
+      "Openverse 후보 네 장의 fremontpark·santaclara·rosegarden 태그가 장소와 도시를 확인했다.",
+      "Openverse 보강 결과와 Commons 반경 500 m 이미지형 결과를 화면 및 메타데이터로 검수했다.",
+      "Wikidata 검색의 동명 P18 항목은 Menlo Park 등 다른 지역이었다."
+    ],
+    "rejectionReason": "장소 일치 후보는 장미 한 송이를 각각 근접 촬영한 사진뿐이어서 공원 입구·정원 배치·놀이 시설을 알아볼 수 없었다. 나머지는 Zion National Park와 인근 건물 사진으로 다른 장소였다."
+  }
+]

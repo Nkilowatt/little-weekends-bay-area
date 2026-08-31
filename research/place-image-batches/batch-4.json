@@ -1,0 +1,354 @@
+[
+  {
+    "placeId": "cupertino-library-family-place",
+    "placeName": "Cupertino Library",
+    "status": "verified",
+    "src": "assets/places/cupertino-library-family-place.jpg",
+    "alt": "Cupertino Civic Center 전경에서 본 Cupertino Library 건물과 중앙 광장",
+    "creator": "Robert Kim/City of Cupertino",
+    "credit": "Robert Kim/City of Cupertino · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Cupertino_Civic_Center_Panorama.jpg",
+    "commonsPageId": 41727830,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Cupertino Library",
+      "Cupertino Library Family Place",
+      "Santa Clara County Library Cupertino"
+    ],
+    "matchEvidence": [
+      "Commons 설명이 Cupertino Library를 포함한 City of Cupertino Civic Center 전경이라고 정확히 명시한다.",
+      "설명에 Rodrigues Avenue와 Torre Avenue 교차로가 기록되어 카탈로그의 Torre Avenue 주소와 일치한다.",
+      "사진에서 Civic Center 광장과 도서관 건물 외관이 넓게 보여 방문 전 장소 규모와 접근 동선을 파악할 수 있다.",
+      "Commons 원본 페이지에서 Robert Kim/City of Cupertino의 CC BY-SA 4.0 라이선스를 재확인했다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "cupertino-jollyman-inclusive-playground",
+    "placeName": "Jollyman Park All-Inclusive Playground",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Jollyman Park All-Inclusive Playground",
+      "Jollyman Park Playground",
+      "Jollyman All-Inclusive Playground"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명과 Cupertino·Stelling Road 조합을 검색했다.",
+      "카탈로그 좌표 반경 750 m의 Commons 사진과 Wikidata P18을 교차 확인했다.",
+      "Openverse에서 장소명과 주소 변형을 검색하고 원본 페이지가 있는 결과를 검토했다."
+    ],
+    "rejectionReason": "좌표 근접 결과는 인근 주택에서 촬영한 레고 논리 게이트 사진뿐이었다. 놀이터 입구, 포용형 놀이 구조물 또는 Jollyman Park임을 식별할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "cupertino-memorial-park",
+    "placeName": "Memorial Park",
+    "status": "verified",
+    "src": "assets/places/cupertino-memorial-park.jpg",
+    "alt": "Cupertino Memorial Park 야외극장 옆의 군인 기념 조형물과 단풍나무",
+    "creator": "Pavan_santhosh.s",
+    "credit": "Pavan_santhosh.s · Wikimedia Commons · resized and compressed",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Statue_in_Memorial_park_amphitheatre.jpg",
+    "commonsPageId": 74687309,
+    "verifiedAt": "2026-07-28",
+    "aliases": [
+      "Memorial Park",
+      "Cupertino Memorial Park",
+      "Veterans Memorial Park Cupertino"
+    ],
+    "matchEvidence": [
+      "Commons 파일 설명이 Cupertino, CA의 Memorial Park amphitheatre에 있는 군인 조형물이라고 명시한다.",
+      "Commons 촬영 좌표가 카탈로그 중심 좌표에서 약 77 m로 일치한다.",
+      "사진에서 공원의 대표 기념 시설과 야외극장 주변 환경이 선명하게 보인다.",
+      "행사 참석자가 주 피사체인 다른 Memorial Park 후보와 달리 이 사진은 장소 시설 자체가 주 피사체다."
+    ],
+    "rejectionReason": null
+  },
+  {
+    "placeId": "cupertino-creekside-park",
+    "placeName": "Creekside Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Creekside Park",
+      "Cupertino Creekside Park",
+      "Creekside Park Cupertino"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Cupertino·Miller Avenue 조합을 검색했다.",
+      "카탈로그 좌표 반경 750 m 검색과 Wikidata P18 검색을 완료했다.",
+      "Openverse 장소명·주소 검색 결과를 원본 출처 기준으로 검토했다."
+    ],
+    "rejectionReason": "검색 결과는 다른 주의 동명 공원이나 인근 주거·상업 시설이었다. Cupertino Creekside Park의 놀이터, 입구 또는 대표 시설을 확인할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "cupertino-portal-park",
+    "placeName": "Portal Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Portal Park",
+      "Cupertino Portal Park",
+      "Portal Park Cupertino"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Cupertino·North Portal Avenue 조합을 검색했다.",
+      "Wikidata P18과 Openverse 장소명·주소 변형 검색을 완료했다.",
+      "동명 결과의 도시와 국가를 원본 페이지에서 대조했다."
+    ],
+    "rejectionReason": "Commons의 동명 사진은 덴마크 Esbjerg의 Portalparken 등 다른 지역이었다. Cupertino 공원의 놀이터·입구·대표 시설을 식별할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "cupertino-linda-vista-park",
+    "placeName": "Linda Vista Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Lindavista.jpg",
+    "commonsPageId": 61287405,
+    "verifiedAt": null,
+    "aliases": [
+      "Linda Vista Park",
+      "Linda Vista Park Cupertino",
+      "Lindavista Park Monta Vista"
+    ],
+    "matchEvidence": [
+      "Commons 설명이 Monta Vista의 Linda Vista Park라고 명시하고 Cupertino 지역 분류가 일치한다.",
+      "원본 페이지에서 Lilywatanabe의 CC BY-SA 3.0 라이선스를 확인했다.",
+      "후보를 원본 해상도로 직접 확인했다."
+    ],
+    "rejectionReason": "정확한 장소 사진이지만 수목과 피크닉 테이블만 보이는 일반 풍경으로, 놀이터·입구·표지·대표 시설이 없어 현재 방문할 가족이 장소 정체성을 파악하기 어렵다."
+  },
+  {
+    "placeId": "campbell-library-family-place",
+    "placeName": "Campbell Library",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Campbell Library",
+      "Campbell Library Family Place",
+      "Santa Clara County Library Campbell"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Campbell·Harrison Avenue 조합을 검색했다.",
+      "카탈로그 좌표 반경 750 m에서 허용 라이선스 Commons 사진 50장을 메타데이터와 화면으로 검토했다.",
+      "Wikidata P18과 Openverse 장소명·주소 변형 검색을 완료했다."
+    ],
+    "rejectionReason": "가장 가까운 Commons 결과는 약 45 m 거리의 Ainsley House로 도서관과 다른 건물이었다. Campbell Library 외관이나 입구를 식별할 수 있는 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "campbell-john-d-morgan-playgrounds",
+    "placeName": "John D. Morgan Park Playgrounds",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Clouds_(Campbell,_California).jpg",
+    "commonsPageId": 118967605,
+    "verifiedAt": null,
+    "aliases": [
+      "John D. Morgan Park Playgrounds",
+      "John D. Morgan Park",
+      "John D Morgan Park Campbell"
+    ],
+    "matchEvidence": [
+      "Commons 설명이 Campbell, California의 John D. Morgan Park라고 명시한다.",
+      "원본 페이지에서 roarofthefour의 CC BY-SA 2.0 라이선스를 확인했다.",
+      "Commons와 Flickr 중복 후보를 원본 해상도로 직접 확인했다."
+    ],
+    "rejectionReason": "유일한 정확 일치 후보는 구름과 나무 실루엣만 보이는 하늘 사진이다. 놀이터·입구·표지·공원 시설을 전혀 식별할 수 없어 사용하지 않았다."
+  },
+  {
+    "placeId": "campbell-jack-fischer-park",
+    "placeName": "Jack Fischer Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Jack Fischer Park",
+      "Jack Fischer Park Campbell",
+      "Jack Fischer Park Playground"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Campbell·Abbott Avenue·Pollard Road 조합을 검색했다.",
+      "카탈로그 좌표 반경 750 m와 Wikidata P18을 확인했다.",
+      "Openverse 장소명·주소 검색을 완료했다."
+    ],
+    "rejectionReason": "가까운 Commons 결과는 공원에서 약 312 m 떨어진 꽃 근접 사진뿐이었다. 유아 놀이터나 물놀이 시설을 확인할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "campbell-stojanovich-family-park",
+    "placeName": "Stojanovich Family Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Stojanovich Family Park",
+      "Stojanovich Park",
+      "Stojanovich Family Park Campbell"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Campbell·Union Avenue 조합을 검색했다.",
+      "카탈로그 좌표 반경 750 m의 Commons 결과와 Wikidata P18을 확인했다.",
+      "Openverse 장소명·주소 검색 결과를 검토했다."
+    ],
+    "rejectionReason": "근접 결과는 Hamilton House, 야외 식당, 거리 풍경 등 공원 밖 시설이었다. 놀이터·입구·표지를 식별할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "campbell-virginia-park",
+    "placeName": "Virginia Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Virginia Park",
+      "Virginia Park Campbell",
+      "Campbell Virginia Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Campbell·California·Virginia Avenue 조합을 검색했다.",
+      "카탈로그 좌표 반경 750 m와 Wikidata P18을 확인했다.",
+      "동명 후보의 설명·주소·좌표를 원본 페이지에서 대조했다."
+    ],
+    "rejectionReason": "검색 후보는 영국 Surrey, 웨일스, Detroit, West Virginia 등 다른 지역의 Virginia Park였다. Campbell의 장소명·도시·주소 또는 좌표 중 두 가지 이상이 맞는 후보가 없었다."
+  },
+  {
+    "placeId": "los-gatos-blossom-hill-park",
+    "placeName": "Blossom Hill Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Blossom Hill Park",
+      "Blossom Hill Park Los Gatos",
+      "Los Gatos Blossom Hill Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Los Gatos·Blossom Hill Road 조합을 검색했다.",
+      "카탈로그 좌표 반경 750 m와 Wikidata P18을 확인했다.",
+      "Openverse 장소명·주소 검색 결과를 원본 출처 기준으로 검토했다."
+    ],
+    "rejectionReason": "정확한 공원 사진은 나오지 않았고 근접 결과도 장소 밖의 식물·건물 사진이었다. 놀이터·입구·대표 시설을 확인할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  },
+  {
+    "placeId": "los-gatos-bachman-park",
+    "placeName": "Bachman Park",
+    "status": "rejected",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": "https://commons.wikimedia.org/wiki/File:Bachman_Park.jpg",
+    "commonsPageId": 118969733,
+    "verifiedAt": null,
+    "aliases": [
+      "Bachman Park",
+      "Bachman Park Los Gatos",
+      "Los Gatos Bachman Park"
+    ],
+    "matchEvidence": [
+      "세 Commons 후보 설명이 Los Gatos, California의 Bachman Park라고 명시한다.",
+      "촬영 좌표가 카탈로그 공원 중심에서 약 85~93 m로 일치한다.",
+      "roarofthefour의 CC BY-SA 2.0 Commons 원본과 Flickr 중복 사진을 모두 직접 확인했다."
+    ],
+    "rejectionReason": "세 후보 모두 잔디와 수목만 보이는 일반 풍경이며 놀이터·입구·표지·대표 시설이 없다. 장소 정체성을 알아보기 어려워 사용하지 않았다."
+  },
+  {
+    "placeId": "los-gatos-live-oak-manor-park",
+    "placeName": "Live Oak Manor Park",
+    "status": "not_found",
+    "src": null,
+    "alt": null,
+    "creator": null,
+    "credit": null,
+    "license": null,
+    "licenseUrl": null,
+    "sourceUrl": null,
+    "commonsPageId": null,
+    "verifiedAt": null,
+    "aliases": [
+      "Live Oak Manor Park",
+      "Live Oak Manor Park Los Gatos",
+      "Los Gatos Live Oak Manor Park"
+    ],
+    "matchEvidence": [
+      "Wikimedia Commons에서 정확한 장소명·Los Gatos·Carlton Avenue 조합을 검색했다.",
+      "카탈로그 좌표 반경 750 m와 Wikidata P18을 확인했다.",
+      "Openverse 장소명·주소 검색 결과의 원본 페이지를 검토했다."
+    ],
+    "rejectionReason": "좌표 근접 Commons 결과는 약 460~484 m 떨어진 병원과 의료시설 사진이었다. 공원의 놀이터·농구장·입구 또는 표지를 식별할 수 있는 허용 라이선스 사진을 찾지 못했다."
+  }
+]
