@@ -68,9 +68,10 @@ const files = {
     contentType: "font/woff2",
     binary: true,
   },
-  "/assets/bay-area-location-map.svg": {
-    path: "assets/bay-area-location-map.svg",
-    contentType: "image/svg+xml; charset=utf-8",
+  "/assets/bay-area-location-map.webp": {
+    path: "assets/bay-area-location-map.webp",
+    contentType: "image/webp",
+    binary: true,
   },
   "/assets/photos/bay-family-hero.webp": {
     path: "assets/photos/bay-family-hero.webp",
@@ -170,10 +171,16 @@ const placeImageContentTypes = {
 };
 
 const adminPhotosHtml = await readFile(join(root, "admin/photos.html"), "utf8");
+const placeImagesSource = await readFile(join(root, "place-images.js"), "utf8");
+const registeredPlaceImageFilenames = new Set(
+  [...placeImagesSource.matchAll(/src:\s*["']\/?assets\/places\/([^"']+)["']/g)]
+    .map((match) => match[1]),
+);
 
 for (const filename of await readdir(join(root, "assets/places"))) {
   const extension = filename.slice(filename.lastIndexOf(".")).toLowerCase();
   if (!/^[a-z0-9-]+\.(?:jpe?g|webp)$/i.test(filename)) continue;
+  if (!registeredPlaceImageFilenames.has(filename)) continue;
   files[`/assets/places/${filename}`] = {
     path: `assets/places/${filename}`,
     contentType: placeImageContentTypes[extension],
@@ -184,7 +191,7 @@ for (const filename of await readdir(join(root, "assets/places"))) {
 const catalogContext = { window: {} };
 vm.runInNewContext(await readFile(join(root, "evergreen-outings.js"), "utf8"), catalogContext);
 vm.runInNewContext(await readFile(join(root, "park-expansion.js"), "utf8"), catalogContext);
-vm.runInNewContext(await readFile(join(root, "place-images.js"), "utf8"), catalogContext);
+vm.runInNewContext(placeImagesSource, catalogContext);
 const evergreenCatalog = catalogContext.window.LITTLE_WEEKENDS_EVERGREEN || [];
 const verifiedActualPlaceKeys = new Set(Object.keys(catalogContext.window.LITTLE_WEEKENDS_PLACE_IMAGES || {}));
 

@@ -584,7 +584,7 @@ function mapPoint(name, location, className = "") {
 
 function renderMapBase() {
   return `
-    <img class="bay-map-base" src="assets/bay-area-location-map.svg" alt="" aria-hidden="true" />
+    <img class="bay-map-base" src="assets/bay-area-location-map.webp" alt="" aria-hidden="true" />
     <a
       class="map-attribution"
       href="https://commons.wikimedia.org/wiki/File:United_States_San_Francisco_Bay_Area_location_map.svg"

@@ -31,7 +31,7 @@ OpenAI Sites support is configured through `.openai/hosting.json` plus a small s
 
 ## Current Map Baseline
 
-The map is still dependency-free and does not call a live map API. `app.js` stores outing coordinates as `location: { lat, lng }`, then projects those coordinates into the downloaded static Bay Area SVG basemap at `assets/bay-area-location-map.svg`.
+The map is still dependency-free and does not call a live map API. `app.js` stores outing coordinates as `location: { lat, lng }`, then projects those coordinates into the optimized static Bay Area basemap at `assets/bay-area-location-map.webp`.
 
 The current basemap is intentionally lightweight:
 
@@ -119,7 +119,7 @@ Primary app files:
 - `styles.css`
 - `app.js`
 - `evergreen-outings.js`
-- `assets/bay-area-location-map.svg`
+- `assets/bay-area-location-map.webp`
 
 OpenAI Sites support files:
 

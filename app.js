@@ -2253,7 +2253,7 @@ function mapPoint(name, location, className = "") {
 function renderMapBase() {
   const originPoint = projectLocation(selectedLocation());
   return `
-    <img class="bay-map-base" src="assets/bay-area-location-map.svg" alt="" aria-hidden="true" />
+    <img class="bay-map-base" src="assets/bay-area-location-map.webp" alt="" aria-hidden="true" />
     <span class="current-location-marker" style="left: ${originPoint.x}%; top: ${originPoint.y}%;" title="${selectedLocation().name} 기준 위치" aria-label="${selectedLocation().name} 기준 위치"></span>
     <a
       class="map-attribution"
