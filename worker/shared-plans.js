@@ -51,6 +51,7 @@ function sanitizeSnapshot(item) {
   const longitude = safeNumber(item?.location?.lng);
   return {
     id: safeText(item?.id, 180),
+    placeKey: /^[a-z0-9][a-z0-9-]{2,219}$/i.test(String(item?.placeKey || "")) ? String(item.placeKey) : null,
     name: safeText(item?.name, 180, "이름을 확인 중인 장소"),
     type: safeText(item?.type, 30, "seasonal"),
     setting: safeText(item?.setting, 30, "indoor"),

@@ -4,11 +4,15 @@ import handler from "vinext/server/app-router-entry";
 import { handleCalendarRequest } from "./calendar.js";
 import { getOutingsResponse, refreshOutings } from "./event-sync.js";
 import { handleFeedbackRequest } from "./feedback.js";
+import { handlePlacePhotoRequest, purgeExpiredPlacePhotos } from "./place-photos.js";
 import { handleSharedPlanRequest } from "./shared-plans.js";
 
 interface Env {
   ASSETS: Fetcher;
   DB: D1Database;
+  UPLOADS: R2Bucket;
+  PHOTO_UPLOADS_ENABLED?: string;
+  PHOTO_REVIEWER_EMAILS?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -48,6 +52,9 @@ const worker = {
       return getOutingsResponse(request, env, ctx);
     }
 
+    const placePhotoResponse = await handlePlacePhotoRequest(request, env, {});
+    if (placePhotoResponse) return placePhotoResponse;
+
     const calendarResponse = handleCalendarRequest(request);
     if (calendarResponse) return calendarResponse;
 
@@ -60,7 +67,7 @@ const worker = {
     return handler.fetch(request, env, ctx);
   },
   async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(refreshOutings(env, true));
+    ctx.waitUntil(Promise.all([refreshOutings(env, true), purgeExpiredPlacePhotos(env)]));
   },
 };
 

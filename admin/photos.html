@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>방문자 사진 검수 | Little Weekends</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/styles.css?v=32" />
+    <link rel="stylesheet" href="/admin/photos.css?v=1" />
+  </head>
+  <body class="photo-admin-page">
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="/" aria-label="Little Weekends 홈"><strong>Little Weekends</strong><span>사진 검수</span></a>
+        <a class="admin-signout" href="/signout-with-chatgpt?return_to=/">로그아웃</a>
+      </div>
+    </header>
+    <main class="photo-admin-shell">
+      <section class="admin-heading">
+        <div><p>운영자 전용</p><h1>방문자 사진 검수</h1><span>장소가 맞는지, 공개 동의와 개인정보 위험이 없는지 확인한 뒤 승인하세요.</span></div>
+        <label>상태<select id="photoStatus"><option value="pending">검수 대기</option><option value="approved">승인</option><option value="rejected">거절</option><option value="withdrawn">철회·삭제</option><option value="expired">만료</option></select></label>
+      </section>
+      <section class="admin-metrics" id="adminMetrics" aria-label="사진 현황"></section>
+      <p class="admin-status" id="adminStatus" role="status" aria-live="polite">검수 목록을 불러오고 있어요.</p>
+      <section class="admin-photo-list" id="adminPhotoList"></section>
+    </main>
+    <script src="/admin/photos.js?v=1"></script>
+  </body>
+</html>

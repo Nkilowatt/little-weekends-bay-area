@@ -1,6 +1,6 @@
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
 const REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000;
-const SOURCE_DATA_REVISION = 10;
+const SOURCE_DATA_REVISION = 11;
 const FUTURE_WINDOW_DAYS = 45;
 const DEFAULT_EVENT_DURATION_MINUTES = 60;
 const LEGACY_EVENT_GRACE_MINUTES = 90;
@@ -434,6 +434,7 @@ function ageForProgram(name) {
   if (/baby/i.test(name)) return "0-18개월";
   if (/toddler/i.test(name)) return "18개월-3세";
   if (/move and groove/i.test(name)) return "18개월-5세";
+  if (/pre[- ]?k|kindergarten/i.test(name)) return "4-6세";
   if (/family|pajama|bilingual|cantonese|mandarin|spanish|filipino/i.test(name)) return "0-6세";
   return "2-6세";
 }
@@ -453,7 +454,34 @@ function ageRangeFromLabel(label) {
   if (yearRange) return { minAgeMonths: Number(yearRange[1]) * 12, maxAgeMonths: (Number(yearRange[2]) + 1) * 12 - 1 };
 
   if (/가족|전연령/.test(value)) return { minAgeMonths: 0, maxAgeMonths: 216 };
-  return { minAgeMonths: 0, maxAgeMonths: 72 };
+  return { minAgeMonths: 0, maxAgeMonths: 83 };
+}
+
+function normalizedPlacePart(value) {
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9가-힣]+/g, " ")
+    .trim();
+}
+
+function stablePlaceHash(value) {
+  let hash = 2166136261;
+  for (const character of String(value || "")) {
+    hash ^= character.codePointAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36).padStart(7, "0");
+}
+
+function placeKeyForVenue(venueName, address, city) {
+  const venue = normalizedPlacePart(venueName);
+  const locationAddress = normalizedPlacePart(address);
+  const locationCity = normalizedPlacePart(city);
+  if (!locationCity || (!venue && !locationAddress)) return "";
+  return `venue-${stablePlaceHash(`${venue}|${locationAddress}|${locationCity}`)}`;
 }
 
 function distanceFromSanMateo(latitude, longitude) {
@@ -513,6 +541,7 @@ function makeEvent({
     endAt,
     venueName: location.label || "",
     address: location.address || "",
+    placeKey: placeKeyForVenue(location.label, location.address, location.city),
     city: location.city,
     distance: location.distance,
     age: ageLabel,
@@ -883,12 +912,12 @@ function parseSanMateoCountyLibraryEvents(
     const name = xmlValue(block, "title");
     const activityCategories = categories.filter((category) => !/^(?:All Ages|Families|Birth to 5|Kids: Family Events|Adults|Seniors|Teens|Tweens|English|Spanish)$/i.test(category));
     const broadlyKidFriendly = /animal|music|puppet|magic|play|dance|family|kids|craft|maker|steam|storytime|early learning|movie|read to|bubble/i.test(`${name} ${activityCategories.join(" ")}`);
-    const youngChildAudience = categories.some((category) => /Young Children|Birth to 5|Preschoolers? \(0-5\)|Pre-schoolers|Preschoolers|Babies|Toddlers|Kids: (?:Babies|Preschoolers|Toddlers)/i.test(category));
+    const youngChildAudience = categories.some((category) => /Young Children|Birth to 5|Preschoolers? \(0-5\)|Pre-schoolers|Preschoolers|Pre-K|Kindergarten|Babies|Toddlers|Kids: (?:Babies|Preschoolers|Toddlers)/i.test(category));
     const familyAudience = categories.some((category) => /All Ages|Families|Kids: Family Events/i.test(category));
     const audienceMatch = youngChildAudience || (familyAudience && broadlyKidFriendly);
     const childMatch = categories.some((category) => /Children \(6-11\)|Kids(?:, ages 5-10| \(6-11\))|Kids: Grades K-8/i.test(category));
     const olderOnlyProgram = /\b(?:ESL|conversation club|book club|tai chi|origami|adult|teen|grades? [1-9])\b/i.test(name)
-      && !/family|baby|toddler|preschool|storytime|music|puppet|animal|magic|dance|play/i.test(name);
+      && !/family|baby|toddler|preschool|pre[- ]?k|kindergarten|storytime|music|puppet|animal|magic|dance|play/i.test(name);
     if (!audienceMatch && !(childMatch && broadlyKidFriendly)) continue;
     if (olderOnlyProgram) continue;
     if (xmlValue(block, "bc:is_cancelled") === "true" || xmlValue(block, "bc:is_virtual") === "true") continue;
@@ -993,7 +1022,7 @@ function parseMountainViewLibraryEvents(json, now = new Date()) {
   const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
   const youngChildAudience = /Babies|Toddlers|Preschoolers/i;
   const broadFamilyAudience = /Families|All Ages/i;
-  const familyProgram = /storytime|baby|toddler|preschool|family|read to|music|dance|puppet|animal|wildlife|steam|craft|play|kids|children/i;
+  const familyProgram = /storytime|baby|toddler|preschool|pre[- ]?k|kindergarten|family|read to|music|dance|puppet|animal|wildlife|steam|craft|play|kids|children/i;
   const excluded = /Adults|Seniors|Teens|Tweens/i;
   const location = {
     label: "Mountain View Public Library",
@@ -1155,6 +1184,7 @@ function sunnyvaleLibraryAge(name) {
   if (/baby|lapsit/i.test(name)) return "0-12개월";
   if (/toddler/i.test(name)) return "2-5세";
   if (/preschool/i.test(name)) return "3-5세";
+  if (/pre[- ]?k|kindergarten/i.test(name)) return "4-6세";
   if (/little messy art/i.test(name)) return "2-5세";
   return "0-6세·가족";
 }
@@ -1162,7 +1192,7 @@ function sunnyvaleLibraryAge(name) {
 function parseSunnyvaleLibraryEvents(html, now = new Date()) {
   const today = pacificDateKey(now);
   const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
-  const relevant = /baby|lapsit|toddler|preschool little learners|little messy art|family storytime|storytime|music and movement|family fun night|family movie|puppet|ventriloquist|magic|bubble|jamaroo|malinky|early learning playtime/i;
+  const relevant = /baby|lapsit|toddler|preschool little learners|pre[- ]?k|kindergarten|little messy art|family storytime|storytime|music and movement|family fun night|family movie|puppet|ventriloquist|magic|bubble|jamaroo|malinky|early learning playtime/i;
   const excluded = /school-age|grades?\s*[1-9]|teen|coding|book sale|library clos|bike safety|paper circuit/i;
   const events = new Map();
 
@@ -1281,7 +1311,7 @@ function parseLosGatosLibraryEvents(json, now = new Date()) {
 
   const today = pacificDateKey(now);
   const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
-  const familyProgram = /storytime|baby|toddler|preschool|family|music|dance|puppet|animal|wildlife|magic|steam|craft|play|summer reading|movie/i;
+  const familyProgram = /storytime|baby|toddler|preschool|pre[- ]?k|kindergarten|family|music|dance|puppet|animal|wildlife|magic|steam|craft|play|summer reading|movie/i;
 
   const events = records.flatMap((record) => {
     const name = stripHtml(record?.title);
@@ -1697,7 +1727,7 @@ function parseBurlingameLibraryEvents(html, now = new Date()) {
   const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
   const events = new Map();
   const itemPattern = /<li>\s*(<h3(?:(?!<\/li>)[\s\S])*?<div class="date">(?:(?!<\/li>)[\s\S])*?)<\/li>/gi;
-  const relevantEvent = /storytime|story time|family fun|baby|toddler|preschool|children|kids|all ages|puppet|magic|circus|chess|scavenger|craft|music|mini golf|book club fun/i;
+  const relevantEvent = /storytime|story time|family fun|baby|toddler|preschool|pre[- ]?k|kindergarten|children|kids|all ages|puppet|magic|circus|chess|scavenger|craft|music|mini golf|book club fun/i;
   const excludedEvent = /adult|teen|trustee|board meeting|computer help|citizenship|business|medicare/i;
   let item;
 
@@ -1922,7 +1952,7 @@ function parseSanFranciscoLibraryEvents(html, now = new Date()) {
     const locationSlug = block.match(/class="event__location"[\s\S]*?href="\/locations\/([^"]+)"/i)?.[1];
     const context = stripHtml(block);
     if (!name || !dateMatch || !locationSlug || /virtual-library|bookmobiles|kiosk/i.test(locationSlug)) return;
-    if (!/babies-toddlers-or-preschoolers|Babies, Toddlers or Preschoolers|storytime|baby|toddler|preschool|play to learn|family music/i.test(block)) return;
+    if (!/babies-toddlers-or-preschoolers|Babies, Toddlers or Preschoolers|storytime|baby|toddler|preschool|pre[- ]?k|kindergarten|play to learn|family music/i.test(block)) return;
     if (/\b(?:adults?|teens?|middle school)\b/i.test(context) || /\b(?:virtual|online|zoom)\b/i.test(context) || eventIsCancelled(name, context)) return;
 
     const dateKey = `${dateMatch[3]}-${String(dateMatch[1]).padStart(2, "0")}-${String(dateMatch[2]).padStart(2, "0")}`;
@@ -2244,7 +2274,7 @@ function santaClaraOfficialEventUrl(rawHref) {
 function parseSantaClaraLibraryCalendarEvents(html, now = new Date()) {
   const today = pacificDateKey(now);
   const lastDate = addDays(today, FUTURE_WINDOW_DAYS);
-  const relevant = /storytime|baby|toddler|playdate|family|little learners|maker kids|mad science|puppet|magic|music|dance|animal|wildlife|movie|festival|summer adventure|kids'? craft|craft-ernoon|reading with pets|splish splash/i;
+  const relevant = /storytime|baby|toddler|preschool|pre[- ]?k|kindergarten|playdate|family|little learners|maker kids|mad science|puppet|magic|music|dance|animal|wildlife|movie|festival|summer adventure|kids'? craft|craft-ernoon|reading with pets|splish splash/i;
   const excluded = /middle school|teen|adult|ESL|book sale|library clos|trust at the library|homework help|financial literacy|meditation|board|meeting|genealogy|smartphone|tech help/i;
   const events = new Map();
 
@@ -2550,6 +2580,7 @@ function createSchemaStatements(db) {
       end_at TEXT,
       venue_name TEXT NOT NULL DEFAULT '',
       address TEXT NOT NULL DEFAULT '',
+      place_key TEXT NOT NULL DEFAULT '',
       city TEXT NOT NULL,
       distance REAL NOT NULL,
       age TEXT NOT NULL,
@@ -2594,10 +2625,12 @@ async function ensureSchema(db) {
     if (!columns.has("end_at")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN end_at TEXT"));
     if (!columns.has("venue_name")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN venue_name TEXT NOT NULL DEFAULT ''"));
     if (!columns.has("address")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN address TEXT NOT NULL DEFAULT ''"));
+    if (!columns.has("place_key")) migrations.push(db.prepare("ALTER TABLE events ADD COLUMN place_key TEXT NOT NULL DEFAULT ''"));
     if (migrations.length) {
       await db.batch(migrations);
       await db.prepare("UPDATE events SET active = 0").run();
     }
+    await db.prepare("CREATE INDEX IF NOT EXISTS events_place_key_idx ON events (place_key)").run();
     const syncStateInfo = await db.prepare("PRAGMA table_info(sync_state)").all();
     const syncStateColumns = new Set((syncStateInfo.results || []).map((column) => column.name));
     if (!syncStateColumns.has("data_revision")) {
@@ -2615,10 +2648,10 @@ async function ensureSchema(db) {
 
 function upsertStatement(db, event, verifiedAt) {
   return db.prepare(`INSERT INTO events (
-    id, source_key, name, type, setting, start_at, end_at, venue_name, address, city, distance, age,
+    id, source_key, name, type, setting, start_at, end_at, venue_name, address, place_key, city, distance, age,
     min_age_months, max_age_months, price, reservation, source_url, source_name,
     verified_at, why, notes_json, latitude, longitude, confidence_status, active, last_seen_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
   ON CONFLICT(id) DO UPDATE SET
     name = excluded.name,
     type = excluded.type,
@@ -2627,6 +2660,7 @@ function upsertStatement(db, event, verifiedAt) {
     end_at = excluded.end_at,
     venue_name = excluded.venue_name,
     address = excluded.address,
+    place_key = excluded.place_key,
     city = excluded.city,
     distance = excluded.distance,
     age = excluded.age,
@@ -2653,6 +2687,7 @@ function upsertStatement(db, event, verifiedAt) {
       event.endAt,
       event.venueName,
       event.address,
+      event.placeKey || placeKeyForVenue(event.venueName, event.address, event.city),
       event.city,
       event.distance,
       event.age,
@@ -2852,6 +2887,7 @@ function rowToOuting(row, now) {
     timeLabel: confidenceStatus === "date_confirmed" ? "시간은 공식 페이지 확인" : koreanTimeLabel(row.start_at),
     venueName: row.venue_name || "",
     address: row.address || "",
+    placeKey: row.place_key || placeKeyForVenue(row.venue_name, row.address, row.city),
     city: row.city,
     distance: row.distance,
     age: row.age,
@@ -2937,7 +2973,7 @@ async function syncMetadata(db, now = new Date()) {
   };
 }
 
-async function getOutingsResponse(request, env, context) {
+async function getOutingsResponse(request, env) {
   if (!env?.DB) {
     return Response.json({ events: [], status: "fallback", message: "자동 업데이트 저장소를 준비하고 있어요." }, { status: 503 });
   }
@@ -2978,6 +3014,7 @@ async function getOutingsResponse(request, env, context) {
 
 export {
   ageRangeFromLabel,
+  placeKeyForVenue,
   bibliocommonsRssUrls,
   dateBucket,
   eventCountLooksAnomalous,

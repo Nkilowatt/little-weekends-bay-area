@@ -383,7 +383,7 @@ function ageRangeFromLabel(label) {
   if (yearRange) return { minAgeMonths: Number(yearRange[1]) * 12, maxAgeMonths: (Number(yearRange[2]) + 1) * 12 - 1 };
 
   if (/가족|전연령/.test(value)) return { minAgeMonths: 0, maxAgeMonths: 216 };
-  return { minAgeMonths: 0, maxAgeMonths: 72 };
+  return { minAgeMonths: 0, maxAgeMonths: 83 };
 }
 
 const officialSourceHosts = new Set([
@@ -532,11 +532,34 @@ function placeImageLookupKey(value) {
     .trim();
 }
 
+function stablePlaceHash(value) {
+  let hash = 2166136261;
+  for (const character of String(value || "")) {
+    hash ^= character.codePointAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36).padStart(7, "0");
+}
+
+function outingPlaceKey(item, venueName = "", address = "", city = "") {
+  const supplied = String(item?.placeKey || "");
+  if (/^[a-z0-9][a-z0-9-]{2,219}$/i.test(supplied)) return supplied;
+  if (!item?.startDate && /^[a-z0-9][a-z0-9-]{2,219}$/i.test(String(item?.id || ""))) return String(item.id);
+  const venue = placeImageLookupKey(venueName || item?.venueName);
+  const locationAddress = placeImageLookupKey(address || item?.address);
+  const locationCity = placeImageLookupKey(city || item?.city);
+  if (!locationCity || (!venue && !locationAddress)) return null;
+  return `venue-${stablePlaceHash(`${venue}|${locationAddress}|${locationCity}`)}`;
+}
+
 const placeImageRegistry = window.LITTLE_WEEKENDS_PLACE_IMAGES
   && typeof window.LITTLE_WEEKENDS_PLACE_IMAGES === "object"
   ? window.LITTLE_WEEKENDS_PLACE_IMAGES
   : {};
 const placeImageAliases = new Map();
+const communityPhotosByPlaceKey = new Map();
+const requestedCommunityPlaceKeys = new Set();
+let photoUploadStatusPromise = null;
 
 Object.entries(placeImageRegistry).forEach(([id, image]) => {
   [id, ...(Array.isArray(image.aliases) ? image.aliases : [])].forEach((alias) => {
@@ -574,6 +597,7 @@ function normalizeOuting(item) {
   const city = safeText(item.city, "Bay Area", 100);
   const address = safeText(item.address, "", 220);
   const venueName = safeText(item.venueName, !item.startDate && address ? item.name : "", 180);
+  const placeKey = outingPlaceKey(item, venueName, address, city);
   const reservation = safeText(item.reservation, "공식 페이지 확인", 180);
   const placeFeatures = Array.isArray(item.placeFeatures)
     ? [...new Set(item.placeFeatures.map((feature) => safeText(feature, "", 40)).filter(Boolean))].slice(0, 5)
@@ -595,6 +619,7 @@ function normalizeOuting(item) {
   return {
     ...item,
     id: safeText(item.id, "unknown", 180),
+    placeKey,
     name: safeText(item.name, "이름을 확인 중인 장소", 180),
     type: outingTypes.has(item.type) ? item.type : "seasonal",
     setting: outingSettings.has(item.setting) ? item.setting : "indoor",
@@ -720,11 +745,42 @@ const mapBounds = {
   east: -121.5871
 };
 
+const {
+  normalizeChildAges: validChildAges,
+  familyAgeMatchCount,
+  familyAgeMatches,
+} = window.LittleWeekendsFamilyState;
+
+let storedChildAgesMonths = [];
+try {
+  storedChildAgesMonths = validChildAges(JSON.parse(localStorage.getItem("little-weekends-child-ages:v1") || "[]"));
+} catch {
+  storedChildAgesMonths = [];
+}
+
+function validPlaceNotes(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).flatMap(([placeKey, note]) => {
+    const text = String(note?.text || "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, " ").trim().slice(0, 500);
+    if (!/^[a-z0-9][a-z0-9-]{2,219}$/i.test(placeKey) || !text) return [];
+    const updatedAt = Number.isFinite(new Date(note?.updatedAt).getTime()) ? new Date(note.updatedAt).toISOString() : new Date().toISOString();
+    return [[placeKey, { text, updatedAt }]];
+  }));
+}
+
+let storedPlaceNotes = {};
+try {
+  storedPlaceNotes = validPlaceNotes(JSON.parse(localStorage.getItem("little-weekends-place-notes:v1") || "{}"));
+} catch {
+  storedPlaceNotes = {};
+}
+
 const state = {
   date: "today",
   distance: "10",
   region: "all",
-  age: "toddler",
+  childAgesMonths: storedChildAgesMonths,
+  placeNotesByKey: storedPlaceNotes,
   type: "all",
   setting: "all",
   price: "all",
@@ -796,6 +852,23 @@ try {
   participantId = createParticipantId();
 }
 
+let photoDeviceId = "";
+let photoSubmissionReceipts = [];
+try {
+  photoDeviceId = String(localStorage.getItem("little-weekends-photo-device:v1") || "");
+  if (!/^[A-Za-z0-9_-]{24,120}$/.test(photoDeviceId)) {
+    photoDeviceId = createParticipantId();
+    localStorage.setItem("little-weekends-photo-device:v1", photoDeviceId);
+  }
+  const receipts = JSON.parse(localStorage.getItem("little-weekends-photo-submissions:v1") || "[]");
+  photoSubmissionReceipts = Array.isArray(receipts)
+    ? receipts.filter((receipt) => /^photo_[0-9a-f-]{36}$/i.test(String(receipt?.id || "")) && /^[A-Za-z0-9_-]{24,120}$/.test(String(receipt?.manageToken || ""))).slice(0, 30)
+    : [];
+} catch {
+  photoDeviceId = createParticipantId();
+  photoSubmissionReceipts = [];
+}
+
 try {
   state.saved = new Set(JSON.parse(localStorage.getItem("little-weekends-saved") || "[]"));
 } catch {
@@ -824,6 +897,13 @@ const feedbackForm = document.querySelector("#feedbackForm");
 const feedbackSubmit = document.querySelector("#feedbackSubmit");
 const feedbackStatus = document.querySelector("#feedbackStatus");
 const feedbackSuccess = document.querySelector("#feedbackSuccess");
+const photoUploadDialog = document.querySelector("#photoUploadDialog");
+const photoUploadForm = document.querySelector("#photoUploadForm");
+const photoUploadStatus = document.querySelector("#photoUploadStatus");
+const photoUploadSubmit = document.querySelector("#photoUploadSubmit");
+const photoPreview = document.querySelector("#photoPreview");
+const photoPreviewImage = document.querySelector("#photoPreviewImage");
+const photoSubmissionHistory = document.querySelector("#photoSubmissionHistory");
 const mobileSearchMedia = window.matchMedia("(max-width: 768px)");
 const mobileMomentEl = document.querySelector("#mobileMoment");
 const mobileMomentImageEl = document.querySelector("#mobileMomentImage");
@@ -925,6 +1005,60 @@ function persistSaved() {
   localStorage.setItem("little-weekends-saved", JSON.stringify([...state.saved]));
 }
 
+function persistChildAges() {
+  try {
+    localStorage.setItem("little-weekends-child-ages:v1", JSON.stringify(state.childAgesMonths));
+  } catch {
+    // The family filter still applies for the current session.
+  }
+}
+
+function persistPlaceNotes() {
+  try {
+    localStorage.setItem("little-weekends-place-notes:v1", JSON.stringify(state.placeNotesByKey));
+  } catch {
+    showToast("메모를 이 기기에 저장하지 못했어요.");
+  }
+}
+
+function placeNoteFor(item) {
+  return item?.placeKey ? state.placeNotesByKey[item.placeKey] || null : null;
+}
+
+function renderChildAgeRows() {
+  const rows = document.querySelector("#childAgeRows");
+  const empty = document.querySelector("#familyAgeEmpty");
+  if (!rows || !empty) return;
+  rows.innerHTML = state.childAgesMonths.map((ageMonths, index) => {
+    const years = Math.floor(ageMonths / 12);
+    const months = ageMonths % 12;
+    return `
+      <div class="child-age-row" data-child-age-index="${index}">
+        <span class="child-age-number">아이 ${index + 1}</span>
+        <label><span>만 나이</span><select data-child-years="${index}">${Array.from({ length: 7 }, (_, year) => `<option value="${year}" ${year === years ? "selected" : ""}>${year}세</option>`).join("")}</select></label>
+        <label><span>개월</span><select data-child-months="${index}">${Array.from({ length: 12 }, (_, month) => `<option value="${month}" ${month === months ? "selected" : ""}>${month}개월</option>`).join("")}</select></label>
+        <button class="child-age-remove" data-remove-child-age="${index}" type="button" aria-label="아이 ${index + 1} 나이 삭제">삭제</button>
+      </div>`;
+  }).join("");
+  empty.hidden = state.childAgesMonths.length > 0;
+
+  rows.querySelectorAll("select").forEach((select) => select.addEventListener("change", (event) => {
+    const index = Number(event.currentTarget.closest("[data-child-age-index]").dataset.childAgeIndex);
+    const row = rows.querySelector(`[data-child-age-index="${index}"]`);
+    const years = Number(row.querySelector("[data-child-years]").value);
+    const months = Number(row.querySelector("[data-child-months]").value);
+    state.childAgesMonths[index] = Math.min(83, years * 12 + months);
+    persistChildAges();
+    render();
+  }));
+  rows.querySelectorAll("[data-remove-child-age]").forEach((button) => button.addEventListener("click", () => {
+    state.childAgesMonths.splice(Number(button.dataset.removeChildAge), 1);
+    persistChildAges();
+    renderChildAgeRows();
+    render();
+  }));
+}
+
 function persistNapWindow() {
   localStorage.setItem("little-weekends-nap-window", JSON.stringify(napWindow));
 }
@@ -937,6 +1071,168 @@ function persistPublishedPlan() {
 function createParticipantId() {
   if (typeof crypto.randomUUID === "function") return crypto.randomUUID().replace(/-/g, "");
   return Array.from(crypto.getRandomValues(new Uint8Array(18)), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function persistPhotoReceipts() {
+  try {
+    localStorage.setItem("little-weekends-photo-submissions:v1", JSON.stringify(photoSubmissionReceipts.slice(0, 30)));
+  } catch {
+    // The submitted image remains in moderation even when the local receipt cannot be stored.
+  }
+}
+
+let activePhotoUploadItem = null;
+let photoPreviewUrl = "";
+
+function photoStatusLabel(status) {
+  return {
+    pending: "검수 대기 중",
+    approved: "승인되어 공개 중",
+    rejected: "승인되지 않음",
+    withdrawn: "철회됨",
+    expired: "검수 기간 만료",
+  }[status] || "상태 확인 중";
+}
+
+function setPhotoUploadBackgroundInert(inert) {
+  [document.querySelector(".site-header"), document.querySelector("main"), document.querySelector(".site-footer"), document.querySelector(".mobile-nav")]
+    .filter(Boolean)
+    .forEach((element) => { element.inert = inert; });
+}
+
+async function refreshPhotoSubmissionHistory(placeKey) {
+  const receipts = photoSubmissionReceipts.filter((receipt) => receipt.placeKey === placeKey);
+  if (!receipts.length) {
+    photoSubmissionHistory.hidden = true;
+    return;
+  }
+  photoSubmissionHistory.hidden = false;
+  const details = await Promise.all(receipts.map(async (receipt) => {
+    try {
+      const response = await fetch(`/api/place-photos/submissions/${encodeURIComponent(receipt.id)}`, {
+        headers: { Accept: "application/json", "X-Photo-Manage-Token": receipt.manageToken },
+        cache: "no-store"
+      });
+      if (!response.ok) return { ...receipt, status: receipt.status || "unknown" };
+      return { ...receipt, ...(await response.json()) };
+    } catch {
+      return { ...receipt, status: receipt.status || "unknown" };
+    }
+  }));
+  details.forEach((detail) => {
+    const receipt = photoSubmissionReceipts.find((candidate) => candidate.id === detail.id);
+    if (receipt) receipt.status = detail.status;
+    if (detail.status === "approved") requestedCommunityPlaceKeys.delete(placeKey);
+  });
+  persistPhotoReceipts();
+  photoSubmissionHistory.querySelector("div").innerHTML = details.map((detail) => `
+    <div class="photo-history-item" data-photo-receipt="${escapeHtml(detail.id)}">
+      <span><strong>${escapeHtml(photoStatusLabel(detail.status))}</strong><small>${escapeHtml(detail.rejectionReason || new Intl.DateTimeFormat("ko-KR").format(new Date(detail.createdAt || Date.now())))}</small></span>
+      ${["pending", "approved"].includes(detail.status) ? `<button type="button" data-withdraw-photo="${escapeHtml(detail.id)}">철회</button>` : ""}
+    </div>`).join("");
+  photoSubmissionHistory.querySelectorAll("[data-withdraw-photo]").forEach((button) => button.addEventListener("click", async () => {
+    const receipt = photoSubmissionReceipts.find((candidate) => candidate.id === button.dataset.withdrawPhoto);
+    if (!receipt) return;
+    button.disabled = true;
+    const response = await fetch(`/api/place-photos/submissions/${encodeURIComponent(receipt.id)}`, {
+      method: "DELETE",
+      headers: { "X-Photo-Manage-Token": receipt.manageToken }
+    });
+    if (!response.ok) {
+      photoUploadStatus.textContent = "사진을 철회하지 못했어요. 잠시 후 다시 시도해 주세요.";
+      photoUploadStatus.classList.add("is-error");
+      button.disabled = false;
+      return;
+    }
+    receipt.status = "withdrawn";
+    requestedCommunityPlaceKeys.delete(placeKey);
+    communityPhotosByPlaceKey.delete(placeKey);
+    persistPhotoReceipts();
+    await refreshPhotoSubmissionHistory(placeKey);
+    void loadCommunityPhotos(outings.filter((item) => item.placeKey === placeKey));
+  }));
+  if (details.some((detail) => detail.status === "approved")) void loadCommunityPhotos(outings.filter((item) => item.placeKey === placeKey));
+}
+
+function openPhotoUploadDialog(item) {
+  if (!item?.placeKey) return;
+  if (detailDialog.open) detailDialog.close();
+  activePhotoUploadItem = item;
+  photoUploadForm.reset();
+  photoUploadStatus.textContent = "";
+  photoUploadStatus.classList.remove("is-error");
+  document.querySelector("#photoUploadPlaceName").textContent = item.venueName || item.name;
+  document.querySelector("#photoTakenOn").max = new Date().toISOString().slice(0, 10);
+  if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+  photoPreviewUrl = "";
+  photoPreview.hidden = true;
+  photoPreviewImage.removeAttribute("src");
+  setPhotoUploadBackgroundInert(true);
+  photoUploadDialog.showModal();
+  void refreshPhotoSubmissionHistory(item.placeKey);
+  window.setTimeout(() => document.querySelector("#placePhotoFile").focus(), 0);
+}
+
+async function submitPlacePhoto(event) {
+  event.preventDefault();
+  if (!activePhotoUploadItem?.placeKey) return;
+  const file = document.querySelector("#placePhotoFile").files?.[0];
+  const consents = [...photoUploadForm.querySelectorAll(".photo-consents input")];
+  if (!file) {
+    photoUploadStatus.textContent = "올릴 사진을 선택해 주세요.";
+    photoUploadStatus.classList.add("is-error");
+    return;
+  }
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 10 * 1024 * 1024) {
+    photoUploadStatus.textContent = "JPEG, PNG, WebP 형식의 10MB 이하 사진을 선택해 주세요.";
+    photoUploadStatus.classList.add("is-error");
+    return;
+  }
+  if (!consents.every((checkbox) => checkbox.checked)) {
+    photoUploadStatus.textContent = "사진 권리와 공개 동의를 모두 확인해 주세요.";
+    photoUploadStatus.classList.add("is-error");
+    return;
+  }
+  const requestId = createFeedbackRequestId();
+  const data = new FormData();
+  data.set("photo", file);
+  data.set("placeKey", activePhotoUploadItem.placeKey);
+  data.set("requestId", requestId);
+  data.set("deviceId", photoDeviceId);
+  data.set("takenOn", document.querySelector("#photoTakenOn").value);
+  data.set("rightsConfirmed", "true");
+  data.set("peopleConsentConfirmed", "true");
+  data.set("publicLicenseConfirmed", "true");
+  photoUploadSubmit.disabled = true;
+  photoUploadStatus.textContent = "개인정보를 제거하고 사진을 안전하게 준비하고 있어요.";
+  photoUploadStatus.classList.remove("is-error");
+  try {
+    const response = await fetch("/api/place-photos", { method: "POST", body: data });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || "사진을 올리지 못했어요.");
+    if (!photoSubmissionReceipts.some((receipt) => receipt.id === payload.submissionId)) {
+      photoSubmissionReceipts.unshift({
+        id: payload.submissionId,
+        placeKey: activePhotoUploadItem.placeKey,
+        placeName: activePhotoUploadItem.venueName || activePhotoUploadItem.name,
+        manageToken: payload.manageToken,
+        status: payload.status,
+        createdAt: new Date().toISOString()
+      });
+    }
+    persistPhotoReceipts();
+    photoUploadForm.reset();
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    photoPreviewUrl = "";
+    photoPreview.hidden = true;
+    photoUploadStatus.textContent = "검수 요청을 받았어요. 승인 전에는 다른 사용자에게 보이지 않아요.";
+    await refreshPhotoSubmissionHistory(activePhotoUploadItem.placeKey);
+  } catch (error) {
+    photoUploadStatus.textContent = error?.message || "사진을 올리지 못했어요. 잠시 후 다시 시도해 주세요.";
+    photoUploadStatus.classList.add("is-error");
+  } finally {
+    photoUploadSubmit.disabled = false;
+  }
 }
 
 function planUpdatedLabel(value) {
@@ -988,26 +1284,35 @@ function distanceFor(item) {
   return Math.round(distanceBetweenMiles(selectedLocation(), item.location) * 10) / 10;
 }
 
-const ageFilterRanges = {
-  toddler: { min: 12, max: 47 },
-  age1: { min: 12, max: 23 },
-  age2: { min: 24, max: 35 },
-  age3: { min: 36, max: 47 }
-};
-
 function ageMatches(item) {
-  if (state.age === "all") return true;
-  const range = ageFilterRanges[state.age] || ageFilterRanges.toddler;
-  return item.minAgeMonths <= range.max && item.maxAgeMonths >= range.min;
+  return familyAgeMatches(item.minAgeMonths, item.maxAgeMonths, state.childAgesMonths);
+}
+
+function familyMatchCount(item) {
+  return familyAgeMatchCount(item.minAgeMonths, item.maxAgeMonths, state.childAgesMonths);
+}
+
+function childAgeLabel(ageMonths) {
+  const years = Math.floor(ageMonths / 12);
+  const months = ageMonths % 12;
+  if (!years) return `${months}개월`;
+  return months ? `${years}세 ${months}개월` : `${years}세`;
+}
+
+function familyAgeSummary() {
+  if (!state.childAgesMonths.length) return "0–6세 전체";
+  if (state.childAgesMonths.length === 1) return childAgeLabel(state.childAgesMonths[0]);
+  return `${state.childAgesMonths.length}명 모두`;
 }
 
 function recommendationScore(item) {
-  const toddlerRange = ageFilterRanges.toddler;
   const ageWidth = Math.max(0, item.maxAgeMonths - item.minAgeMonths);
-  const fullyToddlerFocused = item.minAgeMonths >= toddlerRange.min && item.maxAgeMonths <= toddlerRange.max;
+  const familyFit = ageMatches(item);
+  const preschoolFocused = item.minAgeMonths >= 0 && item.maxAgeMonths <= 83;
   let score = Math.max(0, 30 - distanceFor(item) * 1.25);
 
-  score += fullyToddlerFocused ? 28 : ageWidth <= 36 ? 20 : ageWidth <= 72 ? 10 : 3;
+  if (state.childAgesMonths.length) score += familyFit ? Math.max(12, 34 - Math.max(0, ageWidth - 24) * 0.15) : 0;
+  else score += preschoolFocused ? 24 : ageWidth <= 96 ? 12 : 5;
   score += { human_verified: 18, source_confirmed: 12, date_confirmed: 5, recurring_estimate: 2, recheck: 0, stale: -18 }[item.confidenceStatus] || 0;
   if (item.price === "free") score += 4;
   if (String(item.reservation).includes("불필요")) score += 4;
@@ -1081,7 +1386,7 @@ function activeFilterCount() {
   return Number(state.discoveryMode !== "places" && state.date !== "today")
     + Number(state.distance !== "10")
     + Number(state.region !== "all")
-    + Number(state.age !== "toddler")
+    + Number(state.childAgesMonths.length > 0)
     + Number(state.type !== "all")
     + Number(state.setting !== "all")
     + Number(state.price !== "all")
@@ -1112,6 +1417,7 @@ const feedbackFieldDefaults = new Map([
 ]);
 const feedbackTouched = new Set();
 let currentFeedbackRequestId = "";
+let reportingPhoto = null;
 
 function createFeedbackRequestId() {
   if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
@@ -1152,12 +1458,14 @@ function feedbackContext() {
     locationKey: state.locationKey,
     locationName: selectedLocation().name,
     outingId: state.selectedId || pendingOutingId || "",
+    photoId: reportingPhoto?.photoId || "",
+    placeKey: reportingPhoto?.placeKey || "",
     sharedPlan: Boolean(sharedPlanToken),
     filters: {
       date: state.date,
       distance: state.distance,
       region: state.region,
-      age: state.age,
+      age: state.childAgesMonths.length ? "family-age-filter-active" : "all-preschool",
       type: state.type,
       setting: state.setting,
       price: state.price,
@@ -1193,14 +1501,27 @@ function resetFeedbackView() {
   currentFeedbackRequestId = createFeedbackRequestId();
 }
 
-function openFeedbackDialog() {
-  [detailDialog, locationDialog, sharePlanDialog].forEach((dialog) => {
+function openFeedbackDialog(report = null) {
+  reportingPhoto = report && !(report instanceof Event) ? report : null;
+  [detailDialog, locationDialog, sharePlanDialog, photoUploadDialog].forEach((dialog) => {
     if (dialog.open) dialog.close();
   });
   if (!currentFeedbackRequestId || !feedbackSuccess.hidden) resetFeedbackView();
+  if (reportingPhoto) {
+    const category = feedbackForm.querySelector("input[name='category'][value='photo_report']");
+    if (category) category.checked = true;
+    feedbackForm.querySelector("#feedbackMessage").placeholder = "이 사진을 신고하는 이유를 적어 주세요.";
+  } else {
+    feedbackForm.querySelector("#feedbackMessage").placeholder = "예: Fremont의 주말 스토리타임도 보고 싶어요.";
+  }
   setFeedbackBackgroundInert(true);
   feedbackDialog.showModal();
   window.setTimeout(() => feedbackForm.querySelector("input[name='category']:checked")?.focus(), 0);
+}
+
+function openPhotoReport(photoId, placeKey) {
+  if (!/^photo_[0-9a-f-]{36}$/i.test(String(photoId || ""))) return;
+  openFeedbackDialog({ photoId, placeKey });
 }
 
 async function submitFeedback(event) {
@@ -1309,8 +1630,10 @@ function categoryFallbackImage(item) {
 }
 
 function effectiveItemImage(item) {
-  if (item.image?.src && !item.localImageFailed) return item.image;
+  if (item.image?.src && item.image.kind === "actual" && !item.localImageFailed) return item.image;
+  if (item.communityImage?.src && !item.communityImageFailed) return item.communityImage;
   if (item.remoteImage?.src && !item.remoteImageFailed) return item.remoteImage;
+  if (item.image?.src && !item.localImageFailed) return item.image;
   return null;
 }
 
@@ -1326,6 +1649,7 @@ function itemImageKind(item) {
 
 function itemImageCaption(item) {
   const image = effectiveItemImage(item);
+  if (image?.provider === "community") return "방문자 제공 사진";
   if (image?.provider === "google_places") {
     const creator = safeText(image.creator, "", 28);
     return creator ? `Google Maps · ${creator}` : "Google Maps";
@@ -1340,17 +1664,24 @@ function itemImageAlt(item) {
 
 function itemImageClass(item) {
   const provider = effectiveItemImage(item)?.provider;
-  return provider === "streetview" ? "is-streetview" : provider === "google_places" ? "is-google-place" : "";
+  return provider === "streetview" ? "is-streetview" : provider === "google_places" ? "is-google-place" : provider === "community" ? "is-community" : "";
 }
 
 function itemImageBadgeClass(item) {
-  return `image-kind-badge is-${itemImageKind(item)}${effectiveItemImage(item)?.provider ? " is-google" : ""}`;
+  return `image-kind-badge is-${itemImageKind(item)}${["google_places", "streetview"].includes(effectiveItemImage(item)?.provider) ? " is-google" : ""}`;
 }
 
 function itemImageAttribution(item) {
   const image = effectiveItemImage(item);
   if (!image || itemImageKind(item) !== "actual") {
     return "이 장소의 실제 사진이 아닙니다. 활동 유형을 보여주는 예시 이미지입니다.";
+  }
+
+  if (image.provider === "community") {
+    const parts = ["Little Weekends 방문자가 제공하고 운영자가 검수한 사진"];
+    if (image.capturedAt) parts.push(`${escapeHtml(image.capturedAt)} 촬영`);
+    parts.push(`<button class="photo-attribution-report" type="button" data-report-photo="${escapeHtml(image.id)}">사진 신고</button>`);
+    return parts.join(" · ");
   }
 
   if (image.provider === "google_places") {
@@ -1403,6 +1734,71 @@ function safeSameOriginPlaceImageUrl(value) {
   } catch {
     return null;
   }
+}
+
+function safeSameOriginCommunityPhotoUrl(value) {
+  try {
+    if (!/^https?:$/.test(window.location.protocol)) return null;
+    const url = new URL(String(value || ""), window.location.origin);
+    return url.origin === window.location.origin && /^\/api\/place-photo\/photo_[0-9a-f-]{36}$/i.test(url.pathname)
+      ? url.pathname
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizedCommunityPhoto(value) {
+  if (!value || value.provider !== "community" || !/^photo_[0-9a-f-]{36}$/i.test(String(value.id || ""))) return null;
+  const src = safeSameOriginCommunityPhotoUrl(value.src);
+  if (!src) return null;
+  return {
+    id: value.id,
+    src,
+    detailSrc: safeSameOriginCommunityPhotoUrl(value.detailSrc) || src,
+    kind: "actual",
+    provider: "community",
+    label: "방문자 제공 사진",
+    alt: safeText(value.alt, "방문자 제공 장소 사진", 180),
+    capturedAt: /^\d{4}-\d{2}-\d{2}$/.test(String(value.capturedAt || "")) ? value.capturedAt : "",
+    featured: Boolean(value.featured)
+  };
+}
+
+async function loadCommunityPhotos(items) {
+  if (!/^https?:$/.test(window.location.protocol)) return;
+  const placeKeys = [...new Set(items.map((item) => item.placeKey).filter(Boolean))]
+    .filter((placeKey) => !requestedCommunityPlaceKeys.has(placeKey))
+    .slice(0, 50);
+  if (!placeKeys.length) return;
+  placeKeys.forEach((placeKey) => requestedCommunityPlaceKeys.add(placeKey));
+  try {
+    const response = await fetch(`/api/place-photos?placeKeys=${encodeURIComponent(placeKeys.join(","))}`, { headers: { Accept: "application/json" } });
+    if (!response.ok) return;
+    const payload = await response.json();
+    Object.entries(payload.photos || {}).forEach(([placeKey, photos]) => {
+      const normalized = Array.isArray(photos) ? photos.map(normalizedCommunityPhoto).filter(Boolean) : [];
+      communityPhotosByPlaceKey.set(placeKey, normalized);
+    });
+    outings.forEach((item) => {
+      const photos = communityPhotosByPlaceKey.get(item.placeKey) || [];
+      item.communityPhotos = photos;
+      item.communityImage = photos[0] || null;
+    });
+    render();
+    if (state.selectedId && detailDialog.open) openDetail(state.selectedId);
+  } catch {
+    // Existing image sources and activity examples remain available.
+  }
+}
+
+function photoUploadsAvailable() {
+  if (!photoUploadStatusPromise) {
+    photoUploadStatusPromise = fetch("/api/place-photos/status", { headers: { Accept: "application/json" }, cache: "no-store" })
+      .then(async (response) => response.ok && Boolean((await response.json()).configured))
+      .catch(() => false);
+  }
+  return photoUploadStatusPromise;
 }
 
 function safeGoogleMetadataUrl(value) {
@@ -1464,7 +1860,7 @@ function refreshRenderedPlaceImage(item) {
     if (badge) {
       badge.className = itemImageBadgeClass(item);
       badge.textContent = itemImageCaption(item);
-      if (effectiveItemImage(item)?.provider) badge.setAttribute("translate", "no");
+      if (["google_places", "streetview"].includes(effectiveItemImage(item)?.provider)) badge.setAttribute("translate", "no");
       else badge.removeAttribute("translate");
     }
   });
@@ -1473,7 +1869,8 @@ function refreshRenderedPlaceImage(item) {
 
 async function loadRemotePlaceImage(item) {
   const placeId = remotePlaceIdFor(item);
-  if (!placeId || unavailablePlaceImages.has(placeId) || effectiveItemImage(item)) return;
+  const preferredImage = item.image?.kind === "actual" && !item.localImageFailed ? item.image : item.communityImage && !item.communityImageFailed ? item.communityImage : null;
+  if (!placeId || unavailablePlaceImages.has(placeId) || preferredImage) return;
   if (!(await placeImageProviderAvailable())) return;
 
   if (!placeImageRequests.has(placeId)) {
@@ -1495,18 +1892,18 @@ async function loadRemotePlaceImage(item) {
   }
 
   const image = await placeImageRequests.get(placeId);
-  if (!image || effectiveItemImage(item)) return;
+  if (!image || (item.image?.kind === "actual" && !item.localImageFailed) || (item.communityImage && !item.communityImageFailed)) return;
   item.remoteImage = image;
   item.remoteImageFailed = false;
   refreshRenderedPlaceImage(item);
 }
 
 function scheduleRemotePlaceImage(item) {
-  if (!effectiveItemImage(item) && remotePlaceIdFor(item)) void loadRemotePlaceImage(item);
+  if (!(item.image?.kind === "actual" && !item.localImageFailed) && !(item.communityImage && !item.communityImageFailed) && remotePlaceIdFor(item)) void loadRemotePlaceImage(item);
 }
 
 function observeRemotePlaceImage(imageElement, item) {
-  if (effectiveItemImage(item) || !remotePlaceIdFor(item)) return;
+  if ((item.image?.kind === "actual" && !item.localImageFailed) || (item.communityImage && !item.communityImageFailed) || !remotePlaceIdFor(item)) return;
   if (remotePlaceImageObserver) {
     remotePlaceImageObserver.observe(imageElement);
   } else {
@@ -1518,6 +1915,7 @@ function bindOutingImageFailure(imageElement, item) {
   imageElement.addEventListener("error", () => {
     const failed = effectiveItemImage(item);
     if (failed === item.image) item.localImageFailed = true;
+    if (failed === item.communityImage) item.communityImageFailed = true;
     if (failed === item.remoteImage) item.remoteImageFailed = true;
     const fallback = categoryFallbackImage(item);
     const currentPath = imageElement.getAttribute("src") || "";
@@ -1769,9 +2167,8 @@ function displayTimeLabel(item, { detail = false } = {}) {
 
 function recommendationReasons(item) {
   const reasons = [];
-  const ageWidth = Math.max(0, item.maxAgeMonths - item.minAgeMonths);
-  const selectedAgeLabel = { age1: "1세", age2: "2세", age3: "3세", toddler: "1-3세" }[state.age];
-  if (selectedAgeLabel && ageWidth <= 72 && ageMatches(item)) reasons.push(`${selectedAgeLabel}에 잘 맞음`);
+  if (state.childAgesMonths.length === 1 && ageMatches(item)) reasons.push(`${childAgeLabel(state.childAgesMonths[0])}에 맞음`);
+  if (state.childAgesMonths.length > 1 && ageMatches(item)) reasons.push(`${state.childAgesMonths.length}명 모두 맞아요`);
   if (item.reservationLevel === "none") reasons.push("예약 없이");
   if (distanceFor(item) <= 5) reasons.push("5 mi 안쪽");
   if (["human_verified", "source_confirmed"].includes(item.confidenceStatus)) reasons.push("공식 출처 확인");
@@ -1800,7 +2197,7 @@ function isSharedPlanMode() {
   return Boolean(sharedPlanToken || state.sharedPlanError);
 }
 
-function filteredOutings({ ignoreSfVenue = false } = {}) {
+function filteredOutings({ ignoreSfVenue = false, ignoreAge = false } = {}) {
   if (state.sharedPlan) return state.sharedPlan.items;
   if (state.sharedPlanLoading || state.sharedPlanError) return [];
   if (state.savedOnly) {
@@ -1824,7 +2221,7 @@ function filteredOutings({ ignoreSfVenue = false } = {}) {
     const searchMatch = !state.search || itemSearchScore >= 0;
     const distanceMatch = distanceFor(item) <= Number(state.distance);
     const regionMatch = state.region === "all" || item.region === state.region;
-    const ageMatch = ageMatches(item);
+    const ageMatch = ignoreAge || ageMatches(item);
     const typeMatch = state.type === "all" || item.type === state.type;
     const settingMatch = state.setting === "all" || item.setting === state.setting;
     const priceMatch = state.price === "all" || item.price === state.price;
@@ -1966,17 +2363,21 @@ function createOutingCard(item, planIssues = []) {
     const placeFeatureMarkup = placeFeatures.length
       ? `<span class="place-cues" aria-label="장소 특징">${placeFeatures.map((feature) => `<span>${escapeHtml(feature)}</span>`).join("")}</span>`
       : "";
+    const privateNoteMarkup = placeNoteFor(item)
+      ? '<span class="private-note-cue">나만의 메모 있음</span>'
+      : "";
     const card = document.createElement("article");
     card.className = `outing-card${state.selectedId === item.id ? " is-selected" : ""}`;
     card.innerHTML = `
       <button class="card-open" type="button" aria-label="${escapeHtml(item.name)} 상세 보기"></button>
-      <span class="card-media"><span class="card-image"><img src="${itemImage(item)}" alt="${escapeHtml(itemImageAlt(item))}" class="${itemImageClass(item)}" data-outing-image-id="${escapeHtml(item.id)}" data-image-layout="card" loading="lazy" /><span class="${itemImageBadgeClass(item)}"${effectiveItemImage(item)?.provider ? ' translate="no"' : ""}>${escapeHtml(itemImageCaption(item))}</span></span></span>
+      <span class="card-media"><span class="card-image"><img src="${itemImage(item)}" alt="${escapeHtml(itemImageAlt(item))}" class="${itemImageClass(item)}" data-outing-image-id="${escapeHtml(item.id)}" data-image-layout="card" loading="lazy" /><span class="${itemImageBadgeClass(item)}"${["google_places", "streetview"].includes(effectiveItemImage(item)?.provider) ? ' translate="no"' : ""}>${escapeHtml(itemImageCaption(item))}</span></span></span>
       <span class="card-content">
         <span class="time-row"><span class="schedule-label"><span class="outing-kind">${escapeHtml(outingKindLabel(item))}</span>${timeMarkup}</span><button class="heart ${state.saved.has(item.id) ? "is-saved" : ""}" data-save-card="${escapeHtml(item.id)}" type="button" aria-label="${state.saved.has(item.id) ? "저장 해제" : "저장"}" aria-pressed="${state.saved.has(item.id)}">${state.saved.has(item.id) ? "저장됨" : "저장"}</button></span>
         <h3>${escapeHtml(item.name)}</h3>
         ${cardLocationMarkup(item, distance)}
         <span class="essentials">${cardEssentialsMarkup(item)}</span>
         ${placeFeatureMarkup}
+        ${privateNoteMarkup}
         ${reasonMarkup}
         ${issueMarkup}
         <p class="why">${escapeHtml(item.why)}</p>
@@ -2396,7 +2797,7 @@ function hasDetailedDiscoveryFilters() {
   return Boolean(state.search)
     || state.distance !== "10"
     || state.region !== "all"
-    || state.age !== "toddler"
+    || state.childAgesMonths.length > 0
     || state.type !== "all"
     || state.setting !== "all"
     || state.price !== "all"
@@ -2492,6 +2893,20 @@ function renderCards(items, branchContext = null) {
       render();
     });
     cardsEl.querySelector("#emptyReset").addEventListener("click", resetFilters);
+    if (state.childAgesMonths.length > 1) {
+      const partialMatches = filteredOutings({ ignoreAge: true })
+        .map((item) => ({ item, count: familyMatchCount(item) }))
+        .filter(({ count }) => count > 0 && count < state.childAgesMonths.length)
+        .toSorted((left, right) => right.count - left.count || distanceFor(left.item) - distanceFor(right.item))
+        .slice(0, 3);
+      if (partialMatches.length) {
+        const heading = document.createElement("div");
+        heading.className = "discovery-group-heading partial-age-heading";
+        heading.innerHTML = `<h3>일부 아이에게 맞는 대안</h3><span>${partialMatches.length}개</span><p>모든 아이에게 맞는 결과는 아니므로 연령 범위를 꼭 확인해 주세요.</p>`;
+        cardsEl.append(heading);
+        partialMatches.forEach(({ item, count }) => cardsEl.append(createOutingCard(item, [`아이 ${state.childAgesMonths.length}명 중 ${count}명에게 맞아요`] )));
+      }
+    }
     return;
   }
 
@@ -2645,6 +3060,7 @@ function render() {
     sharedMode ? "공유 계획" : state.savedOnly ? "저장한 곳" : `${selectedLocation().name} 중심`,
     state.discoveryMode === "places" && !sharedMode && !state.savedOnly ? "행사 없어도 갈 곳" : dateLabel()
   ];
+  if (!sharedMode && !state.savedOnly) contextParts.push(familyAgeSummary());
   if (state.region !== "all") contextParts.push(regionLabels[state.region]);
   if (state.time !== "all") contextParts.push({ morning: "오전", afternoon: "오후", evening: "저녁" }[state.time]);
   document.querySelector("#listContext").textContent = contextParts.join(" / ");
@@ -2678,6 +3094,7 @@ function render() {
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", String(active));
   });
+  renderChildAgeRows();
   renderCards(items, branchContext);
   const shouldRenderMap = visibleView === "map" || visibleView === "split";
   if (!sharedMode && shouldRenderMap) {
@@ -2688,6 +3105,7 @@ function render() {
     mapPreview.hidden = true;
     mapPreview.replaceChildren();
   }
+  if (!sharedMode) void loadCommunityPhotos(items);
 }
 
 async function loadAutomaticOutings() {
@@ -2817,6 +3235,45 @@ function detailLocationMarkup(item) {
   `;
 }
 
+function privatePlaceNoteMarkup(item) {
+  if (!item.placeKey) return "";
+  const note = placeNoteFor(item);
+  return `
+    <section class="private-place-note" aria-labelledby="privateNoteTitle">
+      <div class="private-note-heading">
+        <div><h3 id="privateNoteTitle">나만의 메모</h3><p>이 브라우저에만 저장돼요. 공유 링크나 서버에는 포함되지 않아요.</p></div>
+        ${note ? '<span>메모 있음</span>' : ""}
+      </div>
+      <textarea id="placeNoteInput" maxlength="500" placeholder="다녀온 뒤 기억할 점을 간단히 적어보세요. 예: 뒤쪽 주차장이 한적했어요.">${escapeHtml(note?.text || "")}</textarea>
+      <div class="private-note-actions">
+        <small><b id="placeNoteCount">${String(note?.text || "").length}</b>/500</small>
+        ${note ? '<button class="text-button is-danger" id="deletePlaceNote" type="button">메모 삭제</button>' : ""}
+        <button class="secondary-action" id="savePlaceNote" type="button">메모 저장</button>
+      </div>
+    </section>`;
+}
+
+function communityPhotoGalleryMarkup(item) {
+  const photos = Array.isArray(item.communityPhotos) ? item.communityPhotos : [];
+  if (!photos.length) return "";
+  return `
+    <section class="community-photo-gallery" aria-labelledby="communityPhotosTitle">
+      <h3 id="communityPhotosTitle">방문자 장소 사진</h3>
+      <div class="community-photo-grid">${photos.slice(0, 6).map((photo) => `<figure><img src="${escapeHtml(photo.src)}" alt="${escapeHtml(photo.alt)}" loading="lazy" /><figcaption>${photo.capturedAt ? `${escapeHtml(photo.capturedAt)} · ` : ""}<button class="photo-attribution-report" type="button" data-report-photo="${escapeHtml(photo.id)}">신고</button></figcaption></figure>`).join("")}</div>
+      <p>제출자의 공개 동의를 확인하고 운영자가 장소 관련성을 검수한 사진이에요.</p>
+    </section>`;
+}
+
+function detailPhotoContributeMarkup(item) {
+  if (!item.placeKey) return "";
+  const hasActual = itemImageKind(item) === "actual";
+  return `
+    <section class="detail-photo-contribute">
+      <div><strong>${hasActual ? "이 장소의 최근 사진이 있나요?" : "이 장소의 실제 사진을 찾고 있어요"}</strong><span>직접 촬영한 사진을 올리면 검수 후 장소 사진으로 공개할 수 있어요.</span></div>
+      <button class="secondary-action" id="uploadPlacePhoto" type="button" disabled>업로드 확인 중</button>
+    </section>`;
+}
+
 function openDetail(id) {
   const item = findOutingById(id);
   if (!item) return;
@@ -2854,16 +3311,19 @@ function openDetail(id) {
   }).join("");
   const imageCaption = itemImageAttribution(item);
   detailBody.innerHTML = `
-    <figure class="detail-visual"><div class="detail-image"><img src="${itemImage(item, { detail: true })}" alt="${escapeHtml(itemImageAlt(item))}" class="${itemImageClass(item)}" data-outing-image-id="${escapeHtml(item.id)}" data-image-layout="detail" /><span class="${itemImageBadgeClass(item)}"${effectiveItemImage(item)?.provider ? ' translate="no"' : ""}>${escapeHtml(itemImageCaption(item))}</span></div><figcaption>${imageCaption}</figcaption></figure>
+    <figure class="detail-visual"><div class="detail-image"><img src="${itemImage(item, { detail: true })}" alt="${escapeHtml(itemImageAlt(item))}" class="${itemImageClass(item)}" data-outing-image-id="${escapeHtml(item.id)}" data-image-layout="detail" /><span class="${itemImageBadgeClass(item)}"${["google_places", "streetview"].includes(effectiveItemImage(item)?.provider) ? ' translate="no"' : ""}>${escapeHtml(itemImageCaption(item))}</span></div><figcaption>${imageCaption}</figcaption></figure>
     <article class="detail-body">
       <div class="detail-title"><p class="detail-category">${escapeHtml(typeLabel(item.type))}, ${escapeHtml(item.city)}</p><h2>${escapeHtml(item.name)}</h2><p>${escapeHtml(item.why)}</p></div>
       ${detailLocationMarkup(item)}
       ${placeFeaturesMarkup}
       <div class="decision-grid">${decisionMarkup}</div>
       <div class="trust-panel ${trust.key}"><strong>${escapeHtml(trust.short)}</strong><span>${escapeHtml(trust.detail)}</span></div>
+      ${communityPhotoGalleryMarkup(item)}
       <div class="detail-notes">
         ${amenityRow("주차", item.amenities?.parking)}${amenityRow("화장실", item.amenities?.bathroom)}${amenityRow("기저귀 교환대", item.amenities?.changingTable)}${amenityRow("유모차", item.amenities?.stroller)}<div class="note-row"><strong>예상 체류</strong><span>${item.type === "storytime" ? "30-60분" : "60-90분"} 정도를 추천해요.</span></div><div class="note-row"><strong>날씨 대응</strong><span>${item.setting === "indoor" ? "실내 활동이라 비 오는 날에도 좋아요." : "출발 전 기온과 공원 운영 상태를 확인하세요."}</span></div>
       </div>
+      ${privatePlaceNoteMarkup(item)}
+      ${detailPhotoContributeMarkup(item)}
       <section class="nearby-alternatives" aria-labelledby="nearbyTitle"><h3 id="nearbyTitle">가까운 대안</h3><div class="alternative-list">${alternativesMarkup}</div></section>
       <div class="detail-actions">
         ${directionsAction}${sourceAction}${calendarAction}<button class="secondary-action decision-share" type="button" id="shareDetail">공유</button><button class="secondary-action decision-save" type="button" id="saveDetail">${isSaved ? "저장됨" : "저장"}</button>
@@ -2879,7 +3339,37 @@ function openDetail(id) {
     await copyText(item.address);
     showToast("주소를 복사했어요.");
   });
+  const placeNoteInput = detailBody.querySelector("#placeNoteInput");
+  placeNoteInput?.addEventListener("input", () => {
+    detailBody.querySelector("#placeNoteCount").textContent = placeNoteInput.value.length;
+  });
+  detailBody.querySelector("#savePlaceNote")?.addEventListener("click", () => {
+    const text = placeNoteInput.value.trim();
+    if (text) state.placeNotesByKey[item.placeKey] = { text: text.slice(0, 500), updatedAt: new Date().toISOString() };
+    else delete state.placeNotesByKey[item.placeKey];
+    persistPlaceNotes();
+    showToast(text ? "이 기기에 메모를 저장했어요." : "빈 메모를 정리했어요.");
+    openDetail(id);
+    render();
+  });
+  detailBody.querySelector("#deletePlaceNote")?.addEventListener("click", () => {
+    delete state.placeNotesByKey[item.placeKey];
+    persistPlaceNotes();
+    showToast("메모를 삭제했어요.");
+    openDetail(id);
+    render();
+  });
   detailBody.querySelector("#calendarDetail")?.addEventListener("click", () => showToast("캘린더 추가 화면을 열고 있어요."));
+  detailBody.querySelectorAll("[data-report-photo]").forEach((button) => button.addEventListener("click", () => openPhotoReport(button.dataset.reportPhoto, item.placeKey)));
+  const uploadPhotoButton = detailBody.querySelector("#uploadPlacePhoto");
+  if (uploadPhotoButton) {
+    void photoUploadsAvailable().then((available) => {
+      if (!uploadPhotoButton.isConnected) return;
+      uploadPhotoButton.disabled = !available;
+      uploadPhotoButton.textContent = available ? (itemImageKind(item) === "actual" ? "사진 추가" : "이 장소 사진 올리기") : "사진 업로드 준비 중";
+      if (available) uploadPhotoButton.addEventListener("click", () => openPhotoUploadDialog(item));
+    });
+  }
   detailBody.querySelectorAll("[data-alternative-id]").forEach((button) => {
     button.addEventListener("click", () => {
       state.selectedId = button.dataset.alternativeId;
@@ -3026,8 +3516,14 @@ document.querySelector("#regionFilter").addEventListener("change", (event) => {
   render();
 });
 
-document.querySelector("#ageFilter").addEventListener("change", (event) => {
-  state.age = event.target.value;
+document.querySelector("#addChildAge").addEventListener("click", () => {
+  if (state.childAgesMonths.length >= 8) {
+    showToast("아이 나이는 최대 8명까지 추가할 수 있어요.");
+    return;
+  }
+  state.childAgesMonths.push(24);
+  persistChildAges();
+  renderChildAgeRows();
   render();
 });
 
@@ -3094,7 +3590,8 @@ function resetFilters() {
   state.date = "today";
   state.distance = "10";
   state.region = "all";
-  state.age = "toddler";
+  state.childAgesMonths = [];
+  persistChildAges();
   state.type = "all";
   state.setting = "all";
   state.price = "all";
@@ -3108,7 +3605,7 @@ function resetFilters() {
   document.querySelector("#dateFilter").value = "today";
   document.querySelector("#distanceFilter").value = "10";
   document.querySelector("#regionFilter").value = "all";
-  document.querySelector("#ageFilter").value = "toddler";
+  renderChildAgeRows();
   document.querySelector("#typeFilter").value = "all";
   document.querySelector("#settingFilter").value = "all";
   document.querySelector("#priceFilter").value = "all";
@@ -3182,6 +3679,31 @@ feedbackForm.querySelectorAll(".feedback-field input, .feedback-field textarea")
       feedbackStatus.textContent = "";
     }
   });
+});
+
+document.querySelector("#placePhotoFile").addEventListener("change", (event) => {
+  const file = event.target.files?.[0];
+  if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+  photoPreviewUrl = "";
+  if (!file) {
+    photoPreview.hidden = true;
+    photoPreviewImage.removeAttribute("src");
+    return;
+  }
+  photoPreviewUrl = URL.createObjectURL(file);
+  photoPreviewImage.src = photoPreviewUrl;
+  photoPreview.hidden = false;
+  photoUploadStatus.textContent = "";
+  photoUploadStatus.classList.remove("is-error");
+});
+photoUploadForm.addEventListener("submit", submitPlacePhoto);
+document.querySelectorAll("[data-photo-upload-close]").forEach((button) => button.addEventListener("click", () => photoUploadDialog.close()));
+photoUploadDialog.addEventListener("click", (event) => { if (event.target === photoUploadDialog) photoUploadDialog.close(); });
+photoUploadDialog.addEventListener("close", () => {
+  setPhotoUploadBackgroundInert(false);
+  if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+  photoPreviewUrl = "";
+  activePhotoUploadItem = null;
 });
 
 document.querySelector("#closeDialog").addEventListener("click", () => {

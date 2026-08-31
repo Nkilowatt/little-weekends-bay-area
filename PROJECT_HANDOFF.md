@@ -1,16 +1,17 @@
 # Project Handoff
 
-Last updated: 2026-08-04
+Last updated: 2026-08-30
 
 ## Product
 
-Little Weekends Bay Area is a prototype for parents of 1-3 year olds in the Bay Area who want a quick, trustworthy way to find toddler-friendly outings.
+Little Weekends Bay Area is a prototype for Bay Area parents of children ages 0–6 who want a quick, trustworthy way to find outings that fit every child in the family.
 
 The core experience is:
 
 - Browse a curated list of storytimes, parks, indoor play, museums, and seasonal outings.
 - Switch between list, map, and split views.
-- Filter by date, distance, region, age, category, indoor/outdoor, price, event time, reservation burden, and known bathroom or stroller information.
+- Add each child's age in years and months, then filter by date, distance, region, category, indoor/outdoor, price, event time, reservation burden, and known bathroom or stroller information.
+- Keep private notes for a place in the current browser and submit place photos for private moderation before publication.
 - Open a detail panel with practical parent notes such as parking, bathrooms, stroller fit, age range, reservation status, and official source link.
 
 ## Current Deployment
@@ -42,15 +43,15 @@ The current basemap is intentionally lightweight:
 
 ## Current P0 Decision Baseline
 
-- Results default to activities overlapping the 12-47 month range.
-- Parents can filter specifically for age 1, 2, or 3.
+- With no child ages selected, results include activities overlapping 0–83 months.
+- Parents can store up to eight child ages in month-level precision; a default result must fit every selected child, while partial-fit alternatives are labelled separately.
 - Location can be set to San Mateo, Redwood City, San Francisco, Palo Alto, Menlo Park, Mountain View, Sunnyvale, Cupertino, Santa Clara, Campbell, Los Gatos, San Jose, or Oakland without storing an exact address.
 - Distances, distance filtering, map origin, and nearest sorting recalculate from the selected location.
 - Recommended sorting scores age specificity, distance, time, source confidence, cost, and reservation burden while pushing repeated series below unique options.
 - Trust is structured as `human_verified`, `source_confirmed`, `recheck`, or `stale`; automatic source parsing is not presented as human verification.
 - The evergreen catalog contains 57 human-reviewed places across five Bay Area regions.
 - Automatic events include `endAt`; API and client checks remove completed programs. Missing end times use 90 minutes, date-only events remain through the Pacific calendar day, and the visible list is re-evaluated on tab return and every 60 seconds.
-- Redwood City 11:59 PM placeholder endings are normalized to 120 minutes for music, performances, and movies or 90 minutes for other single programs. `SOURCE_DATA_REVISION` is 10 so existing D1 rows are refreshed for the regional pagination, current-layout parser, and new-library-source fixes.
+- Redwood City 11:59 PM placeholder endings are normalized to 120 minutes for music, performances, and movies or 90 minutes for other single programs. `SOURCE_DATA_REVISION` is 11 so existing D1 rows are refreshed for stable place keys and the 0–6 catalog expansion.
 - Source status is current when that source has a recent successful sync at the current data revision. A source whose official calendar is valid but has no matching future events can therefore remain healthy instead of creating a false failure. Partial coverage is shown as `partial`, and stale-source events become `recheck`.
 - On-demand recovery has a 30-second cooldown and records `syncing` before network fetches to limit repeated external calls and abuse.
 - On-demand recovery retries only unhealthy sources. The production Codex automation opens a cache-busted API URL daily, which guarantees at least daily refresh evaluation even when visitor traffic is low; a full refresh runs whenever the six-hour freshness window has elapsed.

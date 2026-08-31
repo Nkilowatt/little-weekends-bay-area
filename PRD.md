@@ -1,16 +1,16 @@
-# Bay Area Toddler Outings PRD v1
+# Little Weekends 0–6 Family Outings PRD v2
 
 ## 1. Product Summary
 
-Bay Area Toddler Outings is a local discovery service for parents and caregivers of children ages 1-3 in the Bay Area. It helps them quickly find age-appropriate places and events such as library story times, seasonal events, parks, indoor play spaces, museums, farms, and community programs.
+Little Weekends is a local discovery service for parents and caregivers of children from birth through 6 years 11 months in the Bay Area. It helps them quickly find age-appropriate places and events such as library story times, seasonal events, parks, indoor play spaces, museums, farms, and community programs.
 
-The core experience is simple: open the app, see toddler-friendly options near you for today, this week, or an upcoming weekend, then switch between a list and map view to decide where to go.
+The core experience is simple: open the app, optionally add each child's age in years and months, see options that fit every child near you for today, this week, or an upcoming weekend, then switch between a list and map view to decide where to go.
 
 ## 2. Target Users
 
 ### Primary User
 
-Parents of children ages 1-3 living in the Bay Area who regularly need ideas for short, enriching outings.
+Parents of one or more children ages 0–6 living in the Bay Area who regularly need ideas for short, enriching outings.
 
 Common traits:
 
@@ -23,7 +23,7 @@ Common traits:
 ### Secondary Users
 
 - Nannies and grandparents.
-- Parents visiting the Bay Area with toddlers.
+- Parents visiting the Bay Area with babies, toddlers, and preschoolers.
 - Parent groups planning weekday or weekend meetups.
 
 ## 3. Problem
@@ -45,7 +45,7 @@ The result is decision fatigue. Parents spend valuable time searching instead of
 
 ## 4. Product Goal
 
-Make it effortless for Bay Area parents of 1-3 year olds to answer:
+Make it effortless for Bay Area parents of children ages 0–6 to answer:
 
 - Where can I take my child today?
 - What is happening this week near me?
@@ -58,7 +58,7 @@ Make it effortless for Bay Area parents of 1-3 year olds to answer:
 
 The first version should support four primary flows:
 
-1. Browse toddler-friendly outings near a selected location.
+1. Browse outings for babies, toddlers, and preschoolers near a selected location.
 2. Filter by date, distance, age fit, indoor/outdoor, free/paid, and event/place type.
 3. View results as a list or map.
 4. Open a detail page with practical parent information.
@@ -172,7 +172,7 @@ MVP filters:
 
 - Date: today, tomorrow, this weekend, custom date.
 - Distance: 1, 3, 5, 10, 25 miles.
-- Age: 1, 2, 3, or all toddler.
+- Family age: add up to eight children in years and months (0–83 months); with no ages selected show the whole 0–6 catalog, otherwise require every child to fit the activity range.
 - Type: story time, park/playground, indoor play, museum, music, seasonal, outdoor nature.
 - Price: free, paid, any.
 - Indoor/outdoor.
@@ -186,11 +186,11 @@ MVP can store this locally or in a lightweight user account depending on launch 
 
 ## 7. Differentiators
 
-Most event discovery products are too broad. This service should win by being parent-specific and toddler-specific.
+Most event discovery products are too broad. This service should win by being parent-specific and by handling the real constraints of 0–6 families, including siblings at different ages.
 
 Strong differentiators:
 
-- Age-appropriate curation for 1-3 year olds.
+- Month-level age curation for 0–6 year olds and strict multi-child fit.
 - Practical outing context, not just event titles.
 - Mixed event and place discovery.
 - Real-time freshness signals.
@@ -362,7 +362,7 @@ MVP search should support:
 1. Parents should get useful options within 10 seconds.
 2. The app should avoid overwhelming users with too many filters up front.
 3. List and map should feel like two views of the same decision, not separate modes.
-4. Every listing should explain why it is relevant to a toddler parent.
+4. Every listing should explain why it is relevant to the selected family ages.
 5. Freshness and uncertainty should be visible.
 6. The product should feel calm, practical, and trustworthy, not like a generic event marketplace.
 

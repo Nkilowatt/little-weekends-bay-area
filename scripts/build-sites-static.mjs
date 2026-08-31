@@ -26,6 +26,10 @@ const files = {
     path: "app.js",
     contentType: "application/javascript; charset=utf-8",
   },
+  "/family-state.js": {
+    path: "family-state.js",
+    contentType: "application/javascript; charset=utf-8",
+  },
   "/planning.js": {
     path: "planning.js",
     contentType: "application/javascript; charset=utf-8",
@@ -44,6 +48,14 @@ const files = {
   },
   "/styles.css": {
     path: "styles.css",
+    contentType: "text/css; charset=utf-8",
+  },
+  "/admin/photos.js": {
+    path: "admin/photos.js",
+    contentType: "application/javascript; charset=utf-8",
+  },
+  "/admin/photos.css": {
+    path: "admin/photos.css",
     contentType: "text/css; charset=utf-8",
   },
   "/assets/fonts/yeon-sung-korean-400.woff2": {
@@ -157,6 +169,8 @@ const placeImageContentTypes = {
   ".webp": "image/webp",
 };
 
+const adminPhotosHtml = await readFile(join(root, "admin/photos.html"), "utf8");
+
 for (const filename of await readdir(join(root, "assets/places"))) {
   const extension = filename.slice(filename.lastIndexOf(".")).toLowerCase();
   if (!/^[a-z0-9-]+\.(?:jpe?g|webp)$/i.test(filename)) continue;
@@ -170,8 +184,44 @@ for (const filename of await readdir(join(root, "assets/places"))) {
 const catalogContext = { window: {} };
 vm.runInNewContext(await readFile(join(root, "evergreen-outings.js"), "utf8"), catalogContext);
 vm.runInNewContext(await readFile(join(root, "park-expansion.js"), "utf8"), catalogContext);
+vm.runInNewContext(await readFile(join(root, "place-images.js"), "utf8"), catalogContext);
+const evergreenCatalog = catalogContext.window.LITTLE_WEEKENDS_EVERGREEN || [];
+const verifiedActualPlaceKeys = new Set(Object.keys(catalogContext.window.LITTLE_WEEKENDS_PLACE_IMAGES || {}));
+
+function auditAgeRange(label) {
+  const value = String(label || "").replace(/\s+/g, "");
+  const mixed = value.match(/(\d+)개월-(\d+)세/);
+  if (mixed) return { min: Number(mixed[1]), max: (Number(mixed[2]) + 1) * 12 - 1 };
+  const months = value.match(/(\d+)-(\d+)개월/);
+  if (months) return { min: Number(months[1]), max: Number(months[2]) };
+  const years = value.match(/(\d+)-(\d+)세/);
+  if (years) return { min: Number(years[1]) * 12, max: (Number(years[2]) + 1) * 12 - 1 };
+  if (/가족|전연령/.test(value)) return { min: 0, max: 216 };
+  return null;
+}
+
+const supportedRegionCities = {
+  "San Francisco": ["San Francisco"],
+  Peninsula: ["San Mateo", "South San Francisco", "San Carlos", "Palo Alto", "Menlo Park", "Half Moon Bay", "Redwood City", "Burlingame", "Belmont", "Foster City", "Millbrae", "Daly City"],
+  "South Bay": ["San Jose", "Cupertino", "Santa Clara", "Sunnyvale", "Mountain View", "Campbell", "Los Gatos", "Milpitas"],
+  "East Bay": ["Oakland", "Berkeley", "Walnut Creek", "Fremont", "Hayward", "Alameda", "Concord", "Pleasanton", "Richmond"],
+  "North Bay": ["Sausalito", "Sonoma", "Marin", "Novato", "San Rafael", "Napa", "Petaluma", "Greenbrae", "Larkspur"],
+};
+
+for (const [region, cities] of Object.entries(supportedRegionCities)) {
+  const officialPlaces = evergreenCatalog.filter((place) => (
+    cities.some((city) => String(place.city || "").includes(city))
+    && /^https:\/\//.test(String(place.source || ""))
+  ));
+  const missingMonths = Array.from({ length: 84 }, (_, month) => month).filter((month) => !officialPlaces.some((place) => {
+    const range = auditAgeRange(place.age);
+    return range && range.min <= month && month <= range.max;
+  }));
+  if (missingMonths.length) throw new Error(`${region} evergreen age coverage is missing months: ${missingMonths.join(", ")}`);
+}
+
 const placeImageCatalog = Object.fromEntries(
-  (catalogContext.window.LITTLE_WEEKENDS_EVERGREEN || [])
+  evergreenCatalog
     .filter((place) => (
       /^[a-z0-9-]{1,220}$/i.test(String(place.id || ""))
       && place.name
@@ -184,6 +234,7 @@ const placeImageCatalog = Object.fromEntries(
         name: String(place.name).slice(0, 180),
         city: String(place.city || "Bay Area").slice(0, 100),
         address: String(place.address || "").slice(0, 220),
+        hasVerifiedActualPhoto: verifiedActualPlaceKeys.has(place.id),
         location: {
           lat: Number(place.location.lat),
           lng: Number(place.location.lng),
@@ -197,7 +248,7 @@ const securityHeaders = {
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Content-Security-Policy":
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests",
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
 };
 
@@ -220,10 +271,12 @@ const workerSource = `import { handleCalendarRequest } from "./calendar.js";
 import { getOutingsResponse, refreshOutings } from "./event-sync.js";
 import { handleFeedbackRequest } from "./feedback.js";
 import { handlePlaceImageRequest } from "./place-images.js";
+import { adminPhotoPageResponse, handlePlacePhotoRequest, purgeExpiredPlacePhotos } from "./place-photos.js";
 import { handleSharedPlanRequest } from "./shared-plans.js";
 
 const entries = ${JSON.stringify(entries)};
 const placeImageCatalog = ${JSON.stringify(placeImageCatalog)};
+const adminPhotosHtml = ${JSON.stringify(adminPhotosHtml)};
 const securityHeaders = ${JSON.stringify(securityHeaders)};
 
 function headers(contentType) {
@@ -238,6 +291,10 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname.endsWith("/") && url.pathname !== "/" ? url.pathname.slice(0, -1) : url.pathname;
     if (pathname === "/api/outings") return getOutingsResponse(request, env, context);
+    const adminPageResponse = adminPhotoPageResponse(request, env, adminPhotosHtml);
+    if (adminPageResponse) return adminPageResponse;
+    const placePhotoResponse = await handlePlacePhotoRequest(request, env, placeImageCatalog);
+    if (placePhotoResponse) return placePhotoResponse;
     const placeImageResponse = await handlePlaceImageRequest(request, env, placeImageCatalog);
     if (placeImageResponse) return placeImageResponse;
     const calendarResponse = handleCalendarRequest(request);
@@ -265,7 +322,7 @@ export default {
     });
   },
   async scheduled(controller, env, context) {
-    context.waitUntil(refreshOutings(env, true));
+    context.waitUntil(Promise.all([refreshOutings(env, true), purgeExpiredPlacePhotos(env)]));
   },
 };
 `;
@@ -277,6 +334,7 @@ await copyFile(join(root, "worker/calendar.js"), join(root, "dist/server/calenda
 await copyFile(join(root, "worker/event-sync.js"), join(root, "dist/server/event-sync.js"));
 await copyFile(join(root, "worker/feedback.js"), join(root, "dist/server/feedback.js"));
 await copyFile(join(root, "worker/place-images.js"), join(root, "dist/server/place-images.js"));
+await copyFile(join(root, "worker/place-photos.js"), join(root, "dist/server/place-photos.js"));
 await copyFile(join(root, "worker/shared-plans.js"), join(root, "dist/server/shared-plans.js"));
 const hostingOutputPath = join(root, "dist/.openai/hosting.json");
 await mkdir(dirname(hostingOutputPath), { recursive: true });

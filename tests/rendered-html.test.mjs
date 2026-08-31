@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import vm from "node:vm";
 
-import { ageRangeFromLabel, dateBucket } from "../worker/event-sync.js";
+import { ageRangeFromLabel, dateBucket, placeKeyForVenue } from "../worker/event-sync.js";
 
 const root = new URL("../", import.meta.url);
 
@@ -11,8 +11,9 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   const html = await readFile(new URL("index.html", root), "utf8");
 
   assert.match(html, /rel="canonical" href="https:\/\/little-weekends-bay-area\.cashmire2\.chatgpt\.site\/"/);
-  assert.match(html, /id="ageFilter"/);
-  assert.match(html, /value="toddler">1-3세/);
+  assert.match(html, /id="addChildAge"/);
+  assert.match(html, /id="childAgeRows"/);
+  assert.match(html, /id="familyAgeEmpty"[^>]*>나이를 추가하지 않으면 0–6세 전체/);
   assert.match(html, /id="locationDialog"/);
   assert.match(html, /data-location-key="oakland"/);
   assert.match(html, /data-location-key="redwood-city"/);
@@ -36,6 +37,9 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /id="feedbackDialog"/);
   assert.match(html, /id="feedbackForm"/);
   assert.match(html, /name="category" value="place_request"/);
+  assert.match(html, /name="category" value="photo_report"/);
+  assert.match(html, /id="photoUploadDialog"/);
+  assert.match(html, /id="placePhotoFile"[^>]*accept="image\/jpeg,image\/png,image\/webp"/);
   assert.match(html, /id="feedbackMessage"/);
   assert.match(html, /id="feedbackEmail"/);
   assert.match(html, /class="footer-feedback"[\s\S]*의견 보내기/);
@@ -44,11 +48,12 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /evergreen-outings\.js\?v=10/);
   assert.match(html, /park-expansion\.js\?v=2/);
   assert.match(html, /place-images\.js\?v=1/);
-  assert.match(html, /styles\.css\?v=31/);
+  assert.match(html, /styles\.css\?v=32/);
   assert.match(html, /yeon-sung-korean-400\.woff2\?v=1/);
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=4/);
-  assert.match(html, /app\.js\?v=37/);
+  assert.match(html, /family-state\.js\?v=1/);
+  assert.match(html, /app\.js\?v=38/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
@@ -82,7 +87,8 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /id="copyAddress"/);
   assert.match(script, /function shareOuting\(item\)/);
   assert.match(script, /const calendarHref = buildCalendarUrl\(item, detailUrl\)/);
-  assert.doesNotMatch(script, /URL\.createObjectURL/);
+  assert.match(script, /URL\.createObjectURL/);
+  assert.match(script, /URL\.revokeObjectURL/);
   assert.match(script, /function openPendingOuting\(\)/);
   assert.match(script, /groupSavedItems\(items, pacificDateKey\(\)\)/);
   assert.match(script, /little-weekends-nap-window/);
@@ -119,9 +125,17 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /function mobileMomentScene\(\)/);
   assert.match(script, /function syncMobileMoment\(\)/);
   assert.match(script, /filterOpen: false/);
-  assert.match(script, /function openFeedbackDialog\(\)/);
+  assert.match(script, /function openFeedbackDialog\(report = null\)/);
   assert.match(script, /fetch\("\/api\/feedback"/);
   assert.match(script, /function feedbackContext\(\)/);
+  assert.match(script, /little-weekends-child-ages:v1/);
+  assert.match(script, /little-weekends-place-notes:v1/);
+  assert.match(script, /little-weekends-photo-submissions:v1/);
+  assert.match(script, /familyAgeMatches\(item\.minAgeMonths, item\.maxAgeMonths, state\.childAgesMonths\)/);
+  assert.match(script, /아이 \$\{state\.childAgesMonths\.length\}명 중 \$\{count\}명에게 맞아요/);
+  assert.match(script, /fetch\("\/api\/place-photos"/);
+  assert.match(script, /X-Photo-Manage-Token/);
+  assert.match(script, /age: state\.childAgesMonths\.length \? "family-age-filter-active" : "all-preschool"/);
   assert.doesNotMatch(script, /context:[\s\S]{0,300}window\.location\.search/);
   assert.match(script, /function setFilterPanelOpen\(open, \{ restoreFocus = false \} = \{\}\)/);
   assert.match(script, /const shouldRenderMap = visibleView === "map" \|\| visibleView === "split"/);
@@ -141,6 +155,31 @@ test("age labels normalize to month ranges", () => {
   assert.deepEqual(ageRangeFromLabel("가족·전 연령"), { minAgeMonths: 0, maxAgeMonths: 216 });
 });
 
+test("family ages enforce 0–83 month boundaries and all-child matching", async () => {
+  const context = {};
+  context.globalThis = context;
+  vm.runInNewContext(await readFile(new URL("family-state.js", root), "utf8"), context);
+  const family = context.LittleWeekendsFamilyState;
+
+  assert.deepEqual(Array.from(family.normalizeChildAges([0, 83, 84, -1, "24", 1.5])), [0, 83, 24]);
+  assert.deepEqual(Array.from(family.normalizeChildAges({ corrupted: true })), []);
+  assert.equal(family.familyAgeMatches(0, 83, []), true);
+  assert.equal(family.familyAgeMatches(12, 83, []), true);
+  assert.equal(family.familyAgeMatches(84, 143, []), false);
+  assert.equal(family.familyAgeMatches(0, 83, [0, 83]), true);
+  assert.equal(family.familyAgeMatches(12, 47, [24, 60]), false);
+  assert.equal(family.familyAgeMatchCount(12, 47, [24, 60]), 1);
+});
+
+test("event place keys are stable across repeat events and distinguish addresses", () => {
+  const first = placeKeyForVenue("Foster City Library", "1000 E Hillsdale Blvd.", "Foster City");
+  const repeated = placeKeyForVenue("  FOSTER CITY LIBRARY ", "1000 E Hillsdale Blvd", "foster city");
+  const otherAddress = placeKeyForVenue("Foster City Library", "999 E Hillsdale Blvd", "Foster City");
+  assert.equal(first, repeated);
+  assert.notEqual(first, otherAddress);
+  assert.equal(placeKeyForVenue("", "", "Foster City"), "");
+});
+
 test("event date buckets retain Pacific-day semantics", () => {
   const now = new Date("2026-07-12T16:00:00.000Z");
 
@@ -154,10 +193,12 @@ test("Sites build contains the event API and security policy", async () => {
   const placeImages = await readFile(new URL("dist/server/place-images.js", root), "utf8");
   const sharedPlans = await readFile(new URL("dist/server/shared-plans.js", root), "utf8");
   const feedback = await readFile(new URL("dist/server/feedback.js", root), "utf8");
+  const placePhotos = await readFile(new URL("dist/server/place-photos.js", root), "utf8");
   const migration = await readFile(new URL("drizzle/0003_shared_plans.sql", root), "utf8");
   const locationMigration = await readFile(new URL("drizzle/0004_event_location.sql", root), "utf8");
   const placeImageMigration = await readFile(new URL("drizzle/0005_place_image_sources.sql", root), "utf8");
   const feedbackMigration = await readFile(new URL("drizzle/0006_feedback_submissions.sql", root), "utf8");
+  const familyMigration = await readFile(new URL("drizzle/0007_family_places_photos.sql", root), "utf8");
 
   assert.match(worker, /pathname === "\/api\/outings"/);
   assert.match(worker, /handleCalendarRequest/);
@@ -165,9 +206,13 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(worker, /"\/park-expansion\.js"/);
   assert.match(worker, /"\/place-images\.js"/);
   assert.match(worker, /"\/planning\.js"/);
+  assert.match(worker, /"\/family-state\.js"/);
   assert.match(worker, /handleSharedPlanRequest/);
   assert.match(worker, /handleFeedbackRequest/);
   assert.match(worker, /handlePlaceImageRequest/);
+  assert.match(worker, /handlePlacePhotoRequest/);
+  assert.match(worker, /adminPhotoPageResponse/);
+  assert.match(worker, /purgeExpiredPlacePhotos/);
   assert.match(worker, /placeImageCatalog/);
   assert.match(worker, /connect-src 'self'/);
   assert.match(eventSync, /min_age_months/);
@@ -177,6 +222,7 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(eventSync, /address/);
   assert.match(eventSync, /active_event_count/);
   assert.match(eventSync, /data_revision/);
+  assert.match(eventSync, /place_key/);
   assert.match(eventSync, /REFRESH_ATTEMPT_COOLDOWN_MS/);
   assert.match(eventSync, /targetSources = force \? sources/);
   assert.match(eventSync, /events\.length \? "public, max-age=300/);
@@ -188,6 +234,10 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(placeImages, /GOOGLE_MAPS_API_KEY/);
   assert.match(feedback, /feedback_submissions/);
   assert.match(feedback, /ON CONFLICT\(request_id\) DO NOTHING/);
+  assert.match(placePhotos, /PHOTO_UPLOADS_ENABLED/);
+  assert.match(placePhotos, /status IN \('pending', 'approved', 'rejected', 'withdrawn', 'expired'\)/);
+  assert.match(placePhotos, /format: "image\/webp"/);
+  assert.match(placePhotos, /PHOTO_REVIEWER_EMAILS/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS shared_plans/);
   assert.match(migration, /FOREIGN KEY \(plan_token, item_id\)/);
   assert.match(locationMigration, /ADD COLUMN venue_name/);
@@ -196,6 +246,9 @@ test("Sites build contains the event API and security policy", async () => {
   assert.match(placeImageMigration, /google_place_id/);
   assert.match(feedbackMigration, /CREATE TABLE IF NOT EXISTS `feedback_submissions`/);
   assert.match(feedbackMigration, /status_created_idx/);
+  assert.match(familyMigration, /ADD COLUMN `place_key`/);
+  assert.match(familyMigration, /CREATE TABLE `place_photo_submissions`/);
+  assert.match(familyMigration, /place_status_featured_idx/);
 });
 
 test("Sites build serves both Korean webfonts", async () => {
@@ -221,8 +274,28 @@ test("Sites build serves public terms and privacy pages for map content", async 
     assert.equal(response.headers.get("content-type"), "text/html; charset=utf-8");
     const html = await response.text();
     assert.match(html, /Google/);
-    assert.match(html, /styles\.css\?v=31/);
+    assert.match(html, /방문자 사진/);
+    assert.match(html, /styles\.css\?v=32/);
   }
+});
+
+test("photo moderation page requires ChatGPT login and the exact reviewer allowlist", async () => {
+  const { default: worker } = await import(new URL("../dist/server/index.js", import.meta.url));
+  const env = { PHOTO_REVIEWER_EMAILS: "owner@example.com" };
+  const anonymous = await worker.fetch(new Request("https://little-weekends.test/admin/photos"), env, {});
+  assert.equal(anonymous.status, 302);
+  assert.match(anonymous.headers.get("location"), /signin-with-chatgpt/);
+
+  const forbidden = await worker.fetch(new Request("https://little-weekends.test/admin/photos", {
+    headers: { "oai-authenticated-user-email": "other@example.com", "oai-authenticated-user-id": "user-2" },
+  }), env, {});
+  assert.equal(forbidden.status, 403);
+
+  const allowed = await worker.fetch(new Request("https://little-weekends.test/admin/photos", {
+    headers: { "oai-authenticated-user-email": "owner@example.com", "oai-authenticated-user-id": "user-1" },
+  }), env, {});
+  assert.equal(allowed.status, 200);
+  assert.match(await allowed.text(), /방문자 사진 검수/);
 });
 
 test("Sites build serves calendar actions as real ICS responses", async () => {

@@ -10,6 +10,7 @@ export const events = sqliteTable("events", {
   endAt: text("end_at"),
   venueName: text("venue_name").notNull().default(""),
   address: text("address").notNull().default(""),
+  placeKey: text("place_key").notNull().default(""),
   city: text("city").notNull(),
   distance: real("distance").notNull(),
   age: text("age").notNull(),
@@ -27,7 +28,9 @@ export const events = sqliteTable("events", {
   confidenceStatus: text("confidence_status").notNull().default("source_confirmed"),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   lastSeenAt: text("last_seen_at").notNull(),
-});
+}, (table) => [
+  index("events_place_key_idx").on(table.placeKey),
+]);
 
 export const syncState = sqliteTable("sync_state", {
   sourceKey: text("source_key").primaryKey(),
@@ -85,4 +88,30 @@ export const feedbackSubmissions = sqliteTable("feedback_submissions", {
   createdAt: text("created_at").notNull(),
 }, (table) => [
   index("feedback_submissions_status_created_idx").on(table.status, table.createdAt),
+]);
+
+export const placePhotoSubmissions = sqliteTable("place_photo_submissions", {
+  id: text("id").primaryKey(),
+  requestId: text("request_id").notNull().unique(),
+  placeKey: text("place_key").notNull(),
+  placeName: text("place_name").notNull(),
+  objectKey: text("object_key"),
+  status: text("status").notNull(),
+  contentType: text("content_type").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  takenOn: text("taken_on"),
+  deviceHash: text("device_hash").notNull(),
+  manageTokenHash: text("manage_token_hash").notNull(),
+  consentVersion: text("consent_version").notNull(),
+  consentAt: text("consent_at").notNull(),
+  createdAt: text("created_at").notNull(),
+  reviewedAt: text("reviewed_at"),
+  reviewerUserId: text("reviewer_user_id"),
+  rejectionReason: text("rejection_reason"),
+  isFeatured: integer("is_featured", { mode: "boolean" }).notNull().default(false),
+  deletedAt: text("deleted_at"),
+}, (table) => [
+  index("place_photo_submissions_status_created_idx").on(table.status, table.createdAt),
+  index("place_photo_submissions_place_status_featured_idx").on(table.placeKey, table.status, table.isFeatured, table.reviewedAt),
+  index("place_photo_submissions_device_created_idx").on(table.deviceHash, table.createdAt),
 ]);

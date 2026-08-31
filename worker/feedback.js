@@ -1,7 +1,7 @@
 const MAX_BODY_BYTES = 16384;
 const MAX_MESSAGE_LENGTH = 1200;
 const MAX_EMAIL_LENGTH = 254;
-const CATEGORY_VALUES = new Set(["place_request", "improvement", "correction", "other"]);
+const CATEGORY_VALUES = new Set(["place_request", "improvement", "correction", "photo_report", "other"]);
 const REQUEST_ID_PATTERN = /^[0-9a-f-]{36}$/i;
 
 function jsonResponse(payload, status = 200, extraHeaders = {}) {
@@ -64,6 +64,8 @@ function safeContext(value) {
     locationKey: safeSingleLine(context.locationKey, 80),
     locationName: safeSingleLine(context.locationName, 100),
     outingId: safeSingleLine(context.outingId, 220),
+    photoId: safeSingleLine(context.photoId, 80),
+    placeKey: safeSingleLine(context.placeKey, 220),
     sharedPlan: Boolean(context.sharedPlan),
     filters: Object.fromEntries(
       ["date", "distance", "region", "age", "type", "setting", "price", "time", "reservation", "discoveryMode"]

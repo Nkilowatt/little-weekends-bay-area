@@ -1,6 +1,6 @@
 # Little Weekends Bay Area
 
-Working alpha for a Bay Area toddler outings service. It helps parents of 1-3 year olds browse toddler-friendly story times, parks, indoor play, museums, and seasonal activities through list and map views.
+Working alpha for Bay Area families with children from birth through age 6. It helps parents compare age-appropriate story times, parks, indoor play, museums, and seasonal activities through list and map views.
 
 ## Primary Service
 
@@ -11,7 +11,7 @@ Working alpha for a Bay Area toddler outings service. It helps parents of 1-3 ye
 
 The UI remains lightweight HTML, CSS, and JavaScript. OpenAI Sites serves those assets and the same-origin event API. A static fallback remains available when the API is delayed.
 
-The current experience includes structured 1-3 age filtering, selectable Bay Area origin hubs including San Francisco, Redwood City, Menlo Park, Palo Alto, Mountain View, Sunnyvale, Cupertino, Santa Clara, Campbell, and Los Gatos, event-first date groups, a dedicated no-event-needed discovery mode, region/time/reservation/amenity filters, concise recommendation reasons, actionable empty states, nearby alternatives, sharing, and 128 human-reviewed evergreen places across the Bay Area. Fourteen named destinations use manually matched, reusable-license actual-place photos with visible creator, license, and original-source attribution. Remaining destinations can use Google Places photos and then Google Street View through a same-origin server endpoint when `GOOGLE_MAPS_API_KEY` is configured. Only matched Google Place IDs are retained in D1; photo responses and photo resource names are not stored. If no actual-place source is available, the existing category fallback remains and is explicitly labeled `활동 예시`. Mobile discovery keeps search visible, uses a compact hero, and prioritizes directions and official information in the detail action bar. A nine-scene contextual photo banner adds a warmer family moment without implying that generated activity imagery depicts a named venue; its scene stays stable for the same Pacific date, origin city, and discovery context.
+The current experience includes per-child year-and-month filtering for ages 0–6, strict all-children matching with clearly separated partial-fit alternatives, selectable Bay Area origin hubs, event-first date groups, a dedicated no-event-needed discovery mode, region/time/reservation/amenity filters, local-only private place notes, sharing, and 128 human-reviewed evergreen places. Approved visitor photos can augment the existing actual-place, Google Places, Street View, and clearly labelled activity-example image tiers. Visitor uploads are privately re-encoded and moderated before publication; the first deployment keeps uploads disabled until R2 and the reviewer allowlist are verified.
 
 The old Netlify URL is a legacy entry point. Once the current Git history is reconciled and pushed, Netlify will redirect visitors to the OpenAI Sites deployment.
 

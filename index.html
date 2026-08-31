@@ -5,21 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title>Little Weekends Bay Area</title>
-    <meta name="description" content="오늘 아이와 갈 만한 Bay Area 나들이를 시간, 거리, 준비 정보로 빠르게 비교하세요." />
+    <meta name="description" content="0–6세 아이들과 갈 만한 Bay Area 나들이를 가족 연령, 시간, 거리, 준비 정보로 빠르게 비교하세요." />
     <meta property="og:title" content="Little Weekends Bay Area" />
-    <meta property="og:description" content="영유아 가족을 위한 빠르고 믿을 수 있는 Bay Area 나들이 가이드." />
+    <meta property="og:description" content="0–6세 영유아·미취학 가족을 위한 빠르고 믿을 수 있는 Bay Area 나들이 가이드." />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://little-weekends-bay-area.cashmire2.chatgpt.site/og.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Little Weekends Bay Area" />
-    <meta name="twitter:description" content="영유아 가족을 위한 빠르고 믿을 수 있는 Bay Area 나들이 가이드." />
+    <meta name="twitter:description" content="0–6세 영유아·미취학 가족을 위한 빠르고 믿을 수 있는 Bay Area 나들이 가이드." />
     <meta name="twitter:image" content="https://little-weekends-bay-area.cashmire2.chatgpt.site/og.png" />
     <link rel="canonical" href="https://little-weekends-bay-area.cashmire2.chatgpt.site/" />
     <link rel="icon" href="favicon.svg" />
     <link rel="preload" as="image" href="assets/photos/bay-family-hero.webp" media="(min-width: 769px)" fetchpriority="high" />
     <link rel="preload" as="font" type="font/woff2" href="assets/fonts/yeon-sung-korean-400.woff2?v=1" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="assets/fonts/lee-seoyun-korean-400.woff2?v=1" crossorigin />
-    <link rel="stylesheet" href="styles.css?v=31" />
+    <link rel="stylesheet" href="styles.css?v=32" />
   </head>
   <body>
     <a class="skip-link" href="#cards">추천 목록으로 건너뛰기</a>
@@ -115,7 +115,14 @@
               <label>시간대<select id="timeFilter"><option value="all">전체 시간대</option><option value="morning">오전 일정</option><option value="afternoon">오후 일정</option><option value="evening">저녁 일정</option></select></label>
             </div></fieldset>
             <fieldset><legend>아이와 준비</legend><div class="filter-group-grid">
-              <label>아이 나이<select id="ageFilter"><option value="toddler">1-3세</option><option value="age1">1세</option><option value="age2">2세</option><option value="age3">3세</option><option value="all">전체 연령</option></select></label>
+              <section class="family-age-filter" aria-labelledby="familyAgeTitle">
+                <div class="family-age-heading">
+                  <span><strong id="familyAgeTitle">우리 아이 나이</strong><small>모든 아이에게 맞는 곳만 보여드려요.</small></span>
+                  <button class="text-button" id="addChildAge" type="button">아이 추가</button>
+                </div>
+                <div class="child-age-rows" id="childAgeRows" aria-live="polite"></div>
+                <p class="family-age-empty" id="familyAgeEmpty">나이를 추가하지 않으면 0–6세 전체 추천을 볼 수 있어요.</p>
+              </section>
               <label>유형<select id="typeFilter"><option value="all">전체</option><option value="storytime">스토리타임</option><option value="park">공원 및 놀이터</option><option value="indoor">실내 놀이</option><option value="museum">뮤지엄</option><option value="seasonal">시즌 이벤트</option></select></label>
               <label>환경<select id="settingFilter"><option value="all">전체</option><option value="indoor">실내</option><option value="outdoor">야외</option></select></label>
               <label>비용<select id="priceFilter"><option value="all">전체</option><option value="free">무료</option><option value="paid">유료</option></select></label>
@@ -194,6 +201,34 @@
       <button class="dialog-close" id="closeSharePlanDialog" type="button" aria-label="공유 링크 닫기">닫기</button>
       <section class="share-plan-sheet" id="sharePlanBody" aria-live="polite"></section>
     </dialog>
+    <dialog class="photo-upload-dialog" id="photoUploadDialog" aria-labelledby="photoUploadTitle">
+      <button class="dialog-close" type="button" data-photo-upload-close aria-label="사진 올리기 닫기">닫기</button>
+      <section class="photo-upload-sheet">
+        <header class="photo-upload-heading">
+          <p>방문자 장소 사진</p>
+          <h2 id="photoUploadTitle">사진 올리기</h2>
+          <span id="photoUploadPlaceName"></span>
+        </header>
+        <form id="photoUploadForm" novalidate>
+          <label class="photo-file-picker" for="placePhotoFile">
+            <input id="placePhotoFile" name="photo" type="file" accept="image/jpeg,image/png,image/webp" required />
+            <span><strong>사진 선택</strong><small>JPEG, PNG, WebP · 최대 10MB</small></span>
+          </label>
+          <div class="photo-preview" id="photoPreview" hidden><img id="photoPreviewImage" alt="업로드할 사진 미리보기" /></div>
+          <label class="photo-date-field" for="photoTakenOn"><span>촬영일 <small>선택</small></span><input id="photoTakenOn" name="takenOn" type="date" /></label>
+          <fieldset class="photo-consents">
+            <legend>공개 전 확인</legend>
+            <label><input name="rightsConfirmed" type="checkbox" required /><span>제가 촬영했거나 이 사진을 제출할 권리가 있어요.</span></label>
+            <label><input name="peopleConsentConfirmed" type="checkbox" required /><span>식별 가능한 모든 사람과 미성년자의 보호자에게 공개 동의를 받았어요.</span></label>
+            <label><input name="publicLicenseConfirmed" type="checkbox" required /><span>검수 후 Little Weekends에서 이 장소 사진으로 공개하는 데 동의해요.</span></label>
+          </fieldset>
+          <p class="photo-upload-policy">위치와 기기 정보가 담긴 사진 메타데이터는 제거해요. 승인 전에는 다른 사용자에게 보이지 않습니다.</p>
+          <p class="photo-upload-status" id="photoUploadStatus" role="status" aria-live="polite"></p>
+          <div class="photo-upload-actions"><button class="secondary-action" type="button" data-photo-upload-close>취소</button><button class="primary-action" id="photoUploadSubmit" type="submit">검수 요청</button></div>
+        </form>
+        <section class="photo-submission-history" id="photoSubmissionHistory" aria-labelledby="photoHistoryTitle" hidden><h3 id="photoHistoryTitle">이 기기에서 올린 사진</h3><div></div></section>
+      </section>
+    </dialog>
     <dialog class="feedback-dialog" id="feedbackDialog" aria-labelledby="feedbackTitle">
       <button class="dialog-close" type="button" data-feedback-close aria-label="의견 보내기 닫기">닫기</button>
       <section class="feedback-sheet">
@@ -209,6 +244,7 @@
                 <label><input type="radio" name="category" value="place_request" checked /><span>장소·지역 요청</span></label>
                 <label><input type="radio" name="category" value="improvement" /><span>불편한 점</span></label>
                 <label><input type="radio" name="category" value="correction" /><span>정보 수정</span></label>
+                <label><input type="radio" name="category" value="photo_report" /><span>사진 신고</span></label>
                 <label><input type="radio" name="category" value="other" /><span>그 밖의 의견</span></label>
               </div>
             </fieldset>
@@ -254,6 +290,7 @@
     <script src="park-expansion.js?v=2"></script>
     <script src="place-images.js?v=1"></script>
     <script src="planning.js?v=4"></script>
-    <script src="app.js?v=37"></script>
+    <script src="family-state.js?v=1"></script>
+    <script src="app.js?v=38"></script>
   </body>
 </html>

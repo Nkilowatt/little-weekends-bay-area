@@ -48,7 +48,7 @@ Each card should show:
 - Freshness or confidence status.
 - One parent-useful reason to go.
 
-The reason line matters because parents are not just comparing events. They are deciding if the outing fits a toddler's energy, nap window, and logistics.
+The reason line matters because parents are not just comparing events. They are deciding if the outing fits every selected child's age, the family's energy, nap window, and logistics.
 
 ## Map View
 

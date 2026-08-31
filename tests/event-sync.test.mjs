@@ -308,7 +308,7 @@ test("source health accepts a recent successful empty result", () => {
     status: "ok",
     last_success_at: "2026-07-12T15:00:00.000Z",
     active_event_count: 4,
-    data_revision: 10,
+    data_revision: 11,
   };
 
   assert.equal(sourceIsCurrent(healthy, now), true);
