@@ -44,7 +44,7 @@ Visitor photo upload requires all of the following in production:
 - `PHOTO_UPLOADS_ENABLED=true`, followed by a deployment so the environment revision is applied.
 - A successful `/api/place-photos/status` response with `configured: true`.
 
-The Worker bundles JPEG, PNG, WebP, resize, and WebP-encode WebAssembly modules. It does not rely on a separately configurable Sites image-transform binding. Before leaving uploads enabled, verify a private submission can be created, remains absent from public photo results, and can be withdrawn with its management token.
+The Worker bundles JPEG, PNG, WebP, resize, and WebP-encode WebAssembly modules. It does not rely on a separately configurable Sites image-transform binding. The client accepts originals up to 30MB and automatically optimizes large or high-resolution photos before the Worker independently validates, resizes, and re-encodes them. Before leaving uploads enabled, verify a private submission can be created, remains absent from public photo results, and can be withdrawn with its management token.
 
 ## Netlify Legacy URL
 

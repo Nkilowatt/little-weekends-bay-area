@@ -74,6 +74,12 @@ function jpegFile(valid = true) {
   return new File([bytes], "visit.jpg", { type: "image/jpeg" });
 }
 
+function jpegFileWithSize(size) {
+  const bytes = new Uint8Array(size);
+  bytes.set([0xff, 0xd8, 0xff], 0);
+  return new File([bytes], "phone-original.jpg", { type: "image/jpeg" });
+}
+
 function submissionRequest(file = jpegFile(), options = {}) {
   const form = new FormData();
   form.set("photo", file);
@@ -188,6 +194,25 @@ test("uploads reject mismatched image bytes before object storage", async () => 
   const response = await handlePlacePhotoRequest(submissionRequest(jpegFile(false)), env, catalog);
   assert.equal(response.status, 400);
   assert.equal(uploads.objects.size, 0);
+});
+
+test("uploads accept phone originals above the legacy 10MB limit and reject requests above 30MB", async () => {
+  const acceptedEnvironment = environment();
+  const accepted = await handlePlacePhotoRequest(
+    submissionRequest(jpegFileWithSize(10 * 1024 * 1024 + 1024)),
+    acceptedEnvironment.env,
+    catalog,
+  );
+  assert.equal(accepted.status, 201);
+  assert.equal(acceptedEnvironment.uploads.objects.size, 1);
+
+  const rejectedEnvironment = environment();
+  const oversizedRequest = submissionRequest();
+  oversizedRequest.headers.set("content-length", String(30 * 1024 * 1024 + 65537));
+  const rejected = await handlePlacePhotoRequest(oversizedRequest, rejectedEnvironment.env, catalog);
+  assert.equal(rejected.status, 413);
+  assert.match((await rejected.json()).error, /30MB/);
+  assert.equal(rejectedEnvironment.uploads.objects.size, 0);
 });
 
 test("uploads require all consent and enforce idempotency and the daily device limit", async () => {

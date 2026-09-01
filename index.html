@@ -222,7 +222,7 @@
         <form id="photoUploadForm" novalidate>
           <label class="photo-file-picker" for="placePhotoFile">
             <input id="placePhotoFile" name="photo" type="file" accept="image/jpeg,image/png,image/webp" required />
-            <span><strong>사진 선택</strong><small>JPEG, PNG, WebP · 최대 10MB</small></span>
+            <span><strong>사진 선택</strong><small>JPEG, PNG, WebP · 원본 최대 30MB · 큰 사진은 자동 최적화</small></span>
           </label>
           <div class="photo-preview" id="photoPreview" hidden><img id="photoPreviewImage" alt="업로드할 사진 미리보기" /></div>
           <label class="photo-date-field" for="photoTakenOn"><span>촬영일 <small>선택</small></span><input id="photoTakenOn" name="takenOn" type="date" /></label>
@@ -303,6 +303,6 @@
     <script src="place-images.js?v=3"></script>
     <script src="planning.js?v=4"></script>
     <script src="family-state.js?v=1"></script>
-    <script src="app.js?v=39"></script>
+    <script src="app.js?v=40"></script>
   </body>
 </html>

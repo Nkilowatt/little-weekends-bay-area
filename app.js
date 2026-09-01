@@ -1173,6 +1173,59 @@ function clearUploadRetry() {
 
 let activePhotoUploadItem = null;
 let photoPreviewUrl = "";
+const PHOTO_SOURCE_MAX_BYTES = 30 * 1024 * 1024;
+const PHOTO_OPTIMIZE_THRESHOLD_BYTES = 8 * 1024 * 1024;
+const PHOTO_OPTIMIZE_MAX_PIXELS = 16_000_000;
+const PHOTO_OPTIMIZE_MAX_DIMENSION = 4096;
+
+function canvasBlob(canvas, type, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("사진을 자동으로 최적화하지 못했어요. 다른 사진을 선택해 주세요."));
+    }, type, quality);
+  });
+}
+
+async function preparePhotoForUpload(file) {
+  if (typeof createImageBitmap !== "function") return file;
+  let image;
+  try {
+    image = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const pixelCount = image.width * image.height;
+    const scale = Math.min(
+      1,
+      PHOTO_OPTIMIZE_MAX_DIMENSION / image.width,
+      PHOTO_OPTIMIZE_MAX_DIMENSION / image.height,
+      Math.sqrt(PHOTO_OPTIMIZE_MAX_PIXELS / pixelCount),
+    );
+    if (file.size <= PHOTO_OPTIMIZE_THRESHOLD_BYTES && scale >= 1) return file;
+
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) throw new Error("사진을 자동으로 최적화하지 못했어요. 다른 사진을 선택해 주세요.");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+
+    let blob;
+    for (const quality of [0.88, 0.8, 0.72]) {
+      blob = await canvasBlob(canvas, "image/jpeg", quality);
+      if (blob.size <= PHOTO_OPTIMIZE_THRESHOLD_BYTES) break;
+    }
+    const baseName = String(file.name || "place-photo").replace(/\.[^.]+$/, "").slice(0, 80) || "place-photo";
+    return new File([blob], `${baseName}.jpg`, { type: "image/jpeg", lastModified: file.lastModified });
+  } catch (error) {
+    if (file.size <= PHOTO_OPTIMIZE_THRESHOLD_BYTES) return file;
+    throw error;
+  } finally {
+    image?.close?.();
+  }
+}
 
 function photoStatusLabel(status) {
   return {
@@ -1277,8 +1330,8 @@ async function submitPlacePhoto(event) {
     photoUploadStatus.classList.add("is-error");
     return;
   }
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 10 * 1024 * 1024) {
-    photoUploadStatus.textContent = "JPEG, PNG, WebP 형식의 10MB 이하 사진을 선택해 주세요.";
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > PHOTO_SOURCE_MAX_BYTES) {
+    photoUploadStatus.textContent = "JPEG, PNG, WebP 형식의 30MB 이하 원본 사진을 선택해 주세요.";
     photoUploadStatus.classList.add("is-error");
     return;
   }
@@ -1287,21 +1340,22 @@ async function submitPlacePhoto(event) {
     photoUploadStatus.classList.add("is-error");
     return;
   }
-  const retry = uploadRetryFor(file, activePhotoUploadItem.placeKey);
-  const data = new FormData();
-  data.set("photo", file);
-  data.set("placeKey", activePhotoUploadItem.placeKey);
-  data.set("requestId", retry.requestId);
-  data.set("retryToken", retry.retryToken);
-  data.set("deviceId", photoDeviceId);
-  data.set("takenOn", document.querySelector("#photoTakenOn").value);
-  data.set("rightsConfirmed", "true");
-  data.set("peopleConsentConfirmed", "true");
-  data.set("publicLicenseConfirmed", "true");
   photoUploadSubmit.disabled = true;
-  photoUploadStatus.textContent = "개인정보를 제거하고 사진을 안전하게 준비하고 있어요.";
+  photoUploadStatus.textContent = "큰 사진은 자동으로 줄이고 개인정보를 제거해 안전하게 준비하고 있어요.";
   photoUploadStatus.classList.remove("is-error");
   try {
+    const preparedFile = await preparePhotoForUpload(file);
+    const retry = uploadRetryFor(file, activePhotoUploadItem.placeKey);
+    const data = new FormData();
+    data.set("photo", preparedFile);
+    data.set("placeKey", activePhotoUploadItem.placeKey);
+    data.set("requestId", retry.requestId);
+    data.set("retryToken", retry.retryToken);
+    data.set("deviceId", photoDeviceId);
+    data.set("takenOn", document.querySelector("#photoTakenOn").value);
+    data.set("rightsConfirmed", "true");
+    data.set("peopleConsentConfirmed", "true");
+    data.set("publicLicenseConfirmed", "true");
     const response = await fetch("/api/place-photos", { method: "POST", body: data });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || "사진을 올리지 못했어요.");

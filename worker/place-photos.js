@@ -1,4 +1,4 @@
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 30 * 1024 * 1024;
 const MAX_DECODED_PIXELS = 20_000_000;
 const MAX_DEVICE_UPLOADS_PER_DAY = 3;
 const MAX_PENDING_PER_PLACE = 12;
@@ -283,7 +283,7 @@ async function createSubmission(request, env, catalog) {
   if (!mutationAllowed(request)) return jsonResponse({ error: "허용되지 않은 요청이에요." }, 403);
   if (!uploadConfigured(env)) return jsonResponse({ error: "사진 업로드를 준비 중이에요." }, 503);
   const contentLength = Number(request.headers.get("content-length") || 0);
-  if (contentLength > MAX_UPLOAD_BYTES + 65536) return jsonResponse({ error: "사진은 10MB 이하만 올릴 수 있어요." }, 413);
+  if (contentLength > MAX_UPLOAD_BYTES + 65536) return jsonResponse({ error: "사진은 30MB 이하만 올릴 수 있어요." }, 413);
   await ensureSchema(env.DB);
   const form = await request.formData();
   const placeKey = safeText(form.get("placeKey"), 220);
@@ -327,9 +327,9 @@ async function createSubmission(request, env, catalog) {
   try {
     body = await transformedImage(file, env);
   } catch (error) {
-    if (error?.message === "PAYLOAD_TOO_LARGE") return jsonResponse({ error: "사진은 10MB 이하만 올릴 수 있어요." }, 413);
+    if (error?.message === "PAYLOAD_TOO_LARGE") return jsonResponse({ error: "사진은 30MB 이하만 올릴 수 있어요." }, 413);
     if (error?.message === "UNSUPPORTED_TYPE") return jsonResponse({ error: "JPEG, PNG, WebP 사진만 올릴 수 있어요." }, 415);
-    if (error?.message === "IMAGE_DIMENSIONS_TOO_LARGE") return jsonResponse({ error: "사진 해상도가 너무 커요. 기기에서 크기를 줄인 뒤 다시 올려 주세요." }, 413);
+    if (error?.message === "IMAGE_DIMENSIONS_TOO_LARGE") return jsonResponse({ error: "사진 해상도가 너무 커요. 사진을 다시 선택하면 앱이 자동으로 최적화해 드려요." }, 413);
     return jsonResponse({ error: "사진 파일을 읽지 못했어요. 다른 사진을 선택해 주세요." }, 400);
   }
 

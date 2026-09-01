@@ -43,6 +43,7 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /name="category" value="photo_report"/);
   assert.match(html, /id="photoUploadDialog"/);
   assert.match(html, /id="placePhotoFile"[^>]*accept="image\/jpeg,image\/png,image\/webp"/);
+  assert.match(html, /원본 최대 30MB · 큰 사진은 자동 최적화/);
   assert.match(html, /id="photoRecoveryCode"/);
   assert.match(html, /id="importPhotoRecovery"/);
   assert.match(html, /id="feedbackMessage"/);
@@ -58,7 +59,7 @@ test("primary HTML exposes the P0 and P1 discovery controls", async () => {
   assert.match(html, /lee-seoyun-korean-400\.woff2\?v=1/);
   assert.match(html, /planning\.js\?v=4/);
   assert.match(html, /family-state\.js\?v=1/);
-  assert.match(html, /app\.js\?v=39/);
+  assert.match(html, /app\.js\?v=40/);
   assert.match(html, /id="distanceFilter"><option value="10">10 mi/);
   assert.match(html, /id="mobileMoment" hidden/);
   assert.match(html, /id="mobileMomentImage" alt="" width="1200" height="600"/);
@@ -138,6 +139,8 @@ test("client bundle includes decision filters, recovery actions, and detail alte
   assert.match(script, /little-weekends-photo-submissions:v1/);
   assert.match(script, /little-weekends-photo-upload-retry:v1/);
   assert.match(script, /function uploadRetryFor\(file, placeKey\)/);
+  assert.match(script, /PHOTO_SOURCE_MAX_BYTES = 30 \* 1024 \* 1024/);
+  assert.match(script, /async function preparePhotoForUpload\(file\)/);
   assert.match(script, /data\.set\("retryToken", retry\.retryToken\)/);
   assert.match(script, /pendingChildAgeDraft = \{ years: "", months: "" \}/);
   assert.doesNotMatch(script, /state\.childAgesMonths\.push\(24\)/);
